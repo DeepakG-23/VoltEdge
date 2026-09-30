@@ -1,0 +1,6 @@
+{
+  "name": "VoltEdge — Premium Mobile Accessories",
+  "description": "Engineered mobile accessories for peak performance. Shop MagSafe power banks, GaN fast chargers, ANC earbuds, and precision cases.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
