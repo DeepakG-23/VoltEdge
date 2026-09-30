@@ -144,12 +144,10 @@ export const LoginOtpView: React.FC<LoginOtpViewProps> = ({
     setTimeout(() => {
       setIsLoggingIn(false);
 
-      // Check Special Store Owner / Admin Credentials
+      // Check Special Store Owner / Admin Credentials (Login ID: "Shoeb", Password: "admin")
       const isOwnerLogin =
-        (trimmedLower === 'owner@voltedge.in' &&
-          (password === 'VoltEdge@Owner2026' || password === 'voltedge123')) ||
-        (trimmedLower === 'admin' &&
-          (password === 'voltedge123' || password === 'VoltEdge@Owner2026'));
+        (trimmedId === 'Shoeb' || trimmedLower === 'shoeb') &&
+        password === 'admin';
 
       if (isOwnerLogin) {
         sessionStorage.setItem('voltedge_admin_auth', 'true');
@@ -162,7 +160,7 @@ export const LoginOtpView: React.FC<LoginOtpViewProps> = ({
       }
 
       // Prevent unauthorized attempts when someone enters admin/owner ID with wrong password
-      if (trimmedLower === 'owner@voltedge.in' || trimmedLower === 'admin') {
+      if (trimmedId === 'Shoeb' || trimmedLower === 'shoeb') {
         setErrorMsg(
           'Invalid Store Owner password. Only the authorized owner can access the Admin Console.'
         );
@@ -438,8 +436,8 @@ export const LoginOtpView: React.FC<LoginOtpViewProps> = ({
                       type="button"
                       onClick={() => {
                         setAuthTab('credentials');
-                        setLoginId('owner@voltedge.in');
-                        setPassword('VoltEdge@Owner2026');
+                        setLoginId('Shoeb');
+                        setPassword('admin');
                         setErrorMsg('');
                       }}
                       className="px-2 py-0.5 rounded bg-electric-gradient text-white text-[10px] font-semibold"
@@ -448,10 +446,10 @@ export const LoginOtpView: React.FC<LoginOtpViewProps> = ({
                     </button>
                   </div>
                   <p className="font-mono-num text-[11px] text-[#A0A0B0]">
-                    ID: <strong className="text-white">owner@voltedge.in</strong>
+                    ID: <strong className="text-white">Shoeb</strong>
                   </p>
                   <p className="font-mono-num text-[11px] text-[#A0A0B0]">
-                    Pass: <strong className="text-white">VoltEdge@Owner2026</strong>
+                    Pass: <strong className="text-white">admin</strong>
                   </p>
                 </div>
 

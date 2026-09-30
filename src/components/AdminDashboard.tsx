@@ -294,10 +294,10 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
 
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
-    const idLower = username.trim().toLowerCase();
+    const idTrimmed = username.trim();
     if (
-      (idLower === 'owner@voltedge.in' || idLower === 'admin') &&
-      (password === 'VoltEdge@Owner2026' || password === 'voltedge123')
+      (idTrimmed === 'Shoeb' || idTrimmed.toLowerCase() === 'shoeb') &&
+      password === 'admin'
     ) {
       setIsAuthenticated(true);
       sessionStorage.setItem('voltedge_admin_auth', 'true');
@@ -777,14 +777,14 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
 
           <div className="mt-6 pt-5 border-t border-white/[0.07] flex items-center justify-between text-xs text-[#A0A0B0]">
             <span>
-              Demo: <code className="text-white font-mono-num">admin</code> /{' '}
-              <code className="text-white font-mono-num">voltedge123</code>
+              Owner: <code className="text-white font-mono-num">Shoeb</code> /{' '}
+              <code className="text-white font-mono-num">admin</code>
             </span>
             <button
               type="button"
               onClick={() => {
-                setUsername('admin');
-                setPassword('voltedge123');
+                setUsername('Shoeb');
+                setPassword('admin');
               }}
               className="text-[#6C63FF] hover:underline font-medium"
             >
