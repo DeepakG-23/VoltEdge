@@ -1,3 +1,9 @@
+import ancEarbudsImg from '../assets/images/voltedge_anc_earbuds_1790736214610.jpg';
+import ganChargerImg from '../assets/images/voltedge_gan_charger_65w_1790736195608.jpg';
+import heroEcosystemImg from '../assets/images/voltedge_hero_ecosystem_1790736246088.jpg';
+import magsafeCaseImg from '../assets/images/voltedge_magsafe_case_1790736227154.jpg';
+import magsafePowerbankImg from '../assets/images/voltedge_magsafe_powerbank_1790736178785.jpg';
+
 export interface ProductColor {
   name: string;
   hex: string;
@@ -334,8 +340,49 @@ export const IN_BOX_CONTENTS_SVG = createStudioSvgDataUri(`
 </svg>
 `);
 
-export const HERO_ECOSYSTEM_IMAGE =
-  '/src/assets/images/voltedge_hero_ecosystem_1790736246088.jpg';
+export const HERO_ECOSYSTEM_IMAGE = heroEcosystemImg;
+export const MAGSAFE_POWERBANK_IMAGE = magsafePowerbankImg;
+export const GAN_CHARGER_IMAGE = ganChargerImg;
+export const ANC_EARBUDS_IMAGE = ancEarbudsImg;
+export const MAGSAFE_CASE_IMAGE = magsafeCaseImg;
+
+export function resolveAssetUrl(url?: string): string {
+  if (!url) return '';
+  if (url.includes('voltedge_hero_ecosystem_1790736246088')) {
+    return heroEcosystemImg;
+  }
+  if (url.includes('voltedge_magsafe_powerbank_1790736178785')) {
+    return magsafePowerbankImg;
+  }
+  if (url.includes('voltedge_gan_charger_65w_1790736195608')) {
+    return ganChargerImg;
+  }
+  if (url.includes('voltedge_anc_earbuds_1790736214610')) {
+    return ancEarbudsImg;
+  }
+  if (url.includes('voltedge_magsafe_case_1790736227154')) {
+    return magsafeCaseImg;
+  }
+  if (url.startsWith('/src/assets/')) {
+    return `.${url}`;
+  }
+  return url;
+}
+
+export function getCategoryFallbackSvg(category?: string): string {
+  switch (category) {
+    case 'Screen Protectors':
+      return TEMPERED_GLASS_SVG;
+    case 'Chargers & Cables':
+      return USBC_CABLE_SVG;
+    case 'Smart Watches':
+      return WATCH_STRAP_SVG;
+    case 'Phone Cases':
+      return CAR_MOUNT_SVG;
+    default:
+      return SCHEMATIC_CUTAWAY_SVG;
+  }
+}
 
 export const SEED_PRODUCTS: Product[] = [
   {
@@ -348,17 +395,16 @@ export const SEED_PRODUCTS: Product[] = [
     reviewsCount: 2341,
     category: 'Power Banks',
     stock: 42,
-    image: '/src/assets/images/voltedge_magsafe_powerbank_1790736178785.jpg',
-    placeholderUrl:
-      'https://placehold.co/400x400/1A1A1F/6C63FF?text=MagSafe+Power+Bank',
+    image: MAGSAFE_POWERBANK_IMAGE,
+    placeholderUrl: SCHEMATIC_CUTAWAY_SVG,
     gallery: [
       {
         label: 'Studio View',
-        url: '/src/assets/images/voltedge_magsafe_powerbank_1790736178785.jpg',
+        url: MAGSAFE_POWERBANK_IMAGE,
       },
       {
         label: 'Ecosystem View',
-        url: '/src/assets/images/voltedge_hero_ecosystem_1790736246088.jpg',
+        url: HERO_ECOSYSTEM_IMAGE,
       },
       {
         label: 'Internal Architecture',
@@ -428,17 +474,16 @@ export const SEED_PRODUCTS: Product[] = [
     reviewsCount: 1892,
     category: 'Chargers & Cables',
     stock: 68,
-    image: '/src/assets/images/voltedge_gan_charger_65w_1790736195608.jpg',
-    placeholderUrl:
-      'https://placehold.co/400x400/1A1A1F/6C63FF?text=GaN+Charger+65W',
+    image: GAN_CHARGER_IMAGE,
+    placeholderUrl: USBC_CABLE_SVG,
     gallery: [
       {
         label: 'Studio View',
-        url: '/src/assets/images/voltedge_gan_charger_65w_1790736195608.jpg',
+        url: GAN_CHARGER_IMAGE,
       },
       {
         label: 'Ecosystem View',
-        url: '/src/assets/images/voltedge_hero_ecosystem_1790736246088.jpg',
+        url: HERO_ECOSYSTEM_IMAGE,
       },
       {
         label: 'Internal Architecture',
@@ -557,17 +602,16 @@ export const SEED_PRODUCTS: Product[] = [
     reviewsCount: 3456,
     category: 'Earbuds',
     stock: 29,
-    image: '/src/assets/images/voltedge_anc_earbuds_1790736214610.jpg',
-    placeholderUrl:
-      'https://placehold.co/400x400/1A1A1F/6C63FF?text=Wireless+Earbuds+ANC',
+    image: ANC_EARBUDS_IMAGE,
+    placeholderUrl: SCHEMATIC_CUTAWAY_SVG,
     gallery: [
       {
         label: 'Studio View',
-        url: '/src/assets/images/voltedge_anc_earbuds_1790736214610.jpg',
+        url: ANC_EARBUDS_IMAGE,
       },
       {
         label: 'Ecosystem View',
-        url: '/src/assets/images/voltedge_hero_ecosystem_1790736246088.jpg',
+        url: HERO_ECOSYSTEM_IMAGE,
       },
       {
         label: 'Acoustic Chamber',
@@ -624,13 +668,12 @@ export const SEED_PRODUCTS: Product[] = [
     reviewsCount: 892,
     category: 'Phone Cases',
     stock: 54,
-    image: '/src/assets/images/voltedge_magsafe_case_1790736227154.jpg',
-    placeholderUrl:
-      'https://placehold.co/400x400/1A1A1F/6C63FF?text=Clear+MagSafe+Case',
+    image: MAGSAFE_CASE_IMAGE,
+    placeholderUrl: CAR_MOUNT_SVG,
     gallery: [
       {
         label: 'Studio View',
-        url: '/src/assets/images/voltedge_magsafe_case_1790736227154.jpg',
+        url: MAGSAFE_CASE_IMAGE,
       },
       {
         label: 'Internal Architecture',
@@ -687,8 +730,7 @@ export const SEED_PRODUCTS: Product[] = [
     category: 'Chargers & Cables',
     stock: 112,
     image: USBC_CABLE_SVG,
-    placeholderUrl:
-      'https://placehold.co/400x400/1A1A1F/6C63FF?text=100W+USB-C+Cable',
+    placeholderUrl: USBC_CABLE_SVG,
     gallery: [
       {
         label: 'Studio View',
@@ -696,7 +738,7 @@ export const SEED_PRODUCTS: Product[] = [
       },
       {
         label: 'Ecosystem View',
-        url: '/src/assets/images/voltedge_hero_ecosystem_1790736246088.jpg',
+        url: HERO_ECOSYSTEM_IMAGE,
       },
       {
         label: 'In The Box',
@@ -876,7 +918,7 @@ export const SEED_ORDERS: Order[] = [
         name: 'VoltEdge MagSafe Power Bank 10000mAh',
         price: 2499,
         originalPrice: 3999,
-        image: '/src/assets/images/voltedge_magsafe_powerbank_1790736178785.jpg',
+        image: MAGSAFE_POWERBANK_IMAGE,
         color: 'Obsidian Black',
         size: '10,000mAh Slim',
         quantity: 1,
@@ -921,7 +963,7 @@ export const SEED_ORDERS: Order[] = [
         name: 'VoltEdge Wireless Earbuds ANC',
         price: 2999,
         originalPrice: 4999,
-        image: '/src/assets/images/voltedge_anc_earbuds_1790736214610.jpg',
+        image: ANC_EARBUDS_IMAGE,
         color: 'Smoked Obsidian',
         size: 'Pro LDAC Hi-Res Edition',
         quantity: 1,
@@ -956,7 +998,7 @@ export const SEED_ORDERS: Order[] = [
         name: 'VoltEdge GaN Fast Charger 65W',
         price: 1299,
         originalPrice: 1999,
-        image: '/src/assets/images/voltedge_gan_charger_65w_1790736195608.jpg',
+        image: GAN_CHARGER_IMAGE,
         color: 'Charcoal Matte',
         size: '65W Dual USB-C + USB-A',
         quantity: 2,
@@ -991,7 +1033,7 @@ export const SEED_ORDERS: Order[] = [
         name: 'VoltEdge Clear MagSafe Case (iPhone 16)',
         price: 999,
         originalPrice: 1499,
-        image: '/src/assets/images/voltedge_magsafe_case_1790736227154.jpg',
+        image: MAGSAFE_CASE_IMAGE,
         color: 'Smoked Clear',
         size: 'iPhone 16 Pro',
         quantity: 1,
@@ -1036,7 +1078,7 @@ export const SEED_ORDERS: Order[] = [
         name: 'VoltEdge MagSafe Power Bank 10000mAh',
         price: 2499,
         originalPrice: 3999,
-        image: '/src/assets/images/voltedge_magsafe_powerbank_1790736178785.jpg',
+        image: MAGSAFE_POWERBANK_IMAGE,
         color: 'Electric Indigo',
         size: '10,000mAh + Kickstand',
         quantity: 1,
@@ -1081,7 +1123,7 @@ export const SEED_ORDERS: Order[] = [
         name: 'VoltEdge Wireless Earbuds ANC',
         price: 2999,
         originalPrice: 4999,
-        image: '/src/assets/images/voltedge_anc_earbuds_1790736214610.jpg',
+        image: ANC_EARBUDS_IMAGE,
         color: 'Volt Orange Edition',
         size: 'Pro LDAC Hi-Res Edition',
         quantity: 1,
@@ -1091,7 +1133,7 @@ export const SEED_ORDERS: Order[] = [
         name: 'VoltEdge GaN Fast Charger 65W',
         price: 1299,
         originalPrice: 1999,
-        image: '/src/assets/images/voltedge_gan_charger_65w_1790736195608.jpg',
+        image: GAN_CHARGER_IMAGE,
         color: 'Charcoal Matte',
         size: '65W Dual USB-C + USB-A',
         quantity: 1,
@@ -1140,7 +1182,7 @@ export const CATEGORIES_DATA = [
     icon: 'fa-mobile-screen-button',
     subtitle: 'MagSafe & Drop-Tested Armor',
     count: '14 Models',
-    image: '/src/assets/images/voltedge_magsafe_case_1790736227154.jpg',
+    image: MAGSAFE_CASE_IMAGE,
     secondaryImage: CAR_MOUNT_SVG,
     featuredItems: ['Clear MagSafe Case (iPhone 16)', 'Magnetic N52 Car Mount'],
     startingPrice: 599,
@@ -1150,7 +1192,7 @@ export const CATEGORIES_DATA = [
     icon: 'fa-bolt',
     subtitle: 'GaN III Bricks & 100W Kevlar',
     count: '9 Products',
-    image: '/src/assets/images/voltedge_gan_charger_65w_1790736195608.jpg',
+    image: GAN_CHARGER_IMAGE,
     secondaryImage: USBC_CABLE_SVG,
     featuredItems: ['65W GaN III Fast Charger', '100W Braided USB-C Cable (2m)'],
     startingPrice: 499,
@@ -1170,7 +1212,7 @@ export const CATEGORIES_DATA = [
     icon: 'fa-headphones-simple',
     subtitle: '48dB Hybrid ANC Acoustics',
     count: '4 Editions',
-    image: '/src/assets/images/voltedge_anc_earbuds_1790736214610.jpg',
+    image: ANC_EARBUDS_IMAGE,
     secondaryImage: HERO_ECOSYSTEM_IMAGE,
     featuredItems: ['Wireless Earbuds 48dB ANC', 'Pro LDAC Hi-Res Edition'],
     startingPrice: 2999,
@@ -1180,7 +1222,7 @@ export const CATEGORIES_DATA = [
     icon: 'fa-battery-full',
     subtitle: 'Qi2 Magnetic & High-Output',
     count: '6 Models',
-    image: '/src/assets/images/voltedge_magsafe_powerbank_1790736178785.jpg',
+    image: MAGSAFE_POWERBANK_IMAGE,
     secondaryImage: HERO_ECOSYSTEM_IMAGE,
     featuredItems: ['10000mAh Qi2 MagSafe Bank', '22.5W PD Pass-Through Slim'],
     startingPrice: 2499,
@@ -1210,12 +1252,17 @@ export interface HomePageConfig {
   heroFeaturedProductIds: number[];
   heroHeadline: string;
   heroSubtext: string;
+  heroDivisionTitle: string;
+  heroDivisionSubtitle: string;
   salesBarEnabled: boolean;
   salePercentage: number;
+  salesPercentage: number;
   saleCampaignTitle: string;
+  salesHeadline: string;
   saleProductIds: number[];
   trendingProductIds: number[];
   trendingSpotlights: TrendingSpotlightItem[];
+  badge?: string;
 }
 
 export const DEFAULT_HOME_PAGE_CONFIG: HomePageConfig = {
@@ -1223,9 +1270,13 @@ export const DEFAULT_HOME_PAGE_CONFIG: HomePageConfig = {
   heroHeadline: 'Power Up Your Phone',
   heroSubtext:
     'Premium mobile accessories engineered for performance. Precision GaN III charging, cryo-aligned N52 MagSafe architecture, and flagship acoustics.',
+  heroDivisionTitle: 'ADMIN CURATED SHOWCASE',
+  heroDivisionSubtitle: 'Featured Flagship Hardware',
   salesBarEnabled: true,
   salePercentage: 30,
+  salesPercentage: 30,
   saleCampaignTitle: 'VOLTEDGE FLASH POWER SALE — FLAT 30% OFF SELECTED HARDWARE',
+  salesHeadline: 'VOLTEDGE FLASH POWER SALE — FLAT 30% OFF SELECTED HARDWARE',
   saleProductIds: [1, 2, 4, 6],
   trendingProductIds: [1, 2, 3, 4, 5, 6],
   trendingSpotlights: [
@@ -1235,7 +1286,7 @@ export const DEFAULT_HOME_PAGE_CONFIG: HomePageConfig = {
       customTitle: 'VoltEdge Wireless Earbuds ANC — Studio Acoustic Isolation',
       customDescription:
         'Engineered with 48dB Hybrid Active Noise Cancellation, 11mm titanium-coated dynamic drivers, and a translucent smoked polycarbonate MagSafe case. Built to drown out metro commutes and cabin noise with 42 hours of total playback.',
-      customImage: '/src/assets/images/voltedge_anc_earbuds_1790736214610.jpg',
+      customImage: ANC_EARBUDS_IMAGE,
       badgeLabel: 'Trending #1 in Audio',
     },
     {
@@ -1244,7 +1295,7 @@ export const DEFAULT_HOME_PAGE_CONFIG: HomePageConfig = {
       customTitle: 'VoltEdge 65W GaN III Fast Charger — Dual-Device Powerhouse',
       customDescription:
         'Powered by 3rd-Gen Navitas Gallium Nitride semiconductors, this pocket-sized block delivers 65W PD 3.0 output to charge your MacBook Air and flagship phone simultaneously with zero thermal throttling.',
-      customImage: '/src/assets/images/voltedge_gan_charger_65w_1790736195608.jpg',
+      customImage: GAN_CHARGER_IMAGE,
       badgeLabel: 'Trending #1 in Power',
     },
   ],

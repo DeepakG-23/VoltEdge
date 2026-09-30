@@ -92,52 +92,63 @@ export const HomeView: React.FC<HomeViewProps> = ({
         {homeConfig.salesBarEnabled && saleProducts.length > 0 && (
           <aside className="relative z-20 w-full bg-gradient-to-r from-[#17152B] via-[#1E141C] to-[#17152B] border-b border-white/10 py-2.5 overflow-hidden">
             <div className="animate-sales-marquee items-center gap-8">
-              {[0, 1].map((dupIdx) => (
-                <div key={dupIdx} className="flex items-center gap-8 px-4">
-                  <div className="flex items-center gap-2.5 text-xs font-display font-bold text-white whitespace-nowrap">
-                    <span className="px-2 py-0.5 rounded bg-electric-gradient text-[11px] font-mono-num text-white shadow-sm">
-                      FLAT {homeConfig.salePercentage}% OFF
-                    </span>
-                    <span className="tracking-wide text-white">
-                      {homeConfig.saleCampaignTitle}
-                    </span>
-                  </div>
+              {[0, 1].map((dupIdx) => {
+                const activeSalePct =
+                  homeConfig.salesPercentage || homeConfig.salePercentage || 30;
+                const activeSaleTitle =
+                  homeConfig.salesHeadline ||
+                  homeConfig.saleCampaignTitle ||
+                  'VOLTEDGE FLASH POWER SALE';
+                return (
+                  <div key={dupIdx} className="flex items-center gap-8 px-4">
+                    <div className="flex items-center gap-2.5 text-xs font-display font-bold text-white whitespace-nowrap">
+                      <span className="px-2 py-0.5 rounded bg-electric-gradient text-[11px] font-mono-num text-white shadow-sm">
+                        FLAT {activeSalePct}% OFF
+                      </span>
+                      <span className="tracking-wide text-white">
+                        {activeSaleTitle}
+                      </span>
+                    </div>
 
-                  {saleProducts.map((sp) => {
-                    const discountedPrice = Math.max(
-                      1,
-                      Math.round(sp.price * (1 - homeConfig.salePercentage / 100))
-                    );
-                    return (
-                      <button
-                        key={`${dupIdx}-${sp.id}`}
-                        type="button"
-                        onClick={() => onNavigateProduct(sp.id)}
-                        className="inline-flex items-center gap-2.5 px-3 py-1 rounded-full bg-[#0A0A0B]/75 hover:bg-[#0A0A0B] border border-white/15 transition-colors whitespace-nowrap group"
-                      >
-                        <img
-                          src={sp.image}
-                          alt={sp.shortName}
-                          referrerPolicy="no-referrer"
-                          className="w-5 h-5 rounded-full object-cover"
-                        />
-                        <span className="text-xs font-medium text-white group-hover:text-[#FF6B35] transition-colors">
-                          {sp.shortName}
-                        </span>
-                        <span className="text-xs font-mono-num font-bold text-emerald-400">
-                          {formatINR(discountedPrice)}
-                        </span>
-                        <span className="text-[10px] font-mono-num text-[#6B6B7B] line-through">
-                          {formatINR(sp.price)}
-                        </span>
-                        <span className="text-[10px] font-mono-num text-[#FF6B35] font-semibold">
-                          −{homeConfig.salePercentage}%
-                        </span>
-                      </button>
-                    );
-                  })}
-                </div>
-              ))}
+                    {saleProducts.map((sp) => {
+                      const discountedPrice = Math.max(
+                        1,
+                        Math.round(sp.price * (1 - activeSalePct / 100))
+                      );
+                      return (
+                        <button
+                          key={`${dupIdx}-${sp.id}`}
+                          type="button"
+                          onClick={() => onNavigateProduct(sp.id)}
+                          className="inline-flex items-center gap-2.5 px-3 py-1 rounded-full bg-[#0A0A0B]/75 hover:bg-[#0A0A0B] border border-white/15 transition-colors whitespace-nowrap group"
+                        >
+                          <div className="w-5 h-5 rounded-full overflow-hidden shrink-0">
+                            <ResilientImage
+                              src={sp.image}
+                              fallbackCategory={sp.category}
+                              alt={sp.shortName}
+                              className="w-full h-full"
+                              imgClassName="object-cover"
+                            />
+                          </div>
+                          <span className="text-xs font-medium text-white group-hover:text-[#FF6B35] transition-colors">
+                            {sp.shortName}
+                          </span>
+                          <span className="text-xs font-mono-num font-bold text-emerald-400">
+                            {formatINR(discountedPrice)}
+                          </span>
+                          <span className="text-[10px] font-mono-num text-[#6B6B7B] line-through">
+                            {formatINR(sp.price)}
+                          </span>
+                          <span className="text-[10px] font-mono-num text-[#FF6B35] font-semibold">
+                            −{activeSalePct}%
+                          </span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                );
+              })}
             </div>
           </aside>
         )}

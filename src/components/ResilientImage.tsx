@@ -1,8 +1,10 @@
 import React, { useState } from 'react';
+import { getCategoryFallbackSvg, resolveAssetUrl } from '../data/seedData';
 
 interface ResilientImageProps {
   src: string;
   fallbackSrc?: string;
+  fallbackCategory?: string;
   alt: string;
   className?: string;
   imgClassName?: string;
@@ -11,25 +13,40 @@ interface ResilientImageProps {
 export const ResilientImage: React.FC<ResilientImageProps> = ({
   src,
   fallbackSrc,
+  fallbackCategory,
   alt,
   className = '',
   imgClassName = '',
 }) => {
+  const resolvedPrimary = resolveAssetUrl(src);
+  const resolvedFallback =
+    resolveAssetUrl(fallbackSrc) || getCategoryFallbackSvg(fallbackCategory);
+
   const [loaded, setLoaded] = useState(false);
-  const [currentSrc, setCurrentSrc] = useState(src);
+  const [currentSrc, setCurrentSrc] = useState(
+    resolvedPrimary || resolvedFallback
+  );
   const [failedAll, setFailedAll] = useState(false);
 
   React.useEffect(() => {
-    setCurrentSrc(src);
+    const nextPrimary = resolveAssetUrl(src);
+    const nextFallback =
+      resolveAssetUrl(fallbackSrc) || getCategoryFallbackSvg(fallbackCategory);
+    setCurrentSrc(nextPrimary || nextFallback);
     setFailedAll(false);
-  }, [src]);
+  }, [src, fallbackSrc, fallbackCategory]);
 
   const handleError = () => {
-    if (fallbackSrc && currentSrc !== fallbackSrc) {
-      setCurrentSrc(fallbackSrc);
+    if (resolvedFallback && currentSrc !== resolvedFallback) {
+      setCurrentSrc(resolvedFallback);
     } else {
-      setFailedAll(true);
-      setLoaded(true);
+      const studioSvg = getCategoryFallbackSvg(fallbackCategory);
+      if (studioSvg && currentSrc !== studioSvg) {
+        setCurrentSrc(studioSvg);
+      } else {
+        setFailedAll(true);
+        setLoaded(true);
+      }
     }
   };
 
@@ -51,7 +68,6 @@ export const ResilientImage: React.FC<ResilientImageProps> = ({
         <img
           src={currentSrc}
           alt={alt}
-          referrerPolicy="no-referrer"
           onLoad={() => setLoaded(true)}
           onError={handleError}
           className={`w-full h-full object-cover transition-all duration-300 ${

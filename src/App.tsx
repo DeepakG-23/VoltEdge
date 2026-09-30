@@ -29,6 +29,7 @@ import {
   SEED_ORDERS,
   SEED_PRODUCTS,
   formatINR,
+  resolveAssetUrl,
 } from './data/seedData';
 import {
   OperationType,
@@ -72,13 +73,25 @@ export default function App() {
     return sessionStorage.getItem('voltedge_admin_auth') === 'true';
   });
 
-  // Persisted Products
+  // Persisted Products (with automatic asset URL migration for GitHub Pages / Production builds)
   const [products, setProducts] = useState<Product[]>(() => {
     try {
       const saved = localStorage.getItem(STORAGE_KEYS.PRODUCTS);
       if (saved) {
         const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          return parsed.map((p: Product) => ({
+            ...p,
+            image: resolveAssetUrl(p.image),
+            placeholderUrl: resolveAssetUrl(p.placeholderUrl),
+            gallery: Array.isArray(p.gallery)
+              ? p.gallery.map((g) => ({
+                  ...g,
+                  url: resolveAssetUrl(g.url),
+                }))
+              : [],
+          }));
+        }
       }
     } catch {
       // ignore storage errors
@@ -93,7 +106,17 @@ export default function App() {
       const saved = localStorage.getItem(STORAGE_KEYS.ORDERS);
       if (saved) {
         const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          return parsed.map((o: Order) => ({
+            ...o,
+            items: Array.isArray(o.items)
+              ? o.items.map((item) => ({
+                  ...item,
+                  image: resolveAssetUrl(item.image),
+                }))
+              : [],
+          }));
+        }
       }
     } catch {
       // ignore storage errors
@@ -108,7 +131,12 @@ export default function App() {
       const saved = localStorage.getItem(STORAGE_KEYS.CART);
       if (saved) {
         const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed)) return parsed;
+        if (Array.isArray(parsed)) {
+          return parsed.map((item: CartItem) => ({
+            ...item,
+            image: resolveAssetUrl(item.image),
+          }));
+        }
       }
     } catch {
       // ignore storage errors
@@ -165,6 +193,14 @@ export default function App() {
           return {
             ...DEFAULT_HOME_PAGE_CONFIG,
             ...parsed,
+            trendingSpotlights: Array.isArray(parsed.trendingSpotlights)
+              ? parsed.trendingSpotlights.map(
+                  (s: HomePageConfig['trendingSpotlights'][number]) => ({
+                    ...s,
+                    customImage: resolveAssetUrl(s.customImage),
+                  })
+                )
+              : DEFAULT_HOME_PAGE_CONFIG.trendingSpotlights,
           };
         }
       }

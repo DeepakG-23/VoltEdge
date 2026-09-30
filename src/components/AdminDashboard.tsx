@@ -1677,6 +1677,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                           updateAndSaveHomeConfig((prev) => ({
                             ...prev,
                             salesPercentage: val,
+                            salePercentage: val,
                           }));
                         }}
                         className="flex-1 accent-[#FF6B35] cursor-pointer"
@@ -1695,6 +1696,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                             updateAndSaveHomeConfig((prev) => ({
                               ...prev,
                               salesPercentage: val,
+                              salePercentage: val,
                             }));
                           }}
                           className="w-full px-3 py-2 rounded-[8px] bg-[#111113] border border-white/15 text-xs font-mono-num font-bold text-white text-center"
@@ -1717,6 +1719,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                         updateAndSaveHomeConfig((prev) => ({
                           ...prev,
                           salesHeadline: e.target.value,
+                          saleCampaignTitle: e.target.value,
                         }))
                       }
                       placeholder="VOLTEDGE FLASH POWER SALE · UP TO"
