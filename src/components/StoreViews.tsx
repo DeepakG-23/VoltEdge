@@ -6,8 +6,14 @@ import {
   HomePageConfig,
   Product,
   ProductReview,
+  STORE_EMAIL,
+  STORE_MAPS_URL,
+  STORE_NAME,
+  STORE_PHONE,
+  STORE_PHONE_DISPLAY,
   formatINR,
 } from '../data/seedData';
+import { CrazyMobilesEmblem } from './CrazyMobilesLogo';
 import { ProductCard } from './ProductCard';
 import { ResilientImage } from './ResilientImage';
 
@@ -718,7 +724,7 @@ export const HomeView: React.FC<HomeViewProps> = ({
           <div className="lg:col-span-5 bg-[#1A1A1F] rounded-[16px] p-8 border border-white/[0.07] flex flex-col justify-between">
             <div>
               <span className="text-xs text-[#FF6B35] font-medium uppercase tracking-wider">
-                The VoltEdge Standard
+                The {STORE_NAME} Standard
               </span>
               <h2
                 className="font-display text-2xl sm:text-3xl font-bold text-white mt-2 mb-4"
@@ -727,9 +733,9 @@ export const HomeView: React.FC<HomeViewProps> = ({
                 Built like flagship devices, not disposable plastic.
               </h2>
               <p className="text-sm text-[#A0A0B0] leading-relaxed">
-                Every VoltEdge charger, power bank, and acoustic product undergoes 48-hour
+                Every {STORE_NAME} charger, power bank, and mobile accessory undergoes 48-hour
                 thermal stress testing at 45°C Indian ambient temperatures and carries full
-                BIS certification.
+                certification and warranty.
               </p>
             </div>
 
@@ -757,7 +763,7 @@ export const HomeView: React.FC<HomeViewProps> = ({
             {[
               {
                 quote:
-                  'Switched my entire desk setup to the VoltEdge 65W GaN brick and 2m 100W wattage-display cable. Charges my MacBook Pro and iPhone 16 Pro together without heating up.',
+                  `Switched my entire desk setup to the ${STORE_NAME} 65W GaN brick and 2m 100W wattage-display cable. Charges my MacBook Pro and iPhone 16 Pro together without heating up.`,
                 author: 'Aarav Sharma',
                 role: 'Principal Product Designer, Bengaluru',
                 item: 'GaN Fast Charger 65W · Verified Buyer',
@@ -795,6 +801,95 @@ export const HomeView: React.FC<HomeViewProps> = ({
                 </div>
               </div>
             ))}
+          </div>
+        </div>
+      </section>
+
+      {/* DEDICATED STORE LOCATION & VISIT EXPERIENCE BANNER */}
+      <section className="py-12 max-w-[1280px] mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="relative rounded-[20px] bg-gradient-to-r from-[#0E1519] via-[#121A1F] to-[#151D24] border border-[#84F229]/20 p-8 sm:p-12 overflow-hidden shadow-2xl">
+          <div className="absolute -right-10 -bottom-10 w-80 h-80 rounded-full bg-[#84F229] opacity-10 blur-3xl pointer-events-none" />
+
+          <div className="relative z-10 grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
+            <div className="lg:col-span-7 space-y-4">
+              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#84F229]/15 border border-[#84F229]/30 text-[#84F229] text-xs font-semibold">
+                <i className="fa-solid fa-location-dot" />
+                <span>Visit Our Physical Store Experience</span>
+              </div>
+              <div className="flex items-center gap-4">
+                <CrazyMobilesEmblem size={56} className="hidden sm:block" />
+                <h2 className="font-display text-2xl sm:text-4xl font-bold text-white tracking-tight">
+                  Welcome to {STORE_NAME}
+                </h2>
+              </div>
+              <p className="text-sm sm:text-base text-[#9BA9B4] max-w-xl leading-relaxed">
+                Step into our retail showroom to hands-on test MagSafe power banks, high-speed GaN chargers, premium phone armor, and audio gear. Store manager: Shaikh Shoeb.
+              </p>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
+                <a
+                  href={`tel:+91${STORE_PHONE}`}
+                  className="flex items-center gap-3 p-3 rounded-[10px] bg-[#111113]/80 border border-white/10 text-white hover:border-[#84F229] transition-all"
+                >
+                  <div className="w-9 h-9 rounded-lg bg-[#84F229]/20 flex items-center justify-center text-[#84F229]">
+                    <i className="fa-solid fa-phone" />
+                  </div>
+                  <div>
+                    <span className="text-[10px] text-[#9BA9B4] block">Call Store:</span>
+                    <span className="text-xs font-bold font-mono-num">{STORE_PHONE_DISPLAY}</span>
+                  </div>
+                </a>
+
+                <a
+                  href={`mailto:${STORE_EMAIL}`}
+                  className="flex items-center gap-3 p-3 rounded-[10px] bg-[#111113]/80 border border-white/10 text-white hover:border-[#84F229] transition-all truncate"
+                >
+                  <div className="w-9 h-9 rounded-lg bg-[#84F229]/20 flex items-center justify-center text-[#84F229] shrink-0">
+                    <i className="fa-solid fa-envelope" />
+                  </div>
+                  <div className="min-w-0">
+                    <span className="text-[10px] text-[#9BA9B4] block">Official Email:</span>
+                    <span className="text-xs font-medium truncate block">{STORE_EMAIL}</span>
+                  </div>
+                </a>
+              </div>
+            </div>
+
+            <div className="lg:col-span-5 bg-[#0E1317] rounded-[16px] p-6 border border-white/10 space-y-4 text-center sm:text-left">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2 text-white font-display text-sm font-bold">
+                  <i className="fa-solid fa-map-location-dot text-[#84F229]" />
+                  <span>Google Maps Directions</span>
+                </div>
+                <span className="text-[10px] text-[#84F229] font-mono-num font-semibold">
+                  Live Navigation
+                </span>
+              </div>
+              <p className="text-xs text-[#9BA9B4]">
+                Find the easiest driving or transit route to {STORE_NAME} on Google Maps with real-time ETA.
+              </p>
+              <a
+                href={STORE_MAPS_URL}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="w-full py-3 px-5 rounded-[8px] bg-electric-gradient text-[#0A0D0F] font-display text-xs font-bold shadow-electric-glow flex items-center justify-center gap-2 hover:scale-[1.02] transition-all"
+              >
+                <i className="fa-solid fa-arrow-trend-up" />
+                <span>Open Directions in Google Maps</span>
+                <i className="fa-solid fa-arrow-up-right-from-square text-[10px]" />
+              </a>
+              <a
+                href={`https://wa.me/91${STORE_PHONE}?text=${encodeURIComponent(
+                  `Hello Crazy Mobiles! I would like to inquire about visiting your store.`
+                )}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="w-full py-2.5 px-4 rounded-[8px] bg-[#132219] hover:bg-[#1A2E22] border border-[#84F229]/40 text-[#84F229] font-display text-xs font-semibold flex items-center justify-center gap-2 transition-all"
+              >
+                <i className="fa-brands fa-whatsapp text-sm" />
+                <span>Chat with Store on WhatsApp</span>
+              </a>
+            </div>
           </div>
         </div>
       </section>
@@ -1656,7 +1751,7 @@ export const ProductDetailView: React.FC<ProductDetailViewProps> = ({
               Verified Customer Reviews
             </h2>
             <p className="text-xs text-[#A0A0B0] mt-1">
-              Real feedback from VoltEdge owners across India.
+              Real feedback from {STORE_NAME} customers across India.
             </p>
           </div>
           <button
@@ -1928,7 +2023,7 @@ export const WishlistView: React.FC<WishlistViewProps> = ({
             Your Wishlist is Empty
           </h2>
           <p className="text-xs sm:text-sm text-[#A0A0B0] max-w-md mx-auto mb-6 leading-relaxed">
-            Tap the heart icon on any VoltEdge accessory card to bookmark products and move
+            Tap the heart icon on any {STORE_NAME} product card to bookmark products and move
             them to your bag whenever you are ready.
           </p>
           <button

@@ -63,6 +63,7 @@ export interface Product {
   };
   reviews: ProductReview[];
   isTrending?: boolean;
+  badge?: string;
   createdAt: string;
 }
 
@@ -325,11 +326,19 @@ export const SCHEMATIC_CUTAWAY_SVG = createStudioSvgDataUri(`
 </svg>
 `);
 
+export const STORE_NAME = 'Crazy Mobiles';
+export const STORE_PHONE = '9011221665';
+export const STORE_PHONE_DISPLAY = '+91 9011221665';
+export const STORE_EMAIL = 'Shaikhshoeb2624@gmail.com';
+export const STORE_MAPS_URL = 'https://maps.app.goo.gl/NSSmCF7NBKMX34CQ6?g_st=iw';
+export const STORE_UPI_ID = '9011221665@ybl';
+export const STORE_UPI_ID_ALT = 'shaikhshoeb2624@okaxis';
+
 export const IN_BOX_CONTENTS_SVG = createStudioSvgDataUri(`
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 600" width="600" height="600">
   <rect width="600" height="600" fill="#101014" />
   <rect x="60" y="110" width="215" height="380" rx="22" fill="#1A1A22" stroke="#323242" stroke-width="2" />
-  <text x="167" y="290" fill="#FFFFFF" font-family="Space Grotesk, sans-serif" font-size="22" font-weight="700" text-anchor="middle">VoltEdge</text>
+  <text x="167" y="290" fill="#FFFFFF" font-family="Space Grotesk, sans-serif" font-size="20" font-weight="700" text-anchor="middle">Crazy Mobiles</text>
   <text x="167" y="318" fill="#FF6B35" font-family="JetBrains Mono, monospace" font-size="11" text-anchor="middle">RETAIL PACKAGING</text>
   <rect x="315" y="110" width="225" height="175" rx="18" fill="#181820" stroke="#6C63FF" stroke-opacity="0.5" stroke-width="1.5" />
   <text x="427" y="195" fill="#FFFFFF" font-family="Space Grotesk, sans-serif" font-size="15" font-weight="600" text-anchor="middle">Main Hardware Unit</text>
@@ -387,7 +396,7 @@ export function getCategoryFallbackSvg(category?: string): string {
 export const SEED_PRODUCTS: Product[] = [
   {
     id: 1,
-    name: 'VoltEdge MagSafe Power Bank 10000mAh',
+    name: 'Crazy Mobiles MagSafe Power Bank 10000mAh',
     shortName: 'MagSafe Power Bank',
     price: 2499,
     originalPrice: 3999,
@@ -417,7 +426,7 @@ export const SEED_PRODUCTS: Product[] = [
     ],
     tagline: 'Ultra-slim 15W Qi2 magnetic wireless power with graphene thermal control.',
     description:
-      'Engineered with high-density cobalt-lithium cells and an N52 neodymium magnetic array, the VoltEdge 10000mAh MagSafe Power Bank snaps effortlessly to your phone without blocking the camera plateau. Features 20W USB-C PD pass-through charging and real-time NTC temperature regulation.',
+      'Engineered with high-density cobalt-lithium cells and an N52 neodymium magnetic array, the Crazy Mobiles 10000mAh MagSafe Power Bank snaps effortlessly to your phone without blocking the camera plateau. Features 20W USB-C PD pass-through charging and real-time NTC temperature regulation.',
     colors: [
       { name: 'Obsidian Black', hex: '#141417' },
       { name: 'Natural Titanium', hex: '#8A8A86' },
@@ -432,7 +441,7 @@ export const SEED_PRODUCTS: Product[] = [
       { label: 'Magnetic Hold Force', value: '1,400g N52 Cryo-Aligned Neodymium' },
       { label: 'Dimensions & Weight', value: '104 × 68 × 12.8 mm · 184g' },
       { label: 'Safety Certification', value: 'BIS Certified (R-41198241) · Multi-Protect IC' },
-      { label: 'Warranty', value: '1-Year VoltEdge India Replacement Warranty' },
+      { label: 'Warranty', value: '1-Year Crazy Mobiles India Replacement Warranty' },
     ],
     starBreakdown: { 5: 82, 4: 13, 3: 3, 2: 1, 1: 1 },
     reviews: [
@@ -445,7 +454,7 @@ export const SEED_PRODUCTS: Product[] = [
         variant: 'Obsidian Black · 10,000mAh Slim',
         title: 'Strongest magnetic lock I have tested on iPhone 16 Pro',
         comment:
-          'Switched from a generic power bank that constantly ran hot. VoltEdge stays remarkably cool during 15W wireless charging and charges my iPhone 16 Pro from 15% to 100% with 35% still left in the tank.',
+          'Switched from a generic power bank that constantly ran hot. Crazy Mobiles stays remarkably cool during 15W wireless charging and charges my iPhone 16 Pro from 15% to 100% with 35% still left in the tank.',
         verified: true,
       },
       {
@@ -466,7 +475,7 @@ export const SEED_PRODUCTS: Product[] = [
   },
   {
     id: 2,
-    name: 'VoltEdge GaN Fast Charger 65W',
+    name: 'Crazy Mobiles GaN Fast Charger 65W',
     shortName: 'GaN Fast Charger 65W',
     price: 1299,
     originalPrice: 1999,
@@ -510,7 +519,7 @@ export const SEED_PRODUCTS: Product[] = [
       { label: 'Plug Type', value: 'Indian BIS Standard 2-Pin Round (IS 1293)' },
       { label: '0–50% Charge Time', value: '24 Mins (iPhone 16 Pro / S24 Ultra)' },
       { label: 'Dimensions & Weight', value: '51 × 39 × 32 mm · 112g' },
-      { label: 'Warranty', value: '1-Year VoltEdge India Replacement Warranty' },
+      { label: 'Warranty', value: '1-Year Crazy Mobiles India Replacement Warranty' },
     ],
     starBreakdown: { 5: 79, 4: 15, 3: 4, 2: 1, 1: 1 },
     reviews: [
@@ -532,7 +541,7 @@ export const SEED_PRODUCTS: Product[] = [
   },
   {
     id: 3,
-    name: 'VoltEdge Tempered Glass Pro (2-Pack)',
+    name: 'Crazy Mobiles Tempered Glass Pro (2-Pack)',
     shortName: 'Tempered Glass Pro',
     price: 399,
     originalPrice: 699,
@@ -594,7 +603,7 @@ export const SEED_PRODUCTS: Product[] = [
   },
   {
     id: 4,
-    name: 'VoltEdge Wireless Earbuds ANC',
+    name: 'Crazy Mobiles Wireless Earbuds ANC',
     shortName: 'Wireless Earbuds ANC',
     price: 2999,
     originalPrice: 4999,
@@ -660,7 +669,7 @@ export const SEED_PRODUCTS: Product[] = [
   },
   {
     id: 5,
-    name: 'VoltEdge Clear MagSafe Case (iPhone 16)',
+    name: 'Crazy Mobiles Clear MagSafe Case (iPhone 16)',
     shortName: 'Clear MagSafe Case',
     price: 999,
     originalPrice: 1499,
@@ -721,7 +730,7 @@ export const SEED_PRODUCTS: Product[] = [
   },
   {
     id: 6,
-    name: 'VoltEdge 100W USB-C to USB-C Cable (2m)',
+    name: 'Crazy Mobiles 100W USB-C to USB-C Cable (2m)',
     shortName: '100W USB-C Cable (2m)',
     price: 499,
     originalPrice: 799,
@@ -781,7 +790,7 @@ export const SEED_PRODUCTS: Product[] = [
   },
   {
     id: 7,
-    name: 'VoltEdge Smart Watch Strap (Silicone)',
+    name: 'Crazy Mobiles Smart Watch Strap (Silicone)',
     shortName: 'Smart Watch Strap',
     price: 299,
     originalPrice: 499,
@@ -838,7 +847,7 @@ export const SEED_PRODUCTS: Product[] = [
   },
   {
     id: 8,
-    name: 'VoltEdge Car Mount (Magnetic)',
+    name: 'Crazy Mobiles Car Mount (Magnetic)',
     shortName: 'Magnetic Car Mount',
     price: 599,
     originalPrice: 999,
@@ -865,7 +874,7 @@ export const SEED_PRODUCTS: Product[] = [
     ],
     tagline: '20× N52 ring magnet array engineered for Indian road conditions with 360° ball joint.',
     description:
-      'Tested over speed breakers and rough highways, the VoltEdge Magnetic Car Mount uses a steel-hook air vent lock and a 3M VHB dashboard base so your phone stays rock-steady in portrait or landscape navigation.',
+      'Tested over speed breakers and rough highways, the Crazy Mobiles Magnetic Car Mount uses a steel-hook air vent lock and a 3M VHB dashboard base so your phone stays rock-steady in portrait or landscape navigation.',
     colors: [
       { name: 'Anodized Gunmetal', hex: '#23232D' },
       { name: 'Obsidian Matte', hex: '#121216' },
@@ -915,7 +924,7 @@ export const SEED_ORDERS: Order[] = [
     items: [
       {
         productId: 1,
-        name: 'VoltEdge MagSafe Power Bank 10000mAh',
+        name: 'Crazy Mobiles MagSafe Power Bank 10000mAh',
         price: 2499,
         originalPrice: 3999,
         image: MAGSAFE_POWERBANK_IMAGE,
@@ -925,7 +934,7 @@ export const SEED_ORDERS: Order[] = [
       },
       {
         productId: 6,
-        name: 'VoltEdge 100W USB-C to USB-C Cable (2m)',
+        name: 'Crazy Mobiles 100W USB-C to USB-C Cable (2m)',
         price: 499,
         originalPrice: 799,
         image: USBC_CABLE_SVG,
@@ -960,7 +969,7 @@ export const SEED_ORDERS: Order[] = [
     items: [
       {
         productId: 4,
-        name: 'VoltEdge Wireless Earbuds ANC',
+        name: 'Crazy Mobiles Wireless Earbuds ANC',
         price: 2999,
         originalPrice: 4999,
         image: ANC_EARBUDS_IMAGE,
@@ -995,7 +1004,7 @@ export const SEED_ORDERS: Order[] = [
     items: [
       {
         productId: 2,
-        name: 'VoltEdge GaN Fast Charger 65W',
+        name: 'Crazy Mobiles GaN Fast Charger 65W',
         price: 1299,
         originalPrice: 1999,
         image: GAN_CHARGER_IMAGE,
@@ -1030,7 +1039,7 @@ export const SEED_ORDERS: Order[] = [
     items: [
       {
         productId: 5,
-        name: 'VoltEdge Clear MagSafe Case (iPhone 16)',
+        name: 'Crazy Mobiles Clear MagSafe Case (iPhone 16)',
         price: 999,
         originalPrice: 1499,
         image: MAGSAFE_CASE_IMAGE,
@@ -1040,7 +1049,7 @@ export const SEED_ORDERS: Order[] = [
       },
       {
         productId: 3,
-        name: 'VoltEdge Tempered Glass Pro (2-Pack)',
+        name: 'Crazy Mobiles Tempered Glass Pro (2-Pack)',
         price: 399,
         originalPrice: 699,
         image: TEMPERED_GLASS_SVG,
@@ -1075,7 +1084,7 @@ export const SEED_ORDERS: Order[] = [
     items: [
       {
         productId: 1,
-        name: 'VoltEdge MagSafe Power Bank 10000mAh',
+        name: 'Crazy Mobiles MagSafe Power Bank 10000mAh',
         price: 2499,
         originalPrice: 3999,
         image: MAGSAFE_POWERBANK_IMAGE,
@@ -1085,7 +1094,7 @@ export const SEED_ORDERS: Order[] = [
       },
       {
         productId: 8,
-        name: 'VoltEdge Car Mount (Magnetic)',
+        name: 'Crazy Mobiles Car Mount (Magnetic)',
         price: 599,
         originalPrice: 999,
         image: CAR_MOUNT_SVG,
@@ -1120,7 +1129,7 @@ export const SEED_ORDERS: Order[] = [
     items: [
       {
         productId: 4,
-        name: 'VoltEdge Wireless Earbuds ANC',
+        name: 'Crazy Mobiles Wireless Earbuds ANC',
         price: 2999,
         originalPrice: 4999,
         image: ANC_EARBUDS_IMAGE,
@@ -1130,7 +1139,7 @@ export const SEED_ORDERS: Order[] = [
       },
       {
         productId: 2,
-        name: 'VoltEdge GaN Fast Charger 65W',
+        name: 'Crazy Mobiles GaN Fast Charger 65W',
         price: 1299,
         originalPrice: 1999,
         image: GAN_CHARGER_IMAGE,
@@ -1269,21 +1278,21 @@ export const DEFAULT_HOME_PAGE_CONFIG: HomePageConfig = {
   heroFeaturedProductIds: [1, 2, 4, 5],
   heroHeadline: 'Power Up Your Phone',
   heroSubtext:
-    'Premium mobile accessories engineered for performance. Precision GaN III charging, cryo-aligned N52 MagSafe architecture, and flagship acoustics.',
+    'Crazy Mobiles — Premium mobile accessories engineered for performance. Precision GaN III charging, cryo-aligned N52 MagSafe architecture, and flagship acoustics.',
   heroDivisionTitle: 'ADMIN CURATED SHOWCASE',
   heroDivisionSubtitle: 'Featured Flagship Hardware',
   salesBarEnabled: true,
   salePercentage: 30,
   salesPercentage: 30,
-  saleCampaignTitle: 'VOLTEDGE FLASH POWER SALE — FLAT 30% OFF SELECTED HARDWARE',
-  salesHeadline: 'VOLTEDGE FLASH POWER SALE — FLAT 30% OFF SELECTED HARDWARE',
+  saleCampaignTitle: 'CRAZY MOBILES FLASH SALE — FLAT 30% OFF SELECTED HARDWARE',
+  salesHeadline: 'CRAZY MOBILES FLASH SALE — FLAT 30% OFF SELECTED HARDWARE',
   saleProductIds: [1, 2, 4, 6],
   trendingProductIds: [1, 2, 3, 4, 5, 6],
   trendingSpotlights: [
     {
       id: 'spot-1',
       productId: 4,
-      customTitle: 'VoltEdge Wireless Earbuds ANC — Studio Acoustic Isolation',
+      customTitle: 'Crazy Mobiles Wireless Earbuds ANC — Studio Acoustic Isolation',
       customDescription:
         'Engineered with 48dB Hybrid Active Noise Cancellation, 11mm titanium-coated dynamic drivers, and a translucent smoked polycarbonate MagSafe case. Built to drown out metro commutes and cabin noise with 42 hours of total playback.',
       customImage: ANC_EARBUDS_IMAGE,
@@ -1292,7 +1301,7 @@ export const DEFAULT_HOME_PAGE_CONFIG: HomePageConfig = {
     {
       id: 'spot-2',
       productId: 2,
-      customTitle: 'VoltEdge 65W GaN III Fast Charger — Dual-Device Powerhouse',
+      customTitle: 'Crazy Mobiles 65W GaN III Fast Charger — Dual-Device Powerhouse',
       customDescription:
         'Powered by 3rd-Gen Navitas Gallium Nitride semiconductors, this pocket-sized block delivers 65W PD 3.0 output to charge your MacBook Air and flagship phone simultaneously with zero thermal throttling.',
       customImage: GAN_CHARGER_IMAGE,

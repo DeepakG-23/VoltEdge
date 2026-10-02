@@ -1,4 +1,4 @@
-import { initializeApp } from 'firebase/app';
+import { getApp, getApps, initializeApp } from 'firebase/app';
 import {
   ConfirmationResult,
   GoogleAuthProvider,
@@ -11,27 +11,43 @@ import {
   signOut,
 } from 'firebase/auth';
 import {
+  Firestore,
   collection,
   deleteDoc,
   doc,
   getDocFromServer,
-   getDocs,
+  getDocs,
+  getFirestore,
+  initializeFirestore,
   onSnapshot,
   query,
   serverTimestamp,
   setDoc,
+  setLogLevel,
   where,
 } from 'firebase/firestore';
 import firebaseConfig from '../firebase-applet-config.json';
 
-const app = initializeApp(firebaseConfig);
+// Silence internal @firebase/firestore WebChannel transport retry console.error logs
+setLogLevel('silent');
+
+const app = getApps().length > 0 ? getApp() : initializeApp(firebaseConfig);
 export const db = getFirestoreInstance();
 export const auth = getAuth(app);
 export const googleProvider = new GoogleAuthProvider();
 
-import { getFirestore } from 'firebase/firestore';
-function getFirestoreInstance() {
-  return getFirestore(app, firebaseConfig.firestoreDatabaseId);
+function getFirestoreInstance(): Firestore {
+  try {
+    return initializeFirestore(
+      app,
+      {
+        experimentalForceLongPolling: true,
+      },
+      firebaseConfig.firestoreDatabaseId
+    );
+  } catch {
+    return getFirestore(app, firebaseConfig.firestoreDatabaseId);
+  }
 }
 
 // Validate connection to Firestore on boot as required by firebase-integration-rpc skill
@@ -43,11 +59,11 @@ async function testConnection() {
       error instanceof Error &&
       error.message.includes('the client is offline')
     ) {
-      console.error('Please check your Firebase configuration.');
+      // Operating in offline fallback mode with localStorage persistence
     }
   }
 }
-testConnection();
+void testConnection();
 
 export enum OperationType {
   CREATE = 'create',
@@ -79,9 +95,25 @@ export function handleFirestoreError(
   error: unknown,
   operationType: OperationType,
   path: string | null
-): never {
+): void {
+  const rawMessage = error instanceof Error ? error.message : String(error);
+  const rawCode =
+    typeof error === 'object' && error !== null && 'code' in error
+      ? String((error as { code?: unknown }).code)
+      : '';
+
+  // Ignore transient network / offline cache fallbacks
+  if (
+    rawCode === 'unavailable' ||
+    rawMessage.includes('unavailable') ||
+    rawMessage.includes('client is offline') ||
+    rawMessage.includes('Could not reach Cloud Firestore backend')
+  ) {
+    return;
+  }
+
   const errInfo: FirestoreErrorInfo = {
-    error: error instanceof Error ? error.message : String(error),
+    error: rawMessage,
     authInfo: {
       userId: auth.currentUser?.uid,
       email: auth.currentUser?.email,

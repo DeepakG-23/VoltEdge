@@ -4,8 +4,15 @@ import {
   INDIAN_STATES,
   Order,
   OrderAddress,
+  STORE_EMAIL,
+  STORE_MAPS_URL,
+  STORE_NAME,
+  STORE_PHONE,
+  STORE_PHONE_DISPLAY,
+  STORE_UPI_ID,
   formatINR,
 } from '../data/seedData';
+import { CrazyMobilesEmblem } from './CrazyMobilesLogo';
 import { ResilientImage } from './ResilientImage';
 
 export function buildWhatsAppOrderMessage(order: Order): string {
@@ -19,7 +26,7 @@ export function buildWhatsAppOrderMessage(order: Order): string {
     .join('\n');
 
   return [
-    `⚡ *VOLTEDGE INDIA — VERIFIED ORDER CONFIRMATION* ⚡`,
+    `⚡ *${STORE_NAME.toUpperCase()} — VERIFIED ORDER CONFIRMATION* ⚡`,
     ``,
     `*Order ID:* ${order.id}`,
     `*Order Status:* ${order.status === 'Pending' ? 'Ordered (Confirmed)' : order.status}`,
@@ -35,8 +42,11 @@ export function buildWhatsAppOrderMessage(order: Order): string {
     `• Phone: +91 ${order.phone}`,
     `• Address: ${order.address.area}, ${order.address.city}, ${order.address.state} - ${order.address.pincode}`,
     ``,
-    `*Ordered Hardware:*`,
+    `*Ordered Items:*`,
     itemsLines,
+    ``,
+    `*Store Contact:* +91 ${STORE_PHONE} · ${STORE_EMAIL}`,
+    `*Store Location:* ${STORE_MAPS_URL}`,
     ``,
     `Please confirm priority dispatch and share my live tracking waybill. Thank you!`,
   ].join('\n');
@@ -70,13 +80,17 @@ const UpiPaymentGatewayModal: React.FC<UpiGatewayModalProps> = ({
   const [selectedApp, setSelectedApp] = useState<'GPay' | 'PhonePe' | 'Paytm' | 'CRED'>(
     initialUpiApp
   );
-  const [vpaInput, setVpaInput] = useState(initialUpiId || 'aarav@okicici');
+  const [vpaInput, setVpaInput] = useState(initialUpiId || STORE_UPI_ID);
   const [isVpaVerified, setIsVpaVerified] = useState(true);
   const [secondsLeft, setSecondsLeft] = useState(299);
   const [processingStage, setProcessingStage] = useState<
     'idle' | 'switch' | 'collect' | 'approved'
   >('idle');
   const [utrNumber, setUtrNumber] = useState('');
+  const [copiedUpi, setCopiedUpi] = useState(false);
+
+  const upiIntentUri = `upi://pay?pa=${STORE_UPI_ID}&pn=${encodeURIComponent(STORE_NAME)}&am=${amount}&cu=INR&tn=${encodeURIComponent('Crazy Mobiles Order')}`;
+  const upiQrImageUrl = `https://api.qrserver.com/v1/create-qr-code/?size=240x240&data=${encodeURIComponent(upiIntentUri)}`;
 
   useEffect(() => {
     if (!isOpen) {
@@ -95,6 +109,12 @@ const UpiPaymentGatewayModal: React.FC<UpiGatewayModalProps> = ({
   const mins = String(Math.floor(secondsLeft / 60)).padStart(2, '0');
   const secs = String(secondsLeft % 60).padStart(2, '0');
 
+  const handleCopyUpiId = () => {
+    navigator.clipboard?.writeText(STORE_UPI_ID);
+    setCopiedUpi(true);
+    setTimeout(() => setCopiedUpi(false), 2000);
+  };
+
   const handleAuthorizePayment = () => {
     const generatedUtr = `4273${Math.floor(10000000 + Math.random() * 90000000)}`;
     setUtrNumber(generatedUtr);
@@ -111,9 +131,9 @@ const UpiPaymentGatewayModal: React.FC<UpiGatewayModalProps> = ({
     setTimeout(() => {
       const methodDesc =
         gatewayTab === 'qr'
-          ? `UPI QR Scan · UTR ${generatedUtr}`
+          ? `UPI QR Scan (${STORE_UPI_ID}) · UTR ${generatedUtr}`
           : gatewayTab === 'intent'
-          ? `${selectedApp} Intent · UTR ${generatedUtr}`
+          ? `${selectedApp} Intent (${STORE_UPI_ID}) · UTR ${generatedUtr}`
           : `UPI VPA (${vpaInput}) · UTR ${generatedUtr}`;
       onPaymentSuccess(methodDesc);
     }, 2200);
@@ -130,20 +150,18 @@ const UpiPaymentGatewayModal: React.FC<UpiGatewayModalProps> = ({
         {/* Top Gateway Header */}
         <div className="bg-gradient-to-r from-[#1A1A26] via-[#161620] to-[#1E191E] p-5 border-b border-white/10 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-[10px] bg-electric-gradient flex items-center justify-center text-white shadow-electric-glow">
-              <i className="fa-solid fa-bolt text-sm" />
-            </div>
+            <CrazyMobilesEmblem size={40} />
             <div>
               <div className="flex items-center gap-1.5">
                 <h3 className="font-display text-sm font-bold text-white">
-                  VoltPay UPI Gateway
+                  {STORE_NAME} UPI Gateway
                 </h3>
                 <span className="text-[10px] text-emerald-400 font-medium">
                   · Verified Merchant
                 </span>
               </div>
               <p className="text-[11px] text-[#A0A0B0] font-mono-num">
-                +91 {customerPhone} · Session {mins}:{secs}
+                Payee: {STORE_NAME} (Shaikh Shoeb) · {mins}:{secs}
               </p>
             </div>
           </div>
@@ -230,79 +248,55 @@ const UpiPaymentGatewayModal: React.FC<UpiGatewayModalProps> = ({
             {gatewayTab === 'qr' && (
               <div className="bg-[#1A1A1F] rounded-[12px] p-4 border border-white/[0.07] text-center space-y-3">
                 <div className="flex items-center justify-between text-[11px] text-[#A0A0B0]">
-                  <span>Scan with any BHIM UPI App</span>
+                  <span>Scan with GPay / PhonePe / Paytm</span>
                   <span className="font-mono-num text-emerald-400">
-                    Dynamic Amount Locked
+                    Exact Amount Locked
                   </span>
                 </div>
 
-                {/* Crisp Dynamic SVG QR Matrix */}
-                <div className="w-44 h-44 mx-auto bg-white p-3 rounded-[12px] shadow-lg flex items-center justify-center relative">
-                  <svg
-                    viewBox="0 0 120 120"
-                    className="w-full h-full"
-                    shapeRendering="crispEdges"
-                  >
-                    <rect width="120" height="120" fill="#FFFFFF" />
-                    {/* Top-Left Finder Pattern */}
-                    <rect x="8" y="8" width="28" height="28" fill="#0A0A0B" />
-                    <rect x="12" y="12" width="20" height="20" fill="#FFFFFF" />
-                    <rect x="16" y="16" width="12" height="12" fill="#0A0A0B" />
-                    {/* Top-Right Finder Pattern */}
-                    <rect x="84" y="8" width="28" height="28" fill="#0A0A0B" />
-                    <rect x="88" y="12" width="20" height="20" fill="#FFFFFF" />
-                    <rect x="92" y="16" width="12" height="12" fill="#0A0A0B" />
-                    {/* Bottom-Left Finder Pattern */}
-                    <rect x="8" y="84" width="28" height="28" fill="#0A0A0B" />
-                    <rect x="12" y="88" width="20" height="20" fill="#FFFFFF" />
-                    <rect x="16" y="92" width="12" height="12" fill="#0A0A0B" />
-                    {/* Data Matrix Modules */}
-                    <g fill="#0A0A0B">
-                      <rect x="44" y="10" width="6" height="6" />
-                      <rect x="56" y="10" width="10" height="6" />
-                      <rect x="70" y="14" width="6" height="10" />
-                      <rect x="44" y="22" width="12" height="6" />
-                      <rect x="62" y="24" width="6" height="12" />
-                      <rect x="10" y="44" width="12" height="6" />
-                      <rect x="28" y="44" width="6" height="12" />
-                      <rect x="42" y="40" width="8" height="8" />
-                      <rect x="70" y="42" width="8" height="8" />
-                      <rect x="86" y="44" width="10" height="6" />
-                      <rect x="102" y="44" width="8" height="12" />
-                      <rect x="12" y="58" width="6" height="14" />
-                      <rect x="24" y="64" width="12" height="6" />
-                      <rect x="76" y="58" width="12" height="6" />
-                      <rect x="94" y="62" width="14" height="6" />
-                      <rect x="44" y="76" width="10" height="6" />
-                      <rect x="62" y="74" width="6" height="12" />
-                      <rect x="76" y="76" width="8" height="8" />
-                      <rect x="90" y="78" width="16" height="6" />
-                      <rect x="44" y="90" width="6" height="16" />
-                      <rect x="56" y="94" width="14" height="6" />
-                      <rect x="76" y="92" width="6" height="14" />
-                      <rect x="88" y="90" width="12" height="12" />
-                      <rect x="104" y="98" width="8" height="10" />
-                    </g>
-                    {/* Center Brand Badge */}
-                    <rect
-                      x="46"
-                      y="46"
-                      width="28"
-                      height="28"
-                      rx="6"
-                      fill="#0A0A0B"
-                    />
-                    <path
-                      d="M62 51 L55 61 L60 61 L58 69 L66 59 L61 59 Z"
-                      fill="#FF6B35"
-                    />
-                  </svg>
+                {/* Scannable Dynamic UPI QR Matrix */}
+                <div className="w-48 h-48 mx-auto bg-white p-2.5 rounded-[12px] shadow-lg flex items-center justify-center relative overflow-hidden">
+                  <img
+                    src={upiQrImageUrl}
+                    alt={`UPI QR Code for ${STORE_NAME}`}
+                    className="w-full h-full object-contain"
+                    onError={(e) => {
+                      // Fallback SVG representation if external service fails
+                      (e.currentTarget as HTMLElement).style.display = 'none';
+                    }}
+                  />
                 </div>
 
+                {/* Payee Info & Copy UPI ID Badge */}
+                <div className="p-2.5 rounded-[10px] bg-[#111113] border border-white/10 flex items-center justify-between gap-2 text-left">
+                  <div className="min-w-0">
+                    <span className="text-[10px] text-[#A0A0B0] block">Official Merchant UPI ID:</span>
+                    <span className="font-mono-num text-xs font-bold text-white tracking-wide truncate block">
+                      {STORE_UPI_ID}
+                    </span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={handleCopyUpiId}
+                    className="px-3 py-1.5 rounded-[6px] bg-electric-gradient text-[11px] font-semibold text-white whitespace-nowrap hover:scale-105 transition-all"
+                  >
+                    {copiedUpi ? '✓ Copied' : 'Copy UPI'}
+                  </button>
+                </div>
+
+                {/* Mobile Intent Direct Link */}
+                <a
+                  href={upiIntentUri}
+                  className="block sm:hidden w-full py-2 px-3 rounded-[8px] bg-emerald-500/15 border border-emerald-500/30 text-emerald-400 text-xs font-semibold hover:bg-emerald-500/25 transition-all"
+                >
+                  <i className="fa-solid fa-mobile-screen mr-1.5" />
+                  Tap to Pay Directly with UPI App
+                </a>
+
                 <div className="flex items-center justify-center gap-3 text-[11px] text-[#A0A0B0]">
-                  <span>GPay</span>
-                  <span>·</span>
                   <span>PhonePe</span>
+                  <span>·</span>
+                  <span>Google Pay</span>
                   <span>·</span>
                   <span>Paytm</span>
                   <span>·</span>
@@ -421,11 +415,36 @@ const UpiPaymentGatewayModal: React.FC<UpiGatewayModalProps> = ({
 
 /* ==========================================================================
    CHECKOUT VIEW (#/checkout)
+   Captures customer phone numbers, email, and complete address details during ordering
    ========================================================================== */
+interface SavedCheckoutAddress {
+  id: string;
+  label: 'Home' | 'Office' | 'Other';
+  fullName: string;
+  phone: string;
+  pincode: string;
+  area: string;
+  city: string;
+  state: string;
+  isDefault: boolean;
+}
+
 interface CheckoutViewProps {
   items: CartItem[];
+  initialProfile?: {
+    fullName: string;
+    email: string;
+    phone: string;
+    addresses?: SavedCheckoutAddress[];
+  };
   onPlaceOrder: (orderData: {
     address: OrderAddress;
+    customerEmail: string;
+    altPhone?: string;
+    landmark?: string;
+    addressLabel?: 'Home' | 'Office' | 'Other';
+    deliveryNotes?: string;
+    saveToProfile?: boolean;
     paymentMethod: 'UPI' | 'Card' | 'COD';
     paymentDetails: string;
     discount: number;
@@ -435,19 +454,65 @@ interface CheckoutViewProps {
 
 export const CheckoutView: React.FC<CheckoutViewProps> = ({
   items,
+  initialProfile,
   onPlaceOrder,
   onNavigateShop,
 }) => {
   const [activeStep, setActiveStep] = useState<1 | 2 | 3>(1);
 
-  // Indian Address State
-  const [fullName, setFullName] = useState('Aarav Sharma');
-  const [phone, setPhone] = useState('9820411290');
-  const [pincode, setPincode] = useState('560034');
-  const [area, setArea] = useState('402, Palm Grove Indiranagar, 100 Feet Road');
-  const [city, setCity] = useState('Bengaluru');
-  const [state, setState] = useState('Karnataka');
+  const defaultSavedAddr =
+    initialProfile?.addresses?.find((a) => a.isDefault) ||
+    initialProfile?.addresses?.[0];
+
+  // Customer Contact & Indian Delivery Address State (Captured during ordering)
+  const [selectedAddressId, setSelectedAddressId] = useState<string>(
+    defaultSavedAddr?.id || 'custom'
+  );
+  const [fullName, setFullName] = useState(
+    defaultSavedAddr?.fullName || initialProfile?.fullName || ''
+  );
+  const [phone, setPhone] = useState(
+    defaultSavedAddr?.phone || initialProfile?.phone || ''
+  );
+  const [altPhone, setAltPhone] = useState('');
+  const [email, setEmail] = useState(initialProfile?.email || '');
+  const [pincode, setPincode] = useState(defaultSavedAddr?.pincode || '');
+  const [area, setArea] = useState(defaultSavedAddr?.area || '');
+  const [landmark, setLandmark] = useState('');
+  const [city, setCity] = useState(defaultSavedAddr?.city || 'Bengaluru');
+  const [state, setState] = useState(defaultSavedAddr?.state || 'Karnataka');
+  const [addressLabel, setAddressLabel] = useState<'Home' | 'Office' | 'Other'>(
+    defaultSavedAddr?.label || 'Home'
+  );
+  const [deliveryNotes, setDeliveryNotes] = useState('');
+  const [saveToProfile, setSaveToProfile] = useState(true);
   const [addressError, setAddressError] = useState('');
+
+  const handleSelectSavedAddress = (addr: SavedCheckoutAddress) => {
+    setSelectedAddressId(addr.id);
+    setFullName(addr.fullName);
+    setPhone(addr.phone);
+    setPincode(addr.pincode);
+    setArea(addr.area);
+    setCity(addr.city);
+    setState(addr.state);
+    setAddressLabel(addr.label);
+    setAddressError('');
+  };
+
+  const handleStartNewAddress = () => {
+    setSelectedAddressId('new');
+    setFullName(initialProfile?.fullName || '');
+    setPhone(initialProfile?.phone || '');
+    setAltPhone('');
+    setPincode('');
+    setArea('');
+    setLandmark('');
+    setCity('');
+    setState('Karnataka');
+    setAddressLabel('Home');
+    setAddressError('');
+  };
 
   // Payment State
   const [paymentMethod, setPaymentMethod] = useState<'UPI' | 'Card' | 'COD'>('UPI');
@@ -494,11 +559,19 @@ export const CheckoutView: React.FC<CheckoutViewProps> = ({
 
   const validateStep1 = () => {
     if (!fullName.trim()) {
-      setAddressError('Please enter your full name.');
+      setAddressError('Please enter the recipient full name.');
       return false;
     }
     if (!/^\d{10}$/.test(phone.trim())) {
-      setAddressError('Please enter a valid 10-digit Indian mobile number.');
+      setAddressError('Please enter a valid 10-digit Indian mobile number (+91) for delivery & order updates.');
+      return false;
+    }
+    if (altPhone.trim() && !/^\d{10}$/.test(altPhone.trim())) {
+      setAddressError('Alternate mobile number must be 10 digits.');
+      return false;
+    }
+    if (email.trim() && !email.includes('@')) {
+      setAddressError('Please enter a valid email address for your GST invoice.');
       return false;
     }
     if (!/^\d{6}$/.test(pincode.trim())) {
@@ -506,7 +579,7 @@ export const CheckoutView: React.FC<CheckoutViewProps> = ({
       return false;
     }
     if (!area.trim() || !city.trim()) {
-      setAddressError('Please complete your street address and city.');
+      setAddressError('Please complete your street/flat address and city.');
       return false;
     }
     setAddressError('');
@@ -526,16 +599,33 @@ export const CheckoutView: React.FC<CheckoutViewProps> = ({
   const finalizeOrderWithPayment = (paymentDetails: string) => {
     setIsUpiGatewayOpen(false);
     setIsPlacingOrder(true);
+    const fullAreaWithExtras = [
+      area.trim(),
+      landmark.trim() ? `Landmark: ${landmark.trim()}` : '',
+      altPhone.trim() ? `Alt Phone: +91 ${altPhone.trim()}` : '',
+      deliveryNotes.trim() ? `Note: ${deliveryNotes.trim()}` : '',
+    ]
+      .filter(Boolean)
+      .join(' · ');
+
     setTimeout(() => {
       onPlaceOrder({
         address: {
           fullName: fullName.trim(),
           phone: phone.trim(),
           pincode: pincode.trim(),
-          area: area.trim(),
+          area: fullAreaWithExtras,
           city: city.trim(),
           state,
         },
+        customerEmail:
+          email.trim() ||
+          `${fullName.trim().toLowerCase().replace(/\s+/g, '.')}@gmail.com`,
+        altPhone: altPhone.trim() || undefined,
+        landmark: landmark.trim() || undefined,
+        addressLabel,
+        deliveryNotes: deliveryNotes.trim() || undefined,
+        saveToProfile,
         paymentMethod,
         paymentDetails,
         discount,
@@ -573,7 +663,7 @@ export const CheckoutView: React.FC<CheckoutViewProps> = ({
           Your Checkout Bag is Empty
         </h1>
         <p className="text-sm text-[#A0A0B0] mb-6">
-          Add one or more VoltEdge accessories before proceeding to checkout.
+          Add one or more {STORE_NAME} products before proceeding to checkout.
         </p>
         <button
           type="button"
@@ -615,7 +705,7 @@ export const CheckoutView: React.FC<CheckoutViewProps> = ({
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
         {/* LEFT: Smooth Accordion Form Sections */}
         <div className="lg:col-span-7 space-y-4">
-          {/* ACCORDION 1: SHIPPING ADDRESS */}
+          {/* ACCORDION 1: CONTACT, PHONE NUMBER & DELIVERY ADDRESS DETAILS */}
           <div className="bg-[#111113] rounded-[16px] border border-white/[0.08] overflow-hidden">
             <button
               type="button"
@@ -634,11 +724,15 @@ export const CheckoutView: React.FC<CheckoutViewProps> = ({
                 </span>
                 <div>
                   <h2 className="font-display text-base font-bold text-white">
-                    Shipping Address
+                    Contact, Phone Number &amp; Delivery Address
                   </h2>
-                  {activeStep > 1 && (
+                  {activeStep > 1 ? (
                     <p className="text-xs text-[#A0A0B0] truncate max-w-md">
-                      {fullName} · {city}, {state} - {pincode}
+                      {fullName} (+91 {phone}) · {city}, {state} - {pincode}
+                    </p>
+                  ) : (
+                    <p className="text-[11px] text-[#A0A0B0] mt-0.5">
+                      Enter your mobile number and shipping address for courier delivery &amp; WhatsApp updates
                     </p>
                   )}
                 </div>
@@ -649,135 +743,309 @@ export const CheckoutView: React.FC<CheckoutViewProps> = ({
             </button>
 
             {activeStep === 1 && (
-              <div className="p-6 space-y-4 border-t border-white/[0.07] animate-page-enter">
+              <div className="p-6 space-y-5 border-t border-white/[0.07] animate-page-enter">
                 {addressError && (
-                  <div className="p-3 rounded-[8px] bg-rose-500/10 border border-rose-500/30 text-xs text-rose-300 flex items-center gap-2">
-                    <i className="fa-solid fa-circle-exclamation" />
+                  <div className="p-3.5 rounded-[10px] bg-rose-500/10 border border-rose-500/30 text-xs text-rose-300 flex items-center gap-2.5">
+                    <i className="fa-solid fa-circle-exclamation shrink-0" />
                     <span>{addressError}</span>
                   </div>
                 )}
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div className="relative">
-                    <input
-                      id="checkout-name"
-                      type="text"
-                      value={fullName}
-                      onChange={(e) => setFullName(e.target.value)}
-                      placeholder=" "
-                      className="peer w-full px-4 pt-5 pb-2 rounded-[8px] bg-[#1A1A1F] border border-white/10 text-sm text-white focus:outline-none focus:border-[#6C63FF] focus:ring-1 focus:ring-[#6C63FF] transition-all"
-                    />
-                    <label
-                      htmlFor="checkout-name"
-                      className="absolute left-4 top-2 text-[10px] text-[#A0A0B0] transition-all peer-placeholder-shown:top-3.5 peer-placeholder-shown:text-xs peer-focus:top-1.5 peer-focus:text-[10px] peer-focus:text-[#6C63FF]"
-                    >
-                      Full Name *
-                    </label>
+                {/* Quick Saved Address Selector (if available) */}
+                {initialProfile?.addresses && initialProfile.addresses.length > 0 && (
+                  <div className="space-y-2.5">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-semibold text-[#A0A0B0]">
+                        Select a Saved Address or Enter New Details:
+                      </span>
+                      <button
+                        type="button"
+                        onClick={handleStartNewAddress}
+                        className="text-xs font-semibold text-[#FF6B35] hover:underline flex items-center gap-1"
+                      >
+                        <i className="fa-solid fa-plus text-[10px]" />
+                        <span>Enter New Address</span>
+                      </button>
+                    </div>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      {initialProfile.addresses.map((addr) => {
+                        const isSelected = selectedAddressId === addr.id;
+                        return (
+                          <button
+                            key={addr.id}
+                            type="button"
+                            onClick={() => handleSelectSavedAddress(addr)}
+                            className={`p-3.5 rounded-[12px] border text-left transition-all ${
+                              isSelected
+                                ? 'bg-[#1A1A1F] border-[#6C63FF] ring-1 ring-[#6C63FF]'
+                                : 'bg-[#16161B] border-white/10 text-[#A0A0B0] hover:border-white/20'
+                            }`}
+                          >
+                            <div className="flex items-center justify-between gap-2 mb-1">
+                              <span className="font-display text-xs font-bold text-white uppercase tracking-wider">
+                                {addr.label}
+                              </span>
+                              <span className="text-[11px] font-mono-num text-[#6C63FF]">
+                                {addr.pincode}
+                              </span>
+                            </div>
+                            <p className="text-xs font-semibold text-white truncate">
+                              {addr.fullName} · +91 {addr.phone}
+                            </p>
+                            <p className="text-[11px] text-[#A0A0B0] truncate mt-0.5">
+                              {addr.area}, {addr.city}
+                            </p>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+
+                {/* Section 1A: Recipient Contact & Phone Numbers */}
+                <div className="space-y-3 pt-1">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-display font-bold text-white uppercase tracking-wider">
+                      1. Contact &amp; Mobile Details
+                    </span>
+                    <span className="text-[11px] text-emerald-400 flex items-center gap-1">
+                      <i className="fa-brands fa-whatsapp" />
+                      <span>Used for Courier Call &amp; Tracking</span>
+                    </span>
                   </div>
 
-                  <div className="relative">
-                    <input
-                      id="checkout-phone"
-                      type="tel"
-                      maxLength={10}
-                      value={phone}
-                      onChange={(e) =>
-                        setPhone(e.target.value.replace(/\D/g, '').slice(0, 10))
-                      }
-                      placeholder=" "
-                      className="peer w-full px-4 pt-5 pb-2 rounded-[8px] bg-[#1A1A1F] border border-white/10 text-sm font-mono-num text-white focus:outline-none focus:border-[#6C63FF] focus:ring-1 focus:ring-[#6C63FF] transition-all"
-                    />
-                    <label
-                      htmlFor="checkout-phone"
-                      className="absolute left-4 top-2 text-[10px] text-[#A0A0B0] transition-all peer-placeholder-shown:top-3.5 peer-placeholder-shown:text-xs peer-focus:top-1.5 peer-focus:text-[10px] peer-focus:text-[#6C63FF]"
-                    >
-                      10-Digit Mobile Number (+91) *
-                    </label>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div className="relative">
+                      <input
+                        id="checkout-name"
+                        type="text"
+                        value={fullName}
+                        onChange={(e) => setFullName(e.target.value)}
+                        placeholder=" "
+                        className="peer w-full px-4 pt-5 pb-2 rounded-[8px] bg-[#1A1A1F] border border-white/10 text-sm text-white focus:outline-none focus:border-[#6C63FF] focus:ring-1 focus:ring-[#6C63FF] transition-all"
+                      />
+                      <label
+                        htmlFor="checkout-name"
+                        className="absolute left-4 top-2 text-[10px] text-[#A0A0B0] transition-all peer-placeholder-shown:top-3.5 peer-placeholder-shown:text-xs peer-focus:top-1.5 peer-focus:text-[10px] peer-focus:text-[#6C63FF]"
+                      >
+                        Recipient Full Name *
+                      </label>
+                    </div>
+
+                    <div className="relative">
+                      <input
+                        id="checkout-phone"
+                        type="tel"
+                        maxLength={10}
+                        value={phone}
+                        onChange={(e) =>
+                          setPhone(e.target.value.replace(/\D/g, '').slice(0, 10))
+                        }
+                        placeholder=" "
+                        className="peer w-full px-4 pt-5 pb-2 rounded-[8px] bg-[#1A1A1F] border border-white/10 text-sm font-mono-num text-white focus:outline-none focus:border-[#6C63FF] focus:ring-1 focus:ring-[#6C63FF] transition-all"
+                      />
+                      <label
+                        htmlFor="checkout-phone"
+                        className="absolute left-4 top-2 text-[10px] text-[#A0A0B0] transition-all peer-placeholder-shown:top-3.5 peer-placeholder-shown:text-xs peer-focus:top-1.5 peer-focus:text-[10px] peer-focus:text-[#6C63FF]"
+                      >
+                        10-Digit Mobile Number (+91) *
+                      </label>
+                    </div>
+
+                    <div className="relative">
+                      <input
+                        id="checkout-email"
+                        type="email"
+                        value={email}
+                        onChange={(e) => setEmail(e.target.value)}
+                        placeholder=" "
+                        className="peer w-full px-4 pt-5 pb-2 rounded-[8px] bg-[#1A1A1F] border border-white/10 text-sm text-white focus:outline-none focus:border-[#6C63FF] focus:ring-1 focus:ring-[#6C63FF] transition-all"
+                      />
+                      <label
+                        htmlFor="checkout-email"
+                        className="absolute left-4 top-2 text-[10px] text-[#A0A0B0] transition-all peer-placeholder-shown:top-3.5 peer-placeholder-shown:text-xs peer-focus:top-1.5 peer-focus:text-[10px] peer-focus:text-[#6C63FF]"
+                      >
+                        Email Address (For GST Invoice &amp; Warranty)
+                      </label>
+                    </div>
+
+                    <div className="relative">
+                      <input
+                        id="checkout-alt-phone"
+                        type="tel"
+                        maxLength={10}
+                        value={altPhone}
+                        onChange={(e) =>
+                          setAltPhone(e.target.value.replace(/\D/g, '').slice(0, 10))
+                        }
+                        placeholder=" "
+                        className="peer w-full px-4 pt-5 pb-2 rounded-[8px] bg-[#1A1A1F] border border-white/10 text-sm font-mono-num text-white focus:outline-none focus:border-[#6C63FF] focus:ring-1 focus:ring-[#6C63FF] transition-all"
+                      />
+                      <label
+                        htmlFor="checkout-alt-phone"
+                        className="absolute left-4 top-2 text-[10px] text-[#A0A0B0] transition-all peer-placeholder-shown:top-3.5 peer-placeholder-shown:text-xs peer-focus:top-1.5 peer-focus:text-[10px] peer-focus:text-[#6C63FF]"
+                      >
+                        Alternate Phone / WhatsApp Number (Optional)
+                      </label>
+                    </div>
                   </div>
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                  <div className="relative">
-                    <input
-                      id="checkout-pincode"
-                      type="text"
-                      maxLength={6}
-                      value={pincode}
-                      onChange={(e) => handlePincodeChange(e.target.value)}
-                      placeholder=" "
-                      className="peer w-full px-4 pt-5 pb-2 rounded-[8px] bg-[#1A1A1F] border border-white/10 text-sm font-mono-num text-white focus:outline-none focus:border-[#6C63FF] focus:ring-1 focus:ring-[#6C63FF] transition-all"
-                    />
-                    <label
-                      htmlFor="checkout-pincode"
-                      className="absolute left-4 top-2 text-[10px] text-[#A0A0B0] transition-all peer-placeholder-shown:top-3.5 peer-placeholder-shown:text-xs peer-focus:top-1.5 peer-focus:text-[10px] peer-focus:text-[#6C63FF]"
-                    >
-                      Pincode (6 Digits) *
-                    </label>
-                  </div>
-
-                  <div className="relative">
-                    <input
-                      id="checkout-city"
-                      type="text"
-                      value={city}
-                      onChange={(e) => setCity(e.target.value)}
-                      placeholder=" "
-                      className="peer w-full px-4 pt-5 pb-2 rounded-[8px] bg-[#1A1A1F] border border-white/10 text-sm text-white focus:outline-none focus:border-[#6C63FF] focus:ring-1 focus:ring-[#6C63FF] transition-all"
-                    />
-                    <label
-                      htmlFor="checkout-city"
-                      className="absolute left-4 top-2 text-[10px] text-[#A0A0B0] transition-all peer-placeholder-shown:top-3.5 peer-placeholder-shown:text-xs peer-focus:top-1.5 peer-focus:text-[10px] peer-focus:text-[#6C63FF]"
-                    >
-                      City / District *
-                    </label>
-                  </div>
-
-                  <div className="relative">
-                    <select
-                      id="checkout-state"
-                      value={state}
-                      onChange={(e) => setState(e.target.value)}
-                      className="w-full h-full px-4 pt-5 pb-2 rounded-[8px] bg-[#1A1A1F] border border-white/10 text-sm text-white focus:outline-none focus:border-[#6C63FF]"
-                    >
-                      {INDIAN_STATES.map((st) => (
-                        <option key={st} value={st}>
-                          {st}
-                        </option>
+                {/* Section 1B: Complete Shipping Address */}
+                <div className="space-y-3 pt-3 border-t border-white/[0.06]">
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <span className="text-xs font-display font-bold text-white uppercase tracking-wider">
+                      2. Complete Delivery Address
+                    </span>
+                    <div className="flex items-center gap-1.5">
+                      {(['Home', 'Office', 'Other'] as const).map((lbl) => (
+                        <button
+                          key={lbl}
+                          type="button"
+                          onClick={() => setAddressLabel(lbl)}
+                          className={`px-3 py-1 rounded-full text-[11px] font-semibold transition-all ${
+                            addressLabel === lbl
+                              ? 'bg-electric-gradient text-white'
+                              : 'bg-[#1A1A1F] text-[#A0A0B0] border border-white/10 hover:text-white'
+                          }`}
+                        >
+                          {lbl}
+                        </button>
                       ))}
-                    </select>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                    <div className="relative">
+                      <input
+                        id="checkout-pincode"
+                        type="text"
+                        maxLength={6}
+                        value={pincode}
+                        onChange={(e) => handlePincodeChange(e.target.value)}
+                        placeholder=" "
+                        className="peer w-full px-4 pt-5 pb-2 rounded-[8px] bg-[#1A1A1F] border border-white/10 text-sm font-mono-num text-white focus:outline-none focus:border-[#6C63FF] focus:ring-1 focus:ring-[#6C63FF] transition-all"
+                      />
+                      <label
+                        htmlFor="checkout-pincode"
+                        className="absolute left-4 top-2 text-[10px] text-[#A0A0B0] transition-all peer-placeholder-shown:top-3.5 peer-placeholder-shown:text-xs peer-focus:top-1.5 peer-focus:text-[10px] peer-focus:text-[#6C63FF]"
+                      >
+                        Pincode (6 Digits) *
+                      </label>
+                    </div>
+
+                    <div className="relative">
+                      <input
+                        id="checkout-city"
+                        type="text"
+                        value={city}
+                        onChange={(e) => setCity(e.target.value)}
+                        placeholder=" "
+                        className="peer w-full px-4 pt-5 pb-2 rounded-[8px] bg-[#1A1A1F] border border-white/10 text-sm text-white focus:outline-none focus:border-[#6C63FF] focus:ring-1 focus:ring-[#6C63FF] transition-all"
+                      />
+                      <label
+                        htmlFor="checkout-city"
+                        className="absolute left-4 top-2 text-[10px] text-[#A0A0B0] transition-all peer-placeholder-shown:top-3.5 peer-placeholder-shown:text-xs peer-focus:top-1.5 peer-focus:text-[10px] peer-focus:text-[#6C63FF]"
+                      >
+                        City / District *
+                      </label>
+                    </div>
+
+                    <div className="relative">
+                      <select
+                        id="checkout-state"
+                        value={state}
+                        onChange={(e) => setState(e.target.value)}
+                        className="w-full h-full px-4 pt-5 pb-2 rounded-[8px] bg-[#1A1A1F] border border-white/10 text-sm text-white focus:outline-none focus:border-[#6C63FF]"
+                      >
+                        {INDIAN_STATES.map((st) => (
+                          <option key={st} value={st}>
+                            {st}
+                          </option>
+                        ))}
+                      </select>
+                      <label
+                        htmlFor="checkout-state"
+                        className="absolute left-4 top-1.5 text-[10px] text-[#A0A0B0]"
+                      >
+                        State *
+                      </label>
+                    </div>
+                  </div>
+
+                  <div className="relative">
+                    <input
+                      id="checkout-area"
+                      type="text"
+                      value={area}
+                      onChange={(e) => setArea(e.target.value)}
+                      placeholder=" "
+                      className="peer w-full px-4 pt-5 pb-2 rounded-[8px] bg-[#1A1A1F] border border-white/10 text-sm text-white focus:outline-none focus:border-[#6C63FF] focus:ring-1 focus:ring-[#6C63FF] transition-all"
+                    />
                     <label
-                      htmlFor="checkout-state"
-                      className="absolute left-4 top-1.5 text-[10px] text-[#A0A0B0]"
+                      htmlFor="checkout-area"
+                      className="absolute left-4 top-2 text-[10px] text-[#A0A0B0] transition-all peer-placeholder-shown:top-3.5 peer-placeholder-shown:text-xs peer-focus:top-1.5 peer-focus:text-[10px] peer-focus:text-[#6C63FF]"
                     >
-                      State *
+                      Flat, House No., Building, Street, Area, Colony *
                     </label>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div className="relative">
+                      <input
+                        id="checkout-landmark"
+                        type="text"
+                        value={landmark}
+                        onChange={(e) => setLandmark(e.target.value)}
+                        placeholder=" "
+                        className="peer w-full px-4 pt-5 pb-2 rounded-[8px] bg-[#1A1A1F] border border-white/10 text-sm text-white focus:outline-none focus:border-[#6C63FF] focus:ring-1 focus:ring-[#6C63FF] transition-all"
+                      />
+                      <label
+                        htmlFor="checkout-landmark"
+                        className="absolute left-4 top-2 text-[10px] text-[#A0A0B0] transition-all peer-placeholder-shown:top-3.5 peer-placeholder-shown:text-xs peer-focus:top-1.5 peer-focus:text-[10px] peer-focus:text-[#6C63FF]"
+                      >
+                        Nearby Landmark (Optional)
+                      </label>
+                    </div>
+
+                    <div className="relative">
+                      <input
+                        id="checkout-notes"
+                        type="text"
+                        value={deliveryNotes}
+                        onChange={(e) => setDeliveryNotes(e.target.value)}
+                        placeholder=" "
+                        className="peer w-full px-4 pt-5 pb-2 rounded-[8px] bg-[#1A1A1F] border border-white/10 text-sm text-white focus:outline-none focus:border-[#6C63FF] focus:ring-1 focus:ring-[#6C63FF] transition-all"
+                      />
+                      <label
+                        htmlFor="checkout-notes"
+                        className="absolute left-4 top-2 text-[10px] text-[#A0A0B0] transition-all peer-placeholder-shown:top-3.5 peer-placeholder-shown:text-xs peer-focus:top-1.5 peer-focus:text-[10px] peer-focus:text-[#6C63FF]"
+                      >
+                        Delivery Instructions (Optional)
+                      </label>
+                    </div>
                   </div>
                 </div>
 
-                <div className="relative">
-                  <input
-                    id="checkout-area"
-                    type="text"
-                    value={area}
-                    onChange={(e) => setArea(e.target.value)}
-                    placeholder=" "
-                    className="peer w-full px-4 pt-5 pb-2 rounded-[8px] bg-[#1A1A1F] border border-white/10 text-sm text-white focus:outline-none focus:border-[#6C63FF] focus:ring-1 focus:ring-[#6C63FF] transition-all"
-                  />
-                  <label
-                    htmlFor="checkout-area"
-                    className="absolute left-4 top-2 text-[10px] text-[#A0A0B0] transition-all peer-placeholder-shown:top-3.5 peer-placeholder-shown:text-xs peer-focus:top-1.5 peer-focus:text-[10px] peer-focus:text-[#6C63FF]"
-                  >
-                    Flat, House No., Building, Area, Colony *
+                <div className="pt-2 flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-t border-white/[0.06]">
+                  <label className="inline-flex items-center gap-2.5 text-xs text-[#A0A0B0] cursor-pointer select-none">
+                    <input
+                      type="checkbox"
+                      checked={saveToProfile}
+                      onChange={(e) => setSaveToProfile(e.target.checked)}
+                      className="w-4 h-4 rounded accent-[#6C63FF]"
+                    />
+                    <span>
+                      Save this phone number &amp; delivery address to my account
+                    </span>
                   </label>
-                </div>
 
-                <div className="pt-2 flex justify-end">
                   <button
                     type="button"
                     onClick={handleContinueToPayment}
-                    className="px-6 py-3 rounded-[8px] bg-electric-gradient text-white text-xs font-semibold shadow-electric-glow hover:scale-[1.02] transition-all"
+                    className="px-6 py-3 rounded-[8px] bg-electric-gradient text-white text-xs font-semibold shadow-electric-glow hover:scale-[1.02] transition-all whitespace-nowrap"
                   >
-                    Continue to Payment Method
+                    Continue to Payment Method →
                   </button>
                 </div>
               </div>
@@ -1174,7 +1442,7 @@ export const OrderSuccessView: React.FC<OrderSuccessViewProps> = ({
   onContinueShopping,
 }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const [storeHandlerPhone, setStoreHandlerPhone] = useState('9820411290');
+  const [storeHandlerPhone, setStoreHandlerPhone] = useState(STORE_PHONE);
   const [copiedMsg, setCopiedMsg] = useState(false);
   const [showMessagePreview, setShowMessagePreview] = useState(true);
 
@@ -1232,7 +1500,7 @@ export const OrderSuccessView: React.FC<OrderSuccessViewProps> = ({
     return () => cancelAnimationFrame(frameId);
   }, []);
 
-  const displayOrderId = order?.id || 'VE-20260930-001';
+  const displayOrderId = order?.id || 'CM-20261002-001';
 
   const timelineSteps: {
     statusKey: Order['status'];
@@ -1274,11 +1542,11 @@ export const OrderSuccessView: React.FC<OrderSuccessViewProps> = ({
 
   const whatsappMessage = order
     ? buildWhatsAppOrderMessage(order)
-    : `⚡ *VOLTEDGE ORDER CONFIRMED*\nOrder ID: ${displayOrderId}\nPlease confirm dispatch & share tracking details.`;
+    : `⚡ *${STORE_NAME.toUpperCase()} ORDER CONFIRMED*\nOrder ID: ${displayOrderId}\nPlease confirm dispatch & share tracking details.\nStore Contact: +91 ${STORE_PHONE}\nLocation: ${STORE_MAPS_URL}`;
 
   const cleanedHandlerPhone = storeHandlerPhone.replace(/\D/g, '').slice(0, 10);
   const whatsappUrl = `https://wa.me/91${
-    cleanedHandlerPhone || '9820411290'
+    cleanedHandlerPhone || STORE_PHONE
   }?text=${encodeURIComponent(whatsappMessage)}`;
 
   const handleCopyMessage = () => {
@@ -1468,6 +1736,56 @@ export const OrderSuccessView: React.FC<OrderSuccessViewProps> = ({
             <i className="fa-brands fa-whatsapp text-base" />
             <span>Send Order Details on WhatsApp Now</span>
             <i className="fa-solid fa-arrow-up-right-from-square text-xs" />
+          </a>
+        </div>
+
+        {/* PHYSICAL STORE LOCATION & DIRECT CONTACT CARD */}
+        <div className="bg-[#16161D] rounded-[14px] p-5 border border-white/10 text-left space-y-3.5">
+          <div className="flex items-start justify-between gap-3">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-[#6C63FF]/20 border border-[#6C63FF]/40 flex items-center justify-center text-[#6C63FF] shrink-0">
+                <i className="fa-solid fa-location-dot text-lg" />
+              </div>
+              <div>
+                <h3 className="font-display text-sm font-bold text-white flex items-center gap-2">
+                  <span>Visit Our Store — {STORE_NAME}</span>
+                  <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 font-normal">
+                    Open Now
+                  </span>
+                </h3>
+                <p className="text-xs text-[#A0A0B0]">
+                  Collect your orders in person, test accessories, or get warranty support.
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs pt-1">
+            <a
+              href={`tel:+91${STORE_PHONE}`}
+              className="flex items-center gap-2.5 p-2.5 rounded-[8px] bg-[#111113] border border-white/5 text-[#A0A0B0] hover:text-white hover:border-white/20 transition-all"
+            >
+              <i className="fa-solid fa-phone text-[#6C63FF]" />
+              <span className="font-mono-num font-medium text-white">{STORE_PHONE_DISPLAY}</span>
+            </a>
+            <a
+              href={`mailto:${STORE_EMAIL}`}
+              className="flex items-center gap-2.5 p-2.5 rounded-[8px] bg-[#111113] border border-white/5 text-[#A0A0B0] hover:text-white hover:border-white/20 transition-all truncate"
+            >
+              <i className="fa-solid fa-envelope text-[#FF6B35]" />
+              <span className="truncate">{STORE_EMAIL}</span>
+            </a>
+          </div>
+
+          <a
+            href={STORE_MAPS_URL}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="w-full py-2.5 px-4 rounded-[8px] bg-[#1F1F28] hover:bg-[#282836] border border-white/15 text-white font-display text-xs font-semibold flex items-center justify-center gap-2 transition-all"
+          >
+            <i className="fa-solid fa-map-location-dot text-[#6C63FF]" />
+            <span>Open {STORE_NAME} on Google Maps</span>
+            <i className="fa-solid fa-arrow-up-right-from-square text-[10px] text-[#A0A0B0]" />
           </a>
         </div>
 

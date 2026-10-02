@@ -2,27 +2,37 @@
 
 @layer base {
   :root {
-    --bg-primary: #0A0A0B;
-    --bg-surface: #111113;
-    --bg-card: #1A1A1F;
-    --accent-start: #6C63FF;
-    --accent-end: #FF6B35;
+    --bg-primary: #0A0D0F;
+    --bg-surface: #101518;
+    --bg-card: #151C20;
+    --accent-start: #84F229;
+    --accent-end: #5BB716;
+    --accent-chrome: #E2E8F0;
     --text-primary: #FFFFFF;
-    --text-secondary: #A0A0B0;
-    --text-muted: #6B6B7B;
+    --text-secondary: #9BA9B4;
+    --text-muted: #64748B;
     --ease-standard: cubic-bezier(0.4, 0, 0.2, 1);
   }
 
   html {
     scroll-behavior: smooth;
-    background-color: #0A0A0B;
+    background-color: #0A0D0F;
     color: #FFFFFF;
     font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
   }
 
   h1, h2, h3, h4, .font-display {
-    font-family: 'Space Grotesk', sans-serif;
-    letter-spacing: -0.02em;
+    font-family: 'Orbitron', 'Space Grotesk', -apple-system, sans-serif;
+    letter-spacing: -0.01em;
+  }
+
+  .font-techno {
+    font-family: 'Orbitron', sans-serif;
+    letter-spacing: 0.05em;
+  }
+
+  .font-sub {
+    font-family: 'Rajdhani', 'Space Grotesk', sans-serif;
   }
 
   .font-mono-num {
@@ -36,8 +46,8 @@
 }
 
 ::selection {
-  background: #6C63FF;
-  color: #FFFFFF;
+  background: #84F229;
+  color: #0A0D0F;
 }
 
 /* Custom Scrollbar */
@@ -46,14 +56,14 @@
   height: 6px;
 }
 ::-webkit-scrollbar-track {
-  background: #0A0A0B;
+  background: #0A0D0F;
 }
 ::-webkit-scrollbar-thumb {
-  background: #262630;
+  background: #1C262C;
   border-radius: 9999px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: linear-gradient(135deg, #6C63FF, #FF6B35);
+  background: linear-gradient(135deg, #84F229, #5BB716);
 }
 
 /* Hide scrollbar for snap carousels */
@@ -65,28 +75,35 @@
   scrollbar-width: none;
 }
 
-/* Electric Gradient Utilities */
-.bg-electric-gradient {
-  background: linear-gradient(135deg, #6C63FF 0%, #FF6B35 100%);
+/* Crazy Mobiles Neon Electric Lime & Cyber Chrome Gradients */
+.bg-electric-gradient, .bg-lime-gradient {
+  background: linear-gradient(135deg, #84F229 0%, #5BB716 100%);
 }
 
-.text-electric-gradient {
-  background: linear-gradient(135deg, #6C63FF 0%, #FF6B35 100%);
+.text-electric-gradient, .text-lime-gradient {
+  background: linear-gradient(135deg, #84F229 0%, #76E026 50%, #4FA312 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.text-chrome-gradient {
+  background: linear-gradient(180deg, #FFFFFF 0%, #E2E8F0 50%, #94A3B8 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
 }
 
 .shadow-card {
-  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.4);
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.5);
 }
 
-.shadow-electric-glow {
-  box-shadow: 0 8px 30px -4px rgba(108, 99, 255, 0.45), 0 4px 16px -2px rgba(255, 107, 53, 0.35);
+.shadow-electric-glow, .shadow-lime-glow {
+  box-shadow: 0 8px 30px -4px rgba(132, 242, 41, 0.45), 0 4px 16px -2px rgba(118, 224, 38, 0.3);
 }
 
-.shadow-electric-subtle {
-  box-shadow: 0 0 0 1px rgba(108, 99, 255, 0.45), 0 10px 30px -10px rgba(255, 107, 53, 0.25);
+.shadow-electric-subtle, .shadow-lime-subtle {
+  box-shadow: 0 0 0 1px rgba(132, 242, 41, 0.4), 0 8px 24px -6px rgba(132, 242, 41, 0.25);
 }
 
 /* Card hover gradient border effect */
@@ -95,8 +112,8 @@
   transition: transform 300ms cubic-bezier(0.4, 0, 0.2, 1), box-shadow 300ms cubic-bezier(0.4, 0, 0.2, 1), border-color 300ms cubic-bezier(0.4, 0, 0.2, 1);
 }
 .card-electric-border:hover {
-  border-color: rgba(108, 99, 255, 0.55);
-  box-shadow: 0 12px 32px -6px rgba(0, 0, 0, 0.6), 0 0 20px -4px rgba(108, 99, 255, 0.3), 0 0 16px -6px rgba(255, 107, 53, 0.25);
+  border-color: rgba(132, 242, 41, 0.6);
+  box-shadow: 0 12px 32px -6px rgba(0, 0, 0, 0.7), 0 0 20px -4px rgba(132, 242, 41, 0.35);
 }
 
 /* 180-Degree Animated Category Card Flip & Photo Rotation */

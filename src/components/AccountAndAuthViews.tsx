@@ -1,18 +1,18 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   CartItem,
   HERO_ECOSYSTEM_IMAGE,
   INDIAN_STATES,
   Order,
+  STORE_EMAIL,
+  STORE_MAPS_URL,
+  STORE_NAME,
+  STORE_PHONE,
+  STORE_PHONE_DISPLAY,
   formatINR,
 } from '../data/seedData';
-import {
-  ConfirmationResult,
-  RecaptchaVerifier,
-  User,
-  auth,
-  signInWithPhoneNumber,
-} from '../firebase';
+import { User } from '../firebase';
+import { CrazyMobilesLogo } from './CrazyMobilesLogo';
 import { ResilientImage } from './ResilientImage';
 
 export interface SavedAddressItem {
@@ -40,8 +40,8 @@ export const INITIAL_SAVED_ADDRESSES: SavedAddressItem[] = [
   {
     id: 'addr-1',
     label: 'Home',
-    fullName: 'Aarav Sharma',
-    phone: '9820411290',
+    fullName: 'Shaikh Shoeb',
+    phone: STORE_PHONE,
     pincode: '560034',
     area: '402, Palm Grove Indiranagar, 100 Feet Road',
     city: 'Bengaluru',
@@ -51,8 +51,8 @@ export const INITIAL_SAVED_ADDRESSES: SavedAddressItem[] = [
   {
     id: 'addr-2',
     label: 'Office',
-    fullName: 'Aarav Sharma',
-    phone: '9820411290',
+    fullName: 'Shaikh Shoeb',
+    phone: STORE_PHONE,
     pincode: '560103',
     area: 'Level 6, Prestige Tech Park, Outer Ring Road, Bellandur',
     city: 'Bengaluru',
@@ -70,7 +70,7 @@ interface LoginOtpViewProps {
   isAdminAuthenticated?: boolean;
   onAdminLoginSuccess?: () => void;
   onCustomerLoginSuccess?: (loginId: string, displayName?: string) => void;
-  onPhoneVerifiedSuccess: (phone: string, name?: string) => void;
+  onPhoneVerifiedSuccess?: (phone: string, name?: string) => void;
   onGoogleSignIn: () => void;
   onNavigateAccount: () => void;
   onNavigateAdmin?: () => void;
@@ -83,45 +83,18 @@ export const LoginOtpView: React.FC<LoginOtpViewProps> = ({
   isAdminAuthenticated = false,
   onAdminLoginSuccess,
   onCustomerLoginSuccess,
-  onPhoneVerifiedSuccess,
   onGoogleSignIn,
   onNavigateAccount,
   onNavigateAdmin,
   showToast,
 }) => {
   // Unified Login ID & Password State (Used for both Consumer & Store Owner)
-  const [authTab, setAuthTab] = useState<'credentials' | 'otp'>('credentials');
   const [loginId, setLoginId] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [rememberSession, setRememberSession] = useState(true);
   const [isLoggingIn, setIsLoggingIn] = useState(false);
-  const [showOwnerHint, setShowOwnerHint] = useState(false);
-
-  // Mobile OTP State (Secondary Tab)
-  const [phoneInput, setPhoneInput] = useState(profile.phone || '9820411290');
-  const [nameInput, setNameInput] = useState(profile.fullName || 'Aarav Sharma');
-  const [otpMode, setOtpMode] = useState<'sandbox' | 'firebase'>('sandbox');
-  const [step, setStep] = useState<'phone' | 'otp'>('phone');
-  const [otpDigits, setOtpDigits] = useState<string[]>(['', '', '', '', '', '']);
-  const [generatedSandboxOtp, setGeneratedSandboxOtp] = useState<string>('');
-  const [resendTimer, setResendTimer] = useState<number>(0);
-  const [isSending, setIsSending] = useState<boolean>(false);
-  const [isVerifying, setIsVerifying] = useState<boolean>(false);
   const [errorMsg, setErrorMsg] = useState<string>('');
-  const [confirmationResult, setConfirmationResult] =
-    useState<ConfirmationResult | null>(null);
-
-  const digitRefs = useRef<(HTMLInputElement | null)[]>([]);
-
-  // Resend countdown timer
-  useEffect(() => {
-    if (resendTimer <= 0) return;
-    const interval = setInterval(() => {
-      setResendTimer((prev) => Math.max(0, prev - 1));
-    }, 1000);
-    return () => clearInterval(interval);
-  }, [resendTimer]);
 
   // Unified Login Handler (Detects Special Store Owner Credentials vs. Consumer Credentials)
   const handleUnifiedLoginSubmit = (e: React.FormEvent) => {
@@ -130,7 +103,7 @@ export const LoginOtpView: React.FC<LoginOtpViewProps> = ({
     const trimmedLower = trimmedId.toLowerCase();
 
     if (!trimmedId) {
-      setErrorMsg('Please enter your Login ID, Email, or Mobile Number.');
+      setErrorMsg('Please enter your Login ID or Email.');
       return;
     }
     if (!password) {
@@ -178,7 +151,7 @@ export const LoginOtpView: React.FC<LoginOtpViewProps> = ({
             .split('@')[0]
             .replace(/[._-]/g, ' ')
             .replace(/\b\w/g, (c) => c.toUpperCase())
-        : profile.fullName || 'VoltEdge Member';
+        : trimmedId;
 
       if (onCustomerLoginSuccess) {
         onCustomerLoginSuccess(trimmedId, derivedName);
@@ -186,134 +159,20 @@ export const LoginOtpView: React.FC<LoginOtpViewProps> = ({
         showToast(`Welcome back, ${derivedName}!`);
         onNavigateAccount();
       }
-    }, 450);
-  };
-
-  const handleSendOtp = async (e: React.FormEvent) => {
-    e.preventDefault();
-    const cleaned = phoneInput.replace(/\D/g, '').slice(0, 10);
-    if (!/^\d{10}$/.test(cleaned)) {
-      setErrorMsg('Please enter a valid 10-digit Indian mobile number.');
-      return;
-    }
-
-    setErrorMsg('');
-    setIsSending(true);
-
-    if (otpMode === 'firebase') {
-      try {
-        const formattedE164 = `+91${cleaned}`;
-        const verifier = new RecaptchaVerifier(auth, 'recaptcha-container', {
-          size: 'invisible',
-        });
-        const result = await signInWithPhoneNumber(auth, formattedE164, verifier);
-        setConfirmationResult(result);
-        setStep('otp');
-        setResendTimer(30);
-        showToast(`Firebase SMS OTP dispatched to +91 ${cleaned}`);
-      } catch (err) {
-        const code = String(Math.floor(100000 + Math.random() * 900000));
-        setGeneratedSandboxOtp(code);
-        setStep('otp');
-        setResendTimer(30);
-        console.warn('Firebase Phone Auth note:', err);
-        showToast(`Demo SMS OTP for +91 ${cleaned}: ${code}`);
-      } finally {
-        setIsSending(false);
-      }
-    } else {
-      setTimeout(() => {
-        const code = String(Math.floor(100000 + Math.random() * 900000));
-        setGeneratedSandboxOtp(code);
-        setStep('otp');
-        setOtpDigits(['', '', '', '', '', '']);
-        setResendTimer(30);
-        setIsSending(false);
-        showToast(`SMS OTP sent to +91 ${cleaned}: ${code}`);
-      }, 650);
-    }
-  };
-
-  const handleDigitChange = (index: number, value: string) => {
-    const digit = value.replace(/\D/g, '').slice(-1);
-    const next = [...otpDigits];
-    next[index] = digit;
-    setOtpDigits(next);
-
-    if (digit && index < 5) {
-      digitRefs.current[index + 1]?.focus();
-    }
-  };
-
-  const handleKeyDown = (index: number, e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === 'Backspace' && !otpDigits[index] && index > 0) {
-      digitRefs.current[index - 1]?.focus();
-    }
-  };
-
-  const handlePaste = (e: React.ClipboardEvent<HTMLInputElement>) => {
-    e.preventDefault();
-    const pasted = e.clipboardData.getData('text').replace(/\D/g, '').slice(0, 6);
-    if (pasted.length > 0) {
-      const next = ['', '', '', '', '', ''];
-      for (let i = 0; i < 6; i++) {
-        next[i] = pasted[i] || '';
-      }
-      setOtpDigits(next);
-      digitRefs.current[Math.min(5, pasted.length - 1)]?.focus();
-    }
-  };
-
-  const handleVerifyOtp = async (e: React.FormEvent) => {
-    e.preventDefault();
-    const enteredOtp = otpDigits.join('');
-    if (enteredOtp.length !== 6) {
-      setErrorMsg('Please enter all 6 digits of the OTP.');
-      return;
-    }
-
-    setErrorMsg('');
-    setIsVerifying(true);
-
-    if (confirmationResult) {
-      try {
-        await confirmationResult.confirm(enteredOtp);
-        onPhoneVerifiedSuccess(phoneInput, nameInput);
-        onNavigateAccount();
-      } catch {
-        setErrorMsg('Invalid OTP code. Please check and try again.');
-      } finally {
-        setIsVerifying(false);
-      }
-    } else {
-      setTimeout(() => {
-        if (enteredOtp === generatedSandboxOtp || enteredOtp === '123456') {
-          setIsVerifying(false);
-          onPhoneVerifiedSuccess(phoneInput, nameInput);
-          onNavigateAccount();
-        } else {
-          setIsVerifying(false);
-          setErrorMsg(
-            `Incorrect OTP. Enter ${generatedSandboxOtp || '123456'} to verify.`
-          );
-        }
-      }, 600);
-    }
+    }, 400);
   };
 
   return (
     <div className="min-h-[calc(100vh-5rem)] flex items-center justify-center px-4 sm:px-6 lg:px-8 py-8 sm:py-12 animate-page-enter">
-      <div id="recaptcha-container" />
-
       {/* Full-Width Split-Screen Flagship Authentication Portal */}
-      <div className="w-full max-w-[1200px] bg-[#111113] border border-white/10 rounded-[24px] shadow-2xl overflow-hidden grid grid-cols-1 lg:grid-cols-12 min-h-[640px]">
+      <div className="w-full max-w-[1160px] bg-[#111113] border border-white/10 rounded-[24px] shadow-2xl overflow-hidden grid grid-cols-1 lg:grid-cols-12 min-h-[600px]">
         {/* LEFT COLUMN (6 Cols): Brand Ecosystem Showcase & Identity Architecture */}
         <div className="lg:col-span-6 relative bg-[#16161D] p-8 sm:p-12 flex flex-col justify-between overflow-hidden border-b lg:border-b-0 lg:border-r border-white/[0.08]">
           {/* Studio Hardware Background with Layered Gradient */}
           <div className="absolute inset-0 pointer-events-none">
             <ResilientImage
               src={HERO_ECOSYSTEM_IMAGE}
-              alt="VoltEdge Flagship Hardware Ecosystem"
+              alt={`${STORE_NAME} Flagship Hardware Ecosystem`}
               className="w-full h-full opacity-30"
               imgClassName="object-cover scale-105"
             />
@@ -330,17 +189,7 @@ export const LoginOtpView: React.FC<LoginOtpViewProps> = ({
           {/* Top Brand Identity */}
           <div className="relative z-10 space-y-6">
             <div className="inline-flex items-center gap-2.5">
-              <div className="w-10 h-10 rounded-xl bg-electric-gradient flex items-center justify-center text-white shadow-electric-glow">
-                <i className="fa-solid fa-bolt text-base" />
-              </div>
-              <div>
-                <span className="font-display text-xl font-bold text-white tracking-tight block leading-none">
-                  VoltEdge
-                </span>
-                <span className="text-[11px] text-[#A0A0B0] font-mono-num">
-                  Unified Access Portal
-                </span>
-              </div>
+              <CrazyMobilesLogo variant="horizontal" size="md" />
             </div>
 
             <div className="space-y-3 pt-2">
@@ -351,9 +200,9 @@ export const LoginOtpView: React.FC<LoginOtpViewProps> = ({
                 One Gateway for Members &amp; Store Operations.
               </h2>
               <p className="text-sm text-[#A0A0B0] leading-relaxed max-w-md">
-                Sign in with your Login ID and password or Google account to track
-                live shipments, manage saved Indian addresses, and access verified
-                warranty replacements.
+                Sign in with your Login ID and password or continue with your
+                Google account. Your phone number and delivery address are
+                collected seamlessly during checkout.
               </p>
             </div>
 
@@ -362,18 +211,18 @@ export const LoginOtpView: React.FC<LoginOtpViewProps> = ({
               {[
                 {
                   icon: 'fa-truck-fast',
-                  title: 'Live Fulfillment & WhatsApp Receipts',
-                  desc: 'Instant order tracking from warehouse packing to doorstep delivery.',
+                  title: 'Seamless Checkout Address & Phone Capture',
+                  desc: 'Enter your mobile number and delivery address directly while ordering.',
                 },
                 {
                   icon: 'fa-shield-halved',
                   title: '1-Year Automated Warranty Vault',
-                  desc: 'Every MagSafe, GaN, and ANC serial number registered to your ID.',
+                  desc: 'Every MagSafe, GaN, and ANC serial number registered to your account.',
                 },
                 {
                   icon: 'fa-lock',
                   title: 'Role-Based Store Owner Protection',
-                  desc: 'Dedicated owner credentials automatically unlock the Admin Console.',
+                  desc: 'Authorized owner credentials automatically unlock the Admin Console.',
                 },
               ].map((item) => (
                 <div
@@ -396,101 +245,30 @@ export const LoginOtpView: React.FC<LoginOtpViewProps> = ({
             </div>
           </div>
 
-          {/* Bottom Quick Fill / Owner Credential Reference for Testing */}
-          <div className="relative z-10 pt-8 mt-8 border-t border-white/10">
-            <div className="flex items-center justify-between gap-2">
+          {/* Bottom Status Bar */}
+          <div className="relative z-10 pt-8 mt-8 border-t border-white/10 flex items-center justify-between text-xs text-[#A0A0B0]">
+            <span>256-Bit Encrypted Authentication</span>
+            {isAdminAuthenticated && onNavigateAdmin && (
               <button
                 type="button"
-                onClick={() => setShowOwnerHint((prev) => !prev)}
-                className="text-xs text-[#A0A0B0] hover:text-white flex items-center gap-2 transition-colors"
+                onClick={onNavigateAdmin}
+                className="text-xs font-semibold text-emerald-400 hover:underline flex items-center gap-1.5"
               >
-                <i className="fa-solid fa-key text-[#FF6B35] text-xs" />
-                <span>View Quick-Fill Credentials (Owner vs. Consumer)</span>
-                <i
-                  className={`fa-solid fa-chevron-down text-[10px] transition-transform ${
-                    showOwnerHint ? 'rotate-180' : ''
-                  }`}
-                />
+                <span>Open Admin Console</span>
+                <i className="fa-solid fa-arrow-right text-[10px]" />
               </button>
-
-              {isAdminAuthenticated && onNavigateAdmin && (
-                <button
-                  type="button"
-                  onClick={onNavigateAdmin}
-                  className="text-xs font-semibold text-emerald-400 hover:underline flex items-center gap-1.5"
-                >
-                  <span>Open Admin Console</span>
-                  <i className="fa-solid fa-arrow-right text-[10px]" />
-                </button>
-              )}
-            </div>
-
-            {showOwnerHint && (
-              <div className="mt-3 p-4 rounded-xl bg-[#0A0A0B]/90 border border-white/15 grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs animate-page-enter">
-                <div className="p-3 rounded-lg bg-[#16161D] border border-[#6C63FF]/40 space-y-1.5">
-                  <div className="flex items-center justify-between">
-                    <span className="font-display font-bold text-white">
-                      Store Owner (Admin)
-                    </span>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setAuthTab('credentials');
-                        setLoginId('Shoeb');
-                        setPassword('admin');
-                        setErrorMsg('');
-                      }}
-                      className="px-2 py-0.5 rounded bg-electric-gradient text-white text-[10px] font-semibold"
-                    >
-                      Auto-Fill Owner
-                    </button>
-                  </div>
-                  <p className="font-mono-num text-[11px] text-[#A0A0B0]">
-                    ID: <strong className="text-white">Shoeb</strong>
-                  </p>
-                  <p className="font-mono-num text-[11px] text-[#A0A0B0]">
-                    Pass: <strong className="text-white">admin</strong>
-                  </p>
-                </div>
-
-                <div className="p-3 rounded-lg bg-[#16161D] border border-white/10 space-y-1.5">
-                  <div className="flex items-center justify-between">
-                    <span className="font-display font-bold text-white">
-                      Consumer Account
-                    </span>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setAuthTab('credentials');
-                        setLoginId('aarav.sharma@gmail.com');
-                        setPassword('customer123');
-                        setErrorMsg('');
-                      }}
-                      className="px-2 py-0.5 rounded bg-white/10 hover:bg-white/20 text-white text-[10px] font-semibold"
-                    >
-                      Auto-Fill Buyer
-                    </button>
-                  </div>
-                  <p className="font-mono-num text-[11px] text-[#A0A0B0]">
-                    ID: <strong className="text-white">aarav.sharma@gmail.com</strong>
-                  </p>
-                  <p className="font-mono-num text-[11px] text-[#A0A0B0]">
-                    Pass: <strong className="text-white">customer123</strong>
-                  </p>
-                </div>
-              </div>
             )}
           </div>
         </div>
 
-        {/* RIGHT COLUMN (6 Cols): Unified Login Form (Login ID + Password + Google Account) */}
+        {/* RIGHT COLUMN (6 Cols): Unified Login Form (Login ID + Password + Continue with Google Account) */}
         <div className="lg:col-span-6 p-8 sm:p-12 lg:p-14 flex flex-col justify-center bg-[#111113]">
           <div className="max-w-md mx-auto w-full space-y-7">
-            {/* Top Header & Mode Switcher */}
-            <div className="space-y-3">
+            {/* Top Header */}
+            <div className="space-y-2.5">
               <div className="flex items-center justify-between gap-2">
                 <span className="text-xs font-medium text-[#FF6B35]">
-                  VoltEdge Account Authentication
+                  {STORE_NAME} Account Authentication
                 </span>
                 {currentUser && (
                   <button
@@ -510,40 +288,6 @@ export const LoginOtpView: React.FC<LoginOtpViewProps> = ({
                 Enter your Login ID and password below, or continue with your
                 Google account.
               </p>
-
-              {/* Subtle Tab Switcher: Login ID & Password vs Mobile SMS OTP */}
-              <div className="grid grid-cols-2 gap-1.5 p-1 rounded-xl bg-[#1A1A1F] border border-white/[0.07] pt-1">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setAuthTab('credentials');
-                    setErrorMsg('');
-                  }}
-                  className={`py-2 px-3 rounded-lg text-xs font-semibold flex items-center justify-center gap-2 transition-all ${
-                    authTab === 'credentials'
-                      ? 'bg-electric-gradient text-white shadow-sm'
-                      : 'text-[#A0A0B0] hover:text-white'
-                  }`}
-                >
-                  <i className="fa-solid fa-user-lock text-[11px]" />
-                  <span>Login ID &amp; Password</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setAuthTab('otp');
-                    setErrorMsg('');
-                  }}
-                  className={`py-2 px-3 rounded-lg text-xs font-semibold flex items-center justify-center gap-2 transition-all ${
-                    authTab === 'otp'
-                      ? 'bg-electric-gradient text-white shadow-sm'
-                      : 'text-[#A0A0B0] hover:text-white'
-                  }`}
-                >
-                  <i className="fa-solid fa-mobile-screen-button text-[11px]" />
-                  <span>Mobile SMS OTP</span>
-                </button>
-              </div>
             </div>
 
             {errorMsg && (
@@ -553,329 +297,112 @@ export const LoginOtpView: React.FC<LoginOtpViewProps> = ({
               </div>
             )}
 
-            {authTab === 'credentials' ? (
-              /* UNIFIED LOGIN ID & PASSWORD FORM */
-              <form onSubmit={handleUnifiedLoginSubmit} className="space-y-5">
-                <div>
-                  <label
-                    htmlFor="unified-login-id"
-                    className="block text-xs font-medium text-[#A0A0B0] mb-2"
-                  >
-                    Login ID / Email Address
-                  </label>
-                  <div className="relative">
-                    <i className="fa-regular fa-user absolute left-4 top-1/2 -translate-y-1/2 text-[#6B6B7B] text-xs" />
-                    <input
-                      id="unified-login-id"
-                      type="text"
-                      required
-                      value={loginId}
-                      onChange={(e) => setLoginId(e.target.value)}
-                      placeholder="Enter your Login ID or Email"
-                      className="w-full pl-11 pr-4 py-3.5 rounded-xl bg-[#1A1A1F] border border-white/10 text-sm text-white placeholder-[#6B6B7B] focus:outline-none focus:border-[#6C63FF] focus:ring-1 focus:ring-[#6C63FF] transition-all"
-                    />
-                  </div>
-                </div>
-
-                <div>
-                  <div className="flex items-center justify-between mb-2">
-                    <label
-                      htmlFor="unified-password"
-                      className="block text-xs font-medium text-[#A0A0B0]"
-                    >
-                      Password
-                    </label>
-                    <button
-                      type="button"
-                      onClick={() => setAuthTab('otp')}
-                      className="text-[11px] text-[#6C63FF] hover:underline"
-                    >
-                      Use Mobile OTP Instead?
-                    </button>
-                  </div>
-                  <div className="relative">
-                    <i className="fa-solid fa-lock absolute left-4 top-1/2 -translate-y-1/2 text-[#6B6B7B] text-xs" />
-                    <input
-                      id="unified-password"
-                      type={showPassword ? 'text' : 'password'}
-                      required
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                      placeholder="Enter your password"
-                      className="w-full pl-11 pr-11 py-3.5 rounded-xl bg-[#1A1A1F] border border-white/10 text-sm text-white placeholder-[#6B6B7B] focus:outline-none focus:border-[#6C63FF] focus:ring-1 focus:ring-[#6C63FF] transition-all"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setShowPassword((prev) => !prev)}
-                      aria-label="Toggle password visibility"
-                      className="absolute right-3.5 top-1/2 -translate-y-1/2 text-[#A0A0B0] hover:text-white p-1"
-                    >
-                      <i
-                        className={`fa-regular ${
-                          showPassword ? 'fa-eye-slash' : 'fa-eye'
-                        } text-xs`}
-                      />
-                    </button>
-                  </div>
-                </div>
-
-                <div className="flex items-center justify-between text-xs text-[#A0A0B0]">
-                  <label className="inline-flex items-center gap-2 cursor-pointer select-none">
-                    <input
-                      type="checkbox"
-                      checked={rememberSession}
-                      onChange={(e) => setRememberSession(e.target.checked)}
-                      className="w-4 h-4 rounded accent-[#6C63FF]"
-                    />
-                    <span>Keep me signed in on this device</span>
-                  </label>
-                </div>
-
-                {/* Primary Login Button */}
-                <button
-                  type="submit"
-                  disabled={isLoggingIn}
-                  className="w-full py-4 px-6 rounded-xl bg-electric-gradient text-white font-display text-sm font-bold shadow-electric-glow hover:scale-[1.01] transition-all flex items-center justify-center gap-2.5 btn-interactive"
+            {/* UNIFIED LOGIN ID & PASSWORD FORM */}
+            <form onSubmit={handleUnifiedLoginSubmit} className="space-y-5">
+              <div>
+                <label
+                  htmlFor="unified-login-id"
+                  className="block text-xs font-medium text-[#A0A0B0] mb-2"
                 >
-                  {isLoggingIn ? (
-                    <>
-                      <i className="fa-solid fa-circle-notch fa-spin text-xs" />
-                      <span>Authenticating Account...</span>
-                    </>
-                  ) : (
-                    <>
-                      <span>Login</span>
-                      <i className="fa-solid fa-arrow-right text-xs" />
-                    </>
-                  )}
-                </button>
-
-                {/* Divider */}
-                <div className="relative py-2 flex items-center justify-center">
-                  <div className="border-t border-white/10 w-full" />
-                  <span className="bg-[#111113] px-4 text-[11px] text-[#6B6B7B] uppercase tracking-wider shrink-0">
-                    Or
-                  </span>
-                  <div className="border-t border-white/10 w-full" />
-                </div>
-
-                {/* Continue with Google Account Button */}
-                <button
-                  type="button"
-                  onClick={onGoogleSignIn}
-                  className="w-full py-3.5 px-6 rounded-xl bg-[#1A1A1F] hover:bg-[#23232C] border border-white/15 text-white font-display text-xs sm:text-sm font-semibold flex items-center justify-center gap-3 transition-all"
-                >
-                  <i className="fa-brands fa-google text-base text-[#FF6B35]" />
-                  <span>Continue with Google Account</span>
-                </button>
-              </form>
-            ) : step === 'phone' ? (
-              /* SECONDARY TAB: MOBILE SMS OTP VERIFICATION */
-              <form onSubmit={handleSendOtp} className="space-y-4 animate-page-enter">
-                <div>
-                  <label
-                    htmlFor="login-fullname"
-                    className="block text-xs font-medium text-[#A0A0B0] mb-1.5"
-                  >
-                    Your Full Name
-                  </label>
+                  Login ID
+                </label>
+                <div className="relative">
+                  <i className="fa-regular fa-user absolute left-4 top-1/2 -translate-y-1/2 text-[#6B6B7B] text-xs" />
                   <input
-                    id="login-fullname"
+                    id="unified-login-id"
                     type="text"
                     required
-                    value={nameInput}
-                    onChange={(e) => setNameInput(e.target.value)}
-                    placeholder="Aarav Sharma"
-                    className="w-full px-4 py-3 rounded-xl bg-[#1A1A1F] border border-white/10 text-sm text-white focus:outline-none focus:border-[#6C63FF]"
+                    value={loginId}
+                    onChange={(e) => setLoginId(e.target.value)}
+                    placeholder="Enter your Login ID or Email"
+                    className="w-full pl-11 pr-4 py-3.5 rounded-xl bg-[#1A1A1F] border border-white/10 text-sm text-white placeholder-[#6B6B7B] focus:outline-none focus:border-[#6C63FF] focus:ring-1 focus:ring-[#6C63FF] transition-all"
                   />
                 </div>
+              </div>
 
-                <div>
-                  <label
-                    htmlFor="login-mobile"
-                    className="block text-xs font-medium text-[#A0A0B0] mb-1.5"
-                  >
-                    Mobile Number for SMS OTP Verification
-                  </label>
-                  <div className="flex rounded-xl overflow-hidden border border-white/10 focus-within:border-[#6C63FF] bg-[#1A1A1F]">
-                    <span className="px-4 py-3.5 bg-[#16161C] border-r border-white/10 text-xs font-mono-num text-[#A0A0B0] flex items-center select-none">
-                      IN +91
-                    </span>
-                    <input
-                      id="login-mobile"
-                      type="tel"
-                      maxLength={10}
-                      required
-                      value={phoneInput}
-                      onChange={(e) =>
-                        setPhoneInput(e.target.value.replace(/\D/g, '').slice(0, 10))
-                      }
-                      placeholder="9820411290"
-                      className="flex-1 px-4 py-3.5 bg-transparent text-sm font-mono-num text-white focus:outline-none"
-                    />
-                  </div>
-                </div>
-
-                <div className="p-3.5 rounded-xl bg-[#16161C] border border-white/[0.06] flex items-center justify-between text-xs">
-                  <span className="text-[#A0A0B0]">OTP Gateway Mode:</span>
-                  <div className="inline-flex rounded-lg bg-[#111113] p-0.5 border border-white/10">
-                    <button
-                      type="button"
-                      onClick={() => setOtpMode('sandbox')}
-                      className={`px-2.5 py-1 rounded-md text-[11px] font-medium transition-colors ${
-                        otpMode === 'sandbox'
-                          ? 'bg-electric-gradient text-white'
-                          : 'text-[#A0A0B0] hover:text-white'
-                      }`}
-                    >
-                      Instant Demo SMS
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setOtpMode('firebase')}
-                      className={`px-2.5 py-1 rounded-md text-[11px] font-medium transition-colors ${
-                        otpMode === 'firebase'
-                          ? 'bg-electric-gradient text-white'
-                          : 'text-[#A0A0B0] hover:text-white'
-                      }`}
-                    >
-                      Firebase Phone Auth
-                    </button>
-                  </div>
-                </div>
-
-                <button
-                  type="submit"
-                  disabled={isSending}
-                  className="w-full py-4 px-6 rounded-xl bg-electric-gradient text-white font-display text-sm font-bold shadow-electric-glow hover:scale-[1.01] transition-all flex items-center justify-center gap-2 btn-interactive"
+              <div>
+                <label
+                  htmlFor="unified-password"
+                  className="block text-xs font-medium text-[#A0A0B0] mb-2"
                 >
-                  {isSending ? (
-                    <>
-                      <i className="fa-solid fa-circle-notch fa-spin text-xs" />
-                      <span>Dispatching SMS OTP...</span>
-                    </>
-                  ) : (
-                    <>
-                      <i className="fa-solid fa-comment-sms text-sm" />
-                      <span>Send 6-Digit OTP via SMS</span>
-                    </>
-                  )}
-                </button>
-
-                <div className="relative py-2 flex items-center justify-center">
-                  <div className="border-t border-white/10 w-full" />
-                  <span className="bg-[#111113] px-4 text-[11px] text-[#6B6B7B] uppercase tracking-wider">
-                    Or
-                  </span>
-                  <div className="border-t border-white/10 w-full" />
-                </div>
-
-                <button
-                  type="button"
-                  onClick={onGoogleSignIn}
-                  className="w-full py-3.5 px-6 rounded-xl bg-[#1A1A1F] hover:bg-[#23232C] border border-white/15 text-white font-display text-xs sm:text-sm font-semibold flex items-center justify-center gap-3 transition-all"
-                >
-                  <i className="fa-brands fa-google text-base text-[#FF6B35]" />
-                  <span>Continue with Google Account</span>
-                </button>
-              </form>
-            ) : (
-              /* STEP 2: 6-DIGIT OTP INPUT FORM */
-              <form onSubmit={handleVerifyOtp} className="space-y-5 animate-page-enter">
-                {generatedSandboxOtp && (
-                  <div className="p-3.5 rounded-xl bg-[#1A1A1F] border border-[#6C63FF]/50 flex items-center justify-between gap-3">
-                    <div className="text-xs">
-                      <span className="text-[#A0A0B0] block">
-                        Simulated SMS to +91 {phoneInput}:
-                      </span>
-                      <span className="text-white">
-                        Your VoltEdge verification OTP is{' '}
-                        <strong className="font-mono-num text-[#FF6B35] text-sm">
-                          {generatedSandboxOtp}
-                        </strong>
-                      </span>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => setOtpDigits(generatedSandboxOtp.split(''))}
-                      className="px-3 py-1.5 rounded-lg bg-white/10 hover:bg-white/15 text-[11px] font-semibold text-white shrink-0"
-                    >
-                      Auto-Fill
-                    </button>
-                  </div>
-                )}
-
-                <div>
-                  <label className="block text-xs text-[#A0A0B0] mb-2.5 text-center">
-                    Enter the 6-digit verification code sent to +91 {phoneInput}
-                  </label>
-                  <div className="grid grid-cols-6 gap-2.5 max-w-xs mx-auto">
-                    {otpDigits.map((digit, idx) => (
-                      <input
-                        key={idx}
-                        ref={(el) => {
-                          digitRefs.current[idx] = el;
-                        }}
-                        type="text"
-                        inputMode="numeric"
-                        maxLength={1}
-                        value={digit}
-                        onChange={(e) => handleDigitChange(idx, e.target.value)}
-                        onKeyDown={(e) => handleKeyDown(idx, e)}
-                        onPaste={handlePaste}
-                        aria-label={`OTP digit ${idx + 1}`}
-                        className="w-full aspect-square text-center font-mono-num text-lg font-bold text-white bg-[#1A1A1F] border border-white/15 rounded-xl focus:outline-none focus:border-[#6C63FF] focus:ring-2 focus:ring-[#6C63FF]/40 transition-all"
-                      />
-                    ))}
-                  </div>
-                </div>
-
-                <button
-                  type="submit"
-                  disabled={isVerifying}
-                  className="w-full py-4 px-6 rounded-xl bg-electric-gradient text-white font-display text-sm font-bold shadow-electric-glow hover:scale-[1.01] transition-all flex items-center justify-center gap-2 btn-interactive"
-                >
-                  {isVerifying ? (
-                    <>
-                      <i className="fa-solid fa-circle-notch fa-spin text-xs" />
-                      <span>Verifying OTP...</span>
-                    </>
-                  ) : (
-                    <>
-                      <i className="fa-solid fa-check-double text-xs" />
-                      <span>Verify &amp; Sign In</span>
-                    </>
-                  )}
-                </button>
-
-                <div className="flex items-center justify-between text-xs text-[#A0A0B0] pt-2">
+                  Password
+                </label>
+                <div className="relative">
+                  <i className="fa-solid fa-lock absolute left-4 top-1/2 -translate-y-1/2 text-[#6B6B7B] text-xs" />
+                  <input
+                    id="unified-password"
+                    type={showPassword ? 'text' : 'password'}
+                    required
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    placeholder="Enter your password"
+                    className="w-full pl-11 pr-11 py-3.5 rounded-xl bg-[#1A1A1F] border border-white/10 text-sm text-white placeholder-[#6B6B7B] focus:outline-none focus:border-[#6C63FF] focus:ring-1 focus:ring-[#6C63FF] transition-all"
+                  />
                   <button
                     type="button"
-                    onClick={() => {
-                      setStep('phone');
-                      setErrorMsg('');
-                    }}
-                    className="hover:text-white"
+                    onClick={() => setShowPassword((prev) => !prev)}
+                    aria-label="Toggle password visibility"
+                    className="absolute right-3.5 top-1/2 -translate-y-1/2 text-[#A0A0B0] hover:text-white p-1"
                   >
-                    ← Change Number
+                    <i
+                      className={`fa-regular ${
+                        showPassword ? 'fa-eye-slash' : 'fa-eye'
+                      } text-xs`}
+                    />
                   </button>
-
-                  {resendTimer > 0 ? (
-                    <span className="font-mono-num text-[#6B6B7B]">
-                      Resend OTP in {resendTimer}s
-                    </span>
-                  ) : (
-                    <button
-                      type="button"
-                      onClick={handleSendOtp}
-                      className="text-[#6C63FF] hover:underline font-medium"
-                    >
-                      Resend SMS OTP
-                    </button>
-                  )}
                 </div>
-              </form>
-            )}
+              </div>
+
+              <div className="flex items-center justify-between text-xs text-[#A0A0B0]">
+                <label className="inline-flex items-center gap-2 cursor-pointer select-none">
+                  <input
+                    type="checkbox"
+                    checked={rememberSession}
+                    onChange={(e) => setRememberSession(e.target.checked)}
+                    className="w-4 h-4 rounded accent-[#6C63FF]"
+                  />
+                  <span>Keep me signed in on this device</span>
+                </label>
+              </div>
+
+              {/* Primary Login Button */}
+              <button
+                type="submit"
+                disabled={isLoggingIn}
+                className="w-full py-4 px-6 rounded-xl bg-electric-gradient text-white font-display text-sm font-bold shadow-electric-glow hover:scale-[1.01] transition-all flex items-center justify-center gap-2.5 btn-interactive"
+              >
+                {isLoggingIn ? (
+                  <>
+                    <i className="fa-solid fa-circle-notch fa-spin text-xs" />
+                    <span>Signing In...</span>
+                  </>
+                ) : (
+                  <>
+                    <span>Login</span>
+                    <i className="fa-solid fa-arrow-right text-xs" />
+                  </>
+                )}
+              </button>
+
+              {/* Divider */}
+              <div className="relative py-2 flex items-center justify-center">
+                <div className="border-t border-white/10 w-full" />
+                <span className="bg-[#111113] px-4 text-[11px] text-[#6B6B7B] uppercase tracking-wider shrink-0">
+                  Or
+                </span>
+                <div className="border-t border-white/10 w-full" />
+              </div>
+
+              {/* Continue with Google Account Button */}
+              <button
+                type="button"
+                onClick={onGoogleSignIn}
+                className="w-full py-3.5 px-6 rounded-xl bg-[#1A1A1F] hover:bg-[#23232C] border border-white/15 text-white font-display text-xs sm:text-sm font-semibold flex items-center justify-center gap-3 transition-all"
+              >
+                <i className="fa-brands fa-google text-base text-[#FF6B35]" />
+                <span>Continue with Google Account</span>
+              </button>
+            </form>
           </div>
         </div>
       </div>
@@ -946,9 +473,9 @@ export const AccountSettingsView: React.FC<AccountSettingsViewProps> = ({
     e.preventDefault();
     onSaveProfile({
       ...profile,
-      fullName: fullName.trim() || 'VoltEdge Member',
-      email: email.trim() || 'member@voltedge.in',
-      phone: phone.replace(/\D/g, '').slice(0, 10) || '9820411290',
+      fullName: fullName.trim() || `${STORE_NAME} Member`,
+      email: email.trim() || STORE_EMAIL,
+      phone: phone.replace(/\D/g, '').slice(0, 10) || STORE_PHONE,
       smsAlerts,
     });
     showToast('Profile settings saved');
@@ -1041,11 +568,9 @@ export const AccountSettingsView: React.FC<AccountSettingsViewProps> = ({
               <h1 className="font-display text-2xl font-bold text-white">
                 {profile.fullName}
               </h1>
-              {profile.isPhoneVerified && (
-                <span className="text-xs text-emerald-400 flex items-center gap-1">
-                  · <i className="fa-solid fa-circle-check text-[10px]" /> SMS OTP Verified
-                </span>
-              )}
+              <span className="text-xs text-emerald-400 flex items-center gap-1">
+                · <i className="fa-solid fa-circle-check text-[10px]" /> Active Member
+              </span>
             </div>
             <p className="text-xs text-[#A0A0B0] mt-0.5 font-mono-num">
               +91 {profile.phone} · {currentUser?.email || profile.email}
@@ -1059,8 +584,8 @@ export const AccountSettingsView: React.FC<AccountSettingsViewProps> = ({
             onClick={onNavigateLogin}
             className="px-4 py-2.5 rounded-[8px] bg-[#1A1A1F] hover:bg-[#23232C] border border-white/15 text-xs font-semibold text-white flex items-center gap-2 transition-colors whitespace-nowrap"
           >
-            <i className="fa-solid fa-mobile-screen-button text-xs text-[#FF6B35]" />
-            <span>{profile.isPhoneVerified ? 'Re-Verify Mobile OTP' : 'Verify Mobile via OTP'}</span>
+            <i className="fa-regular fa-user text-xs text-[#FF6B35]" />
+            <span>Switch Account / Login</span>
           </button>
 
           {currentUser ? (
@@ -1184,25 +709,16 @@ export const AccountSettingsView: React.FC<AccountSettingsViewProps> = ({
                   <label className="block text-xs text-[#A0A0B0] mb-1.5">
                     Mobile Number (+91)
                   </label>
-                  <div className="flex gap-2">
-                    <input
-                      type="tel"
-                      maxLength={10}
-                      required
-                      value={phone}
-                      onChange={(e) =>
-                        setPhone(e.target.value.replace(/\D/g, '').slice(0, 10))
-                      }
-                      className="flex-1 px-4 py-2.5 rounded-[8px] bg-[#1A1A1F] border border-white/10 text-sm font-mono-num text-white focus:outline-none focus:border-[#6C63FF]"
-                    />
-                    <button
-                      type="button"
-                      onClick={onNavigateLogin}
-                      className="px-3.5 py-2.5 rounded-[8px] bg-[#1A1A1F] hover:bg-[#24242E] border border-white/15 text-xs text-[#6C63FF] font-semibold whitespace-nowrap"
-                    >
-                      OTP Verify
-                    </button>
-                  </div>
+                  <input
+                    type="tel"
+                    maxLength={10}
+                    required
+                    value={phone}
+                    onChange={(e) =>
+                      setPhone(e.target.value.replace(/\D/g, '').slice(0, 10))
+                    }
+                    className="w-full px-4 py-2.5 rounded-[8px] bg-[#1A1A1F] border border-white/10 text-sm font-mono-num text-white focus:outline-none focus:border-[#6C63FF]"
+                  />
                 </div>
 
                 <div>

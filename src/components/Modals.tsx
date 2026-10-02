@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Order, Product, formatINR } from '../data/seedData';
+import { Order, Product, STORE_NAME, STORE_PHONE, formatINR } from '../data/seedData';
 import { buildWhatsAppOrderMessage } from './CheckoutViews';
 import { ResilientImage } from './ResilientImage';
 
@@ -264,7 +264,7 @@ export const TrackOrderModal: React.FC<TrackOrderModalProps> = ({
               Live Shipment Tracker
             </h3>
             <p className="text-xs text-[#A0A0B0]">
-              Real-time visual fulfillment timeline for your VoltEdge order
+              Real-time visual fulfillment timeline for your {STORE_NAME} order
             </p>
           </div>
           <button
@@ -389,7 +389,7 @@ export const TrackOrderModal: React.FC<TrackOrderModalProps> = ({
                 <span>Direct Store Handler Support</span>
               </span>
               <a
-                href={`https://wa.me/919820411290?text=${encodeURIComponent(
+                href={`https://wa.me/91${STORE_PHONE}?text=${encodeURIComponent(
                   buildWhatsAppOrderMessage(matchedOrder)
                 )}`}
                 target="_blank"

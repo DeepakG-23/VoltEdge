@@ -9,6 +9,7 @@ import {
 import { AdminDashboard } from './components/AdminDashboard';
 import { CartDrawer } from './components/CartDrawer';
 import { CheckoutView, OrderSuccessView } from './components/CheckoutViews';
+import { CrazyMobilesLogo } from './components/CrazyMobilesLogo';
 import { CustomCursor } from './components/CustomCursor';
 import { QuickViewModal, TrackOrderModal } from './components/Modals';
 import {
@@ -28,6 +29,12 @@ import {
   ProductReview,
   SEED_ORDERS,
   SEED_PRODUCTS,
+  STORE_EMAIL,
+  STORE_MAPS_URL,
+  STORE_NAME,
+  STORE_PHONE,
+  STORE_PHONE_DISPLAY,
+  STORE_UPI_ID,
   formatINR,
   resolveAssetUrl,
 } from './data/seedData';
@@ -170,9 +177,9 @@ export default function App() {
       // ignore
     }
     return {
-      fullName: 'Aarav Sharma',
-      email: 'aarav.sharma@gmail.com',
-      phone: '9820411290',
+      fullName: 'Shaikh Shoeb',
+      email: STORE_EMAIL,
+      phone: STORE_PHONE,
       smsAlerts: true,
       isPhoneVerified: true,
       addresses: INITIAL_SAVED_ADDRESSES,
@@ -339,12 +346,12 @@ export default function App() {
             const parts = String(d.addressSummary || '').split(' | ');
             remoteOrders.push({
               id: String(d.orderCode || docSnap.id),
-              customerName: String(d.customerName || 'VoltEdge Customer'),
+              customerName: String(d.customerName || `${STORE_NAME} Customer`),
               customerEmail: String(d.customerEmail || ''),
-              phone: String(d.phone || '9820411290'),
+              phone: String(d.phone || STORE_PHONE),
               address: {
-                fullName: String(d.customerName || 'VoltEdge Customer'),
-                phone: String(d.phone || '9820411290'),
+                fullName: String(d.customerName || `${STORE_NAME} Customer`),
+                phone: String(d.phone || STORE_PHONE),
                 area: parts[0] || String(d.addressSummary || ''),
                 city: parts[1] || 'Bengaluru',
                 state: parts[2] || 'Karnataka',
@@ -409,8 +416,8 @@ export default function App() {
                     parts[1] === 'Office' || parts[1] === 'Other'
                       ? parts[1]
                       : 'Home',
-                  fullName: parts[2] || String(data.fullName || 'VoltEdge Member'),
-                  phone: parts[3] || String(data.phone || '9820411290'),
+                  fullName: parts[2] || String(data.fullName || `${STORE_NAME} Member`),
+                  phone: parts[3] || String(data.phone || STORE_PHONE),
                   area: parts[4] || '',
                   city: parts[5] || 'Bengaluru',
                   state: parts[6] || 'Karnataka',
@@ -453,12 +460,12 @@ export default function App() {
     try {
       await setDoc(doc(db, 'user_profiles', currentUser.uid), {
         userId: currentUser.uid.slice(0, 128),
-        fullName: (nextProfile.fullName || 'VoltEdge Member').slice(0, 100),
-        email: (nextProfile.email || currentUser.email || 'user@voltedge.in').slice(
+        fullName: (nextProfile.fullName || `${STORE_NAME} Member`).slice(0, 100),
+        email: (nextProfile.email || currentUser.email || STORE_EMAIL).slice(
           0,
           120
         ),
-        phone: (nextProfile.phone || '9820411290').slice(0, 15),
+        phone: (nextProfile.phone || STORE_PHONE).slice(0, 15),
         smsAlerts: Boolean(nextProfile.smsAlerts),
         addressesList: serializedAddresses,
         updatedAt: serverTimestamp(),
@@ -558,7 +565,7 @@ export default function App() {
   const handleGoogleSignOut = async () => {
     try {
       await signOut(auth);
-      showToast('Signed out of your VoltEdge account');
+      showToast(`Signed out of your ${STORE_NAME} account`);
     } catch (error) {
       console.error('Sign-Out Error:', error);
     }
@@ -742,9 +749,15 @@ export default function App() {
     showToast('Cleared Wishlist');
   };
 
-  // Checkout Order Placement
+  // Checkout Order Placement (Also saves captured phone number, email & address to customer profile)
   const handlePlaceOrder = (data: {
     address: OrderAddress;
+    customerEmail?: string;
+    altPhone?: string;
+    landmark?: string;
+    addressLabel?: 'Home' | 'Office' | 'Other';
+    deliveryNotes?: string;
+    saveToProfile?: boolean;
     paymentMethod: 'UPI' | 'Card' | 'COD';
     paymentDetails: string;
     discount: number;
@@ -753,12 +766,16 @@ export default function App() {
     const shipping = subtotal >= 499 ? 0 : 49;
     const total = Math.max(0, subtotal + shipping - data.discount);
     const orderNum = String(orders.length + 1).padStart(3, '0');
+    const resolvedEmail =
+      data.customerEmail?.trim() ||
+      currentUser?.email ||
+      customerProfile.email ||
+      `${data.address.fullName.toLowerCase().replace(/\s+/g, '.')}@gmail.com`;
+
     const newOrder: Order = {
       id: `VE-20260930-${orderNum}`,
       customerName: data.address.fullName,
-      customerEmail: `${data.address.fullName
-        .toLowerCase()
-        .replace(/\s+/g, '.')}@gmail.com`,
+      customerEmail: resolvedEmail,
       phone: data.address.phone,
       address: data.address,
       items: [...cart],
@@ -772,6 +789,50 @@ export default function App() {
       date: '30 Sep 2026',
       timestamp: Date.now(),
     };
+
+    // Save captured phone number, email, and shipping address to Customer Profile
+    if (data.saveToProfile !== false) {
+      const matchingExistingIdx = customerProfile.addresses.findIndex(
+        (a) =>
+          a.pincode === data.address.pincode &&
+          a.area.toLowerCase() === data.address.area.toLowerCase()
+      );
+
+      let updatedAddresses = [...customerProfile.addresses];
+      if (matchingExistingIdx > -1) {
+        updatedAddresses[matchingExistingIdx] = {
+          ...updatedAddresses[matchingExistingIdx],
+          fullName: data.address.fullName,
+          phone: data.address.phone,
+          city: data.address.city,
+          state: data.address.state,
+          label: data.addressLabel || updatedAddresses[matchingExistingIdx].label,
+        };
+      } else {
+        const newSavedAddr: SavedAddressItem = {
+          id: `addr-${Date.now()}`,
+          label: data.addressLabel || 'Home',
+          fullName: data.address.fullName,
+          phone: data.address.phone,
+          pincode: data.address.pincode,
+          area: data.address.area,
+          city: data.address.city,
+          state: data.address.state,
+          isDefault: updatedAddresses.length === 0,
+        };
+        updatedAddresses = [newSavedAddr, ...updatedAddresses];
+      }
+
+      const updatedProfile: CustomerProfileData = {
+        ...customerProfile,
+        fullName: data.address.fullName || customerProfile.fullName,
+        phone: data.address.phone || customerProfile.phone,
+        email: resolvedEmail,
+        addresses: updatedAddresses,
+      };
+      setCustomerProfile(updatedProfile);
+      void syncProfileToFirestore(updatedProfile);
+    }
 
     // Deduct stock
     setProducts((prev) =>
@@ -809,7 +870,7 @@ export default function App() {
         customerEmail: (currentUser.email || newOrder.customerEmail).slice(0, 120),
         phone: newOrder.phone.slice(0, 15),
         addressSummary: cleanAddressSummary,
-        itemsSummary: cleanItemsSummary || 'VoltEdge Accessory',
+        itemsSummary: cleanItemsSummary || `${STORE_NAME} Product`,
         subtotal: newOrder.subtotal,
         shipping: newOrder.shipping,
         discount: newOrder.discount,
@@ -1026,6 +1087,12 @@ export default function App() {
       return (
         <CheckoutView
           items={cart}
+          initialProfile={{
+            fullName: currentUser?.displayName || customerProfile.fullName,
+            email: currentUser?.email || customerProfile.email,
+            phone: customerProfile.phone,
+            addresses: customerProfile.addresses,
+          }}
           onPlaceOrder={handlePlaceOrder}
           onNavigateShop={() => navigate('#/products')}
         />
@@ -1107,17 +1174,17 @@ export default function App() {
         }`}
       >
         <div className="max-w-[1280px] mx-auto px-4 sm:px-6 lg:px-8 flex items-center justify-between gap-4">
-          {/* ZONE 1: Brand Wordmark in Space Grotesk Bold with Lightning Bolt */}
+          {/* ZONE 1: Official Crazy Mobiles Emblem & Futuristic Wordmark */}
           <a
             href="#/home"
             onClick={(e) => {
               e.preventDefault();
               navigate('#/home');
             }}
-            className="font-display text-xl font-bold tracking-tight text-white flex items-center gap-2 shrink-0"
+            className="flex items-center shrink-0 group transition-all duration-200 hover:scale-[1.02] focus:outline-none"
+            aria-label={`${STORE_NAME} Home`}
           >
-            <i className="fa-solid fa-bolt text-electric-gradient text-lg" />
-            <span>VoltEdge</span>
+            <CrazyMobilesLogo variant="horizontal" size="sm" />
           </a>
 
           {/* ZONE 2: Clean Nav Links + Rounded-Full Search Bar with Subtle Glow on Focus */}
@@ -1267,6 +1334,17 @@ export default function App() {
 
           {/* ZONE 3: Wishlist Icon, Cart Icon (with animated badge) & Account / Admin Icon */}
           <div className="flex items-center gap-2.5 shrink-0">
+            <a
+              href={STORE_MAPS_URL}
+              target="_blank"
+              rel="noopener noreferrer"
+              title="Visit Crazy Mobiles store on Google Maps"
+              className="h-10 px-3 rounded-[8px] bg-[#1A1A1F] hover:bg-[#23232C] border border-white/10 text-xs font-medium text-emerald-400 flex items-center gap-1.5 transition-colors whitespace-nowrap hidden lg:flex"
+            >
+              <i className="fa-solid fa-location-dot text-xs text-emerald-400" />
+              <span>Visit Store</span>
+            </a>
+
             <button
               type="button"
               onClick={() => navigate('#/wishlist')}
@@ -1376,20 +1454,45 @@ export default function App() {
       {!isAdminRoute && (
         <footer className="bg-[#111113] border-t border-white/[0.07] mt-20">
           <div className="max-w-[1280px] mx-auto px-4 sm:px-6 lg:px-8 py-14">
-            <div className="grid grid-cols-1 md:grid-cols-12 gap-10 pb-10 border-b border-white/[0.07]">
-              <div className="md:col-span-5 space-y-3">
-                <div className="font-display text-lg font-bold text-white flex items-center gap-2">
-                  <i className="fa-solid fa-bolt text-electric-gradient" />
-                  <span>VoltEdge</span>
+            <div className="grid grid-cols-1 md:grid-cols-12 gap-8 pb-10 border-b border-white/[0.07]">
+              {/* Col 1: Brand & Contact */}
+              <div className="md:col-span-4 space-y-3.5">
+                <div className="pt-1">
+                  <CrazyMobilesLogo variant="horizontal" size="md" />
                 </div>
-                <p className="text-xs text-[#A0A0B0] max-w-sm leading-relaxed">
-                  Direct-to-consumer performance mobile hardware. Engineered with
-                  Gallium Nitride power systems, N52 magnetic arrays, and Asahi sapphire
-                  armor.
+                <p className="text-xs text-[#9BA9B4] max-w-sm leading-relaxed">
+                  Your trusted hub for premium smartphones, genuine accessories, GaN fast chargers, MagSafe gear, and audio powerhouses. Owned &amp; managed by Shaikh Shoeb.
                 </p>
+                <div className="pt-1 space-y-2 text-xs text-[#9BA9B4]">
+                  <a
+                    href={`tel:+91${STORE_PHONE}`}
+                    className="flex items-center gap-2 hover:text-[#84F229] transition-colors"
+                  >
+                    <i className="fa-solid fa-phone text-[#84F229] text-[11px]" />
+                    <span className="font-mono-num">{STORE_PHONE_DISPLAY}</span>
+                  </a>
+                  <a
+                    href={`mailto:${STORE_EMAIL}`}
+                    className="flex items-center gap-2 hover:text-[#84F229] transition-colors"
+                  >
+                    <i className="fa-solid fa-envelope text-[#84F229] text-[11px]" />
+                    <span>{STORE_EMAIL}</span>
+                  </a>
+                  <a
+                    href={STORE_MAPS_URL}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center gap-2 text-[#84F229] hover:underline transition-colors pt-0.5"
+                  >
+                    <i className="fa-solid fa-map-location-dot text-[11px]" />
+                    <span>Find Us on Google Maps</span>
+                    <i className="fa-solid fa-arrow-up-right-from-square text-[9px]" />
+                  </a>
+                </div>
               </div>
 
-              <div className="md:col-span-3 space-y-2.5 text-xs">
+              {/* Col 2: Collections */}
+              <div className="md:col-span-2 space-y-2.5 text-xs">
                 <h3 className="font-display font-semibold text-white">Collections</h3>
                 <ul className="space-y-2 text-[#A0A0B0]">
                   <li>
@@ -1401,7 +1504,7 @@ export default function App() {
                       }}
                       className="hover:text-white transition-colors"
                     >
-                      MagSafe Power Banks
+                      Power Banks
                     </button>
                   </li>
                   <li>
@@ -1413,7 +1516,7 @@ export default function App() {
                       }}
                       className="hover:text-white transition-colors"
                     >
-                      65W GaN Fast Chargers
+                      Fast Chargers
                     </button>
                   </li>
                   <li>
@@ -1425,7 +1528,7 @@ export default function App() {
                       }}
                       className="hover:text-white transition-colors"
                     >
-                      Wireless Earbuds ANC
+                      ANC Earbuds
                     </button>
                   </li>
                   <li>
@@ -1437,13 +1540,37 @@ export default function App() {
                       }}
                       className="hover:text-white transition-colors"
                     >
-                      MagSafe Cases &amp; Mounts
+                      Phone Cases &amp; Mounts
                     </button>
                   </li>
                 </ul>
               </div>
 
-              <div className="md:col-span-4 space-y-2.5 text-xs">
+              {/* Col 3: Visit Store Location */}
+              <div className="md:col-span-3 space-y-2.5 text-xs">
+                <h3 className="font-display font-semibold text-white">Store Location</h3>
+                <p className="text-xs text-[#A0A0B0] leading-relaxed">
+                  Visit {STORE_NAME} in person for instant pick-up, device testing, and wholesale inquiries.
+                </p>
+                <div className="pt-1">
+                  <a
+                    href={STORE_MAPS_URL}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-2 px-3 py-1.5 rounded-[6px] bg-[#1A1A1F] hover:bg-[#23232C] border border-white/10 text-white font-medium hover:border-emerald-500/40 transition-all"
+                  >
+                    <i className="fa-solid fa-location-crosshairs text-emerald-400" />
+                    <span>Open in Google Maps</span>
+                  </a>
+                </div>
+                <div className="pt-2 text-[11px] text-[#6B6B7B]">
+                  <span>UPI ID: </span>
+                  <span className="font-mono-num text-white font-medium">{STORE_UPI_ID}</span>
+                </div>
+              </div>
+
+              {/* Col 4: Customer Care & Portal */}
+              <div className="md:col-span-3 space-y-2.5 text-xs">
                 <h3 className="font-display font-semibold text-white">
                   Customer Care &amp; Portal
                 </h3>
@@ -1472,16 +1599,29 @@ export default function App() {
                       onClick={() => navigate('#/login')}
                       className="hover:text-white transition-colors"
                     >
-                      Unified Member &amp; Owner Login (#/login)
+                      Unified Member &amp; Owner Login
                     </button>
+                  </li>
+                  <li>
+                    <a
+                      href={`https://wa.me/91${STORE_PHONE}?text=${encodeURIComponent(
+                        `Hi ${STORE_NAME}, I need assistance with an order.`
+                      )}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-[#25D366] hover:underline flex items-center gap-1.5 pt-1"
+                    >
+                      <i className="fa-brands fa-whatsapp" />
+                      <span>WhatsApp Support (+91 {STORE_PHONE})</span>
+                    </a>
                   </li>
                 </ul>
               </div>
             </div>
 
             <div className="pt-6 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-[#6B6B7B]">
-              <span>© 2026 VoltEdge Hardware Pvt. Ltd. All rights reserved.</span>
-              <span>BIS Certified · Free Delivery Above ₹499 · UPI &amp; COD</span>
+              <span>© 2026 {STORE_NAME}. All rights reserved.</span>
+              <span>Proprietor: Shaikh Shoeb · UPI Verified Merchant · Free Delivery</span>
             </div>
           </div>
         </footer>

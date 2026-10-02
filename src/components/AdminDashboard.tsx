@@ -5,10 +5,17 @@ import {
   Order,
   OrderStatus,
   Product,
+  STORE_EMAIL,
+  STORE_MAPS_URL,
+  STORE_NAME,
+  STORE_PHONE,
+  STORE_PHONE_DISPLAY,
+  STORE_UPI_ID,
   TEMPERED_GLASS_SVG,
   TrendingSpotlightItem,
   formatINR,
 } from '../data/seedData';
+import { CrazyMobilesEmblem } from './CrazyMobilesLogo';
 import { ResilientImage } from './ResilientImage';
 
 declare global {
@@ -278,8 +285,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   const [endDate, setEndDate] = useState('2026-09-29');
 
   // Settings State
-  const [storeName, setStoreName] = useState('VoltEdge India');
-  const [supportEmail, setSupportEmail] = useState('support@voltedge.in');
+  const [storeName, setStoreName] = useState(STORE_NAME);
+  const [supportEmail, setSupportEmail] = useState(STORE_EMAIL);
   const [freeShipLimit, setFreeShipLimit] = useState('499');
   const [codEnabled, setCodEnabled] = useState(true);
 
@@ -302,7 +309,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
       setIsAuthenticated(true);
       sessionStorage.setItem('voltedge_admin_auth', 'true');
       setLoginError('');
-      showToast('Signed in to VoltEdge Admin Console');
+      showToast(`Signed in to ${STORE_NAME} Admin Console`);
     } else {
       setLoginError('Invalid owner credentials.');
     }
@@ -575,7 +582,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     );
     const numericStock = Math.max(0, Number(formStock) || 0);
     const fallbackPlaceholder = `https://placehold.co/400x400/1A1A1F/6C63FF?text=${encodeURIComponent(
-      formName.trim() || 'VoltEdge'
+      formName.trim() || STORE_NAME
     )}`;
     const primaryImg = uploadedImages[0] || fallbackPlaceholder;
     const galleryList =
@@ -593,7 +600,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
       onUpdateProduct({
         ...editingProduct,
         name: formName.trim(),
-        shortName: formName.trim().replace(/^VoltEdge\s+/i, ''),
+        shortName: formName.trim().replace(new RegExp(`^${STORE_NAME}\\s+`, 'i'), ''),
         price: numericPrice,
         originalPrice: numericOriginal,
         category: formCategory,
@@ -608,8 +615,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
       );
     } else {
       onAddProduct({
-        name: formName.trim() || 'VoltEdge Custom Accessory',
-        shortName: (formName.trim() || 'Custom Accessory').replace(/^VoltEdge\s+/i, ''),
+        name: formName.trim() || `${STORE_NAME} Custom Product`,
+        shortName: (formName.trim() || 'Custom Product').replace(new RegExp(`^${STORE_NAME}\\s+`, 'i'), ''),
         price: numericPrice,
         originalPrice: numericOriginal,
         rating: 4.8,
@@ -619,7 +626,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
         image: primaryImg,
         placeholderUrl: fallbackPlaceholder,
         gallery: galleryList,
-        tagline: 'Precision-engineered VoltEdge mobile performance accessory.',
+        tagline: `Precision-engineered ${STORE_NAME} mobile smartphone & performance accessory.`,
         description:
           'Designed in-house for durability, high-efficiency power transfer, and seamless compatibility.',
         colors: [
@@ -703,15 +710,13 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
       <div className="min-h-[calc(100vh-4.5rem)] flex items-center justify-center px-4 py-12 animate-page-enter">
         <div className="w-full max-w-md bg-[#111113] border border-white/10 rounded-[16px] p-8 shadow-card">
           <div className="flex items-center justify-between mb-6">
-            <div className="flex items-center gap-2.5">
-              <div className="w-9 h-9 rounded-[10px] bg-electric-gradient flex items-center justify-center text-white shadow-electric-glow">
-                <i className="fa-solid fa-bolt text-sm" />
-              </div>
+            <div className="flex items-center gap-3">
+              <CrazyMobilesEmblem size={44} />
               <div>
                 <h1 className="font-display text-xl font-bold text-white">
                   Admin Login
                 </h1>
-                <p className="text-xs text-[#A0A0B0]">VoltEdge Operations Console</p>
+                <p className="text-xs text-[#A0A0B0]">{STORE_NAME} Operations Console</p>
               </div>
             </div>
             <button
@@ -814,13 +819,16 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
       <aside className="w-full lg:w-[240px] shrink-0 bg-[#111113] border-b lg:border-b-0 lg:border-r border-white/[0.07] flex flex-col justify-between">
         <div className="p-4 lg:p-5">
           <div className="hidden lg:flex items-center justify-between mb-6 pb-4 border-b border-white/[0.07]">
-            <div>
-              <span className="font-display text-sm font-bold text-white block">
-                VoltEdge Admin
-              </span>
-              <span className="text-[11px] text-[#6B6B7B]">Merchant Portal</span>
+            <div className="flex items-center gap-2.5">
+              <CrazyMobilesEmblem size={32} />
+              <div>
+                <span className="font-display text-xs font-bold text-white block">
+                  {STORE_NAME} Admin
+                </span>
+                <span className="text-[10px] text-[#6B6B7B]">Merchant Portal</span>
+              </div>
             </div>
-            <span className="w-2 h-2 rounded-full bg-emerald-400" title="Active" />
+            <span className="w-2 h-2 rounded-full bg-[#84F229] shadow-[0_0_8px_#84F229]" title="Active" />
           </div>
 
           <nav className="flex lg:flex-col gap-1.5 overflow-x-auto no-scrollbar">
@@ -2270,7 +2278,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                     Storefront &amp; Checkout Configuration
                   </h2>
                   <p className="text-xs text-[#A0A0B0] mt-1">
-                    Manage operational parameters for VoltEdge India DTC Storefront.
+                    Manage operational parameters for {STORE_NAME} Storefront.
                   </p>
                 </div>
 
@@ -2411,7 +2419,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                 required
                 value={formName}
                 onChange={(e) => setFormName(e.target.value)}
-                placeholder="e.g. VoltEdge Titanium MagSafe Wallet"
+                placeholder="e.g. Crazy Mobiles Titanium MagSafe Wallet"
                 className="w-full px-3.5 py-2.5 rounded-[8px] bg-[#1A1A1F] border border-white/10 text-xs text-white focus:outline-none focus:border-[#6C63FF]"
               />
             </div>
