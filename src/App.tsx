@@ -1634,10 +1634,49 @@ export default function App() {
       {/* MAIN VIEWPORT */}
       <main className="flex-1">{renderMainView()}</main>
 
-      {/* CLEAN FOOTER (Storefront Views Only) */}
+      {/* CLEAN FOOTER (Storefront Views Only - Store Owner & Location Section) */}
       {!isAdminRoute && (
-        <footer className="bg-[#111113] border-t border-white/[0.07] mt-20">
+        <footer id="store-location" className="bg-[#111113] border-t border-white/[0.07] mt-20 scroll-mt-20">
           <div className="max-w-[1280px] mx-auto px-4 sm:px-6 lg:px-8 py-14">
+            {/* Prominent Store Owner & Location Callout Banner */}
+            <div className="mb-10 p-6 rounded-[16px] bg-[#16161C] border border-[#84F229]/30 relative overflow-hidden shadow-2xl flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
+              <div className="space-y-1.5 max-w-xl">
+                <div className="inline-flex items-center gap-2 px-2.5 py-1 rounded-full bg-[#84F229]/10 text-[#84F229] text-[11px] font-bold uppercase tracking-wider">
+                  <i className="fa-solid fa-store" />
+                  <span>Verified Retailer &amp; Store Owner</span>
+                </div>
+                <h3 className="font-display text-lg font-bold text-white flex items-center gap-2">
+                  <span>Crazy Mobiles</span>
+                  <span className="text-xs text-[#A0A0B0] font-normal">· Owned &amp; Managed by Shaikh Shoeb</span>
+                </h3>
+                <p className="text-xs text-[#A0A0B0] leading-relaxed">
+                  📍 Main Market Road, Near City Center, Mobiles &amp; Accessories Hub, Maharashtra 400001.<br />
+                  Visit us in person for genuine mobile covers, tempered glass installation, original fast chargers, and wholesale inquiries.
+                </p>
+              </div>
+
+              <div className="flex flex-wrap items-center gap-3 shrink-0">
+                <a
+                  href={`https://wa.me/91${STORE_PHONE}?text=${encodeURIComponent('Hi Shaikh Shoeb, I am inquiring about Crazy Mobiles store products.')}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="px-4 py-2.5 rounded-[10px] bg-[#25D366] hover:bg-[#20bd5a] text-black font-bold text-xs flex items-center gap-2 shadow-lg transition-all"
+                >
+                  <i className="fa-brands fa-whatsapp text-sm" />
+                  <span>WhatsApp Owner (+91 {STORE_PHONE_DISPLAY})</span>
+                </a>
+                <a
+                  href={STORE_MAPS_URL}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="px-4 py-2.5 rounded-[10px] bg-[#1A1A1F] hover:bg-[#23232C] border border-white/15 text-white text-xs font-semibold flex items-center gap-2 transition-all hover:border-emerald-400"
+                >
+                  <i className="fa-solid fa-map-location-dot text-emerald-400 text-xs" />
+                  <span>View Google Maps Location</span>
+                </a>
+              </div>
+            </div>
+
             <div className="grid grid-cols-1 md:grid-cols-12 gap-8 pb-10 border-b border-white/[0.07]">
               {/* Col 1: Brand & Contact */}
               <div className="md:col-span-4 space-y-3.5">

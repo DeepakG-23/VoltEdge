@@ -42,9 +42,13 @@ export interface Product {
     | 'Chargers & Cables'
     | 'Chargers'
     | 'Cables'
+    | 'Earphones'
+    | 'Headphones'
     | 'Earphones & Audio'
     | 'Earbuds'
     | 'Neckbands'
+    | 'Wired Accessories'
+    | 'Wireless Accessories'
     | 'Power Banks'
     | 'Smart Watches';
   stock: number;
