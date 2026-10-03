@@ -11,7 +11,7 @@ import { CartDrawer } from './components/CartDrawer';
 import { CheckoutView, OrderSuccessView } from './components/CheckoutViews';
 import { CrazyMobilesLogo } from './components/CrazyMobilesLogo';
 import { CustomCursor } from './components/CustomCursor';
-import { QuickViewModal, TrackOrderModal } from './components/Modals';
+import { QuickViewModal, TrackOrderModal, YourDeviceModal } from './components/Modals';
 import {
   HomeView,
   ProductDetailView,
@@ -382,9 +382,43 @@ export default function App() {
   const [quickViewProduct, setQuickViewProduct] = useState<Product | null>(null);
   const [isTrackModalOpen, setIsTrackModalOpen] = useState<boolean>(false);
   const [trackOrderId, setTrackOrderId] = useState<string>('');
+  const [isYourDeviceModalOpen, setIsYourDeviceModalOpen] = useState<boolean>(false);
+  const [userSelectedDevice, setUserSelectedDevice] = useState<string>(() => {
+    return localStorage.getItem('voltedge_user_device') || '';
+  });
   const [lastPlacedOrder, setLastPlacedOrder] = useState<Order | null>(null);
   const [isScrolled, setIsScrolled] = useState<boolean>(false);
   const [toasts, setToasts] = useState<ToastMessage[]>([]);
+
+  const handleSetUserDevice = (deviceModel: string) => {
+    setUserSelectedDevice(deviceModel);
+    try {
+      localStorage.setItem('voltedge_user_device', deviceModel);
+    } catch {
+      // ignore
+    }
+  };
+
+  const handleNavigateToStoreLocation = () => {
+    if (hashRoute !== '#/home' && hashRoute !== '') {
+      navigate('#/home');
+      setTimeout(() => {
+        const el = document.getElementById('store-location');
+        if (el) {
+          el.scrollIntoView({ behavior: 'smooth' });
+        } else {
+          window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
+        }
+      }, 200);
+    } else {
+      const el = document.getElementById('store-location');
+      if (el) {
+        el.scrollIntoView({ behavior: 'smooth' });
+      } else {
+        window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
+      }
+    }
+  };
 
   const showToast = (text: string) => {
     const id = Date.now() + Math.random();
@@ -1358,21 +1392,23 @@ export default function App() {
             <CrazyMobilesLogo variant="horizontal" size="sm" />
           </a>
 
-          {/* ZONE 2: Clean Nav Links + Rounded-Full Search Bar with Subtle Glow on Focus */}
+          {/* ZONE 2: Storefront Division (Home, Catalog, Your Device, Store) + Search Bar */}
           <div className="flex-1 max-w-2xl hidden md:flex items-center justify-center gap-6">
-            <nav className="flex items-center gap-5 text-xs font-medium text-[#A0A0B0] shrink-0">
+            <nav className="flex items-center gap-5 text-xs font-semibold text-[#A0A0B0] shrink-0">
               <a
                 href="#/home"
                 onClick={(e) => {
                   e.preventDefault();
                   navigate('#/home');
                 }}
-                className={`hover:text-white transition-colors whitespace-nowrap ${
-                  hashRoute === '#/home' || hashRoute === '' ? 'text-white' : ''
+                className={`hover:text-white transition-colors whitespace-nowrap flex items-center gap-1.5 ${
+                  hashRoute === '#/home' || hashRoute === '' ? 'text-white font-bold' : ''
                 }`}
               >
-                Home
+                <i className="fa-solid fa-house text-[11px]" />
+                <span>Home</span>
               </a>
+
               <a
                 href="#/products"
                 onClick={(e) => {
@@ -1380,61 +1416,38 @@ export default function App() {
                   setSelectedCategory('All');
                   navigate('#/products');
                 }}
-                className={`hover:text-white transition-colors whitespace-nowrap ${
-                  hashRoute.startsWith('#/products') && selectedCategory === 'All'
-                    ? 'text-white'
-                    : ''
+                className={`hover:text-white transition-colors whitespace-nowrap flex items-center gap-1.5 ${
+                  hashRoute.startsWith('#/products') ? 'text-white font-bold' : ''
                 }`}
               >
-                Catalog
+                <i className="fa-solid fa-layer-group text-[11px]" />
+                <span>Catalog</span>
               </a>
+
+              <button
+                type="button"
+                onClick={() => setIsYourDeviceModalOpen(true)}
+                className="hover:text-white transition-colors whitespace-nowrap flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#1A1A1F] border border-white/15 text-white hover:border-[#6C63FF]"
+              >
+                <i className="fa-solid fa-mobile-screen-button text-[#FF6B35] text-[11px]" />
+                <span>Your Device</span>
+                {userSelectedDevice && (
+                  <span className="text-[10px] text-emerald-400 font-mono-num font-bold">
+                    ({userSelectedDevice.split(' ').pop()})
+                  </span>
+                )}
+              </button>
+
               <a
-                href="#/products"
+                href="#store-location"
                 onClick={(e) => {
                   e.preventDefault();
-                  setSelectedCategory('Power Banks');
-                  navigate('#/products');
+                  handleNavigateToStoreLocation();
                 }}
-                className={`hover:text-white transition-colors whitespace-nowrap ${
-                  hashRoute.startsWith('#/products') &&
-                  selectedCategory === 'Power Banks'
-                    ? 'text-white'
-                    : ''
-                }`}
+                className="hover:text-white transition-colors whitespace-nowrap flex items-center gap-1.5 text-emerald-400 font-semibold"
               >
-                Power
-              </a>
-              <a
-                href="#/products"
-                onClick={(e) => {
-                  e.preventDefault();
-                  setSelectedCategory('Phone Cases');
-                  navigate('#/products');
-                }}
-                className={`hover:text-white transition-colors whitespace-nowrap ${
-                  hashRoute.startsWith('#/products') &&
-                  selectedCategory === 'Phone Cases'
-                    ? 'text-white'
-                    : ''
-                }`}
-              >
-                Covers
-              </a>
-              <a
-                href="#/products"
-                onClick={(e) => {
-                  e.preventDefault();
-                  setSelectedCategory('Earbuds');
-                  navigate('#/products');
-                }}
-                className={`hover:text-white transition-colors whitespace-nowrap ${
-                  hashRoute.startsWith('#/products') &&
-                  selectedCategory === 'Earbuds'
-                    ? 'text-white'
-                    : ''
-                }`}
-              >
-                Audio
+                <i className="fa-solid fa-store text-[11px]" />
+                <span>Store</span>
               </a>
             </nav>
 
@@ -1826,6 +1839,23 @@ export default function App() {
         onClose={() => setIsTrackModalOpen(false)}
         orders={orders}
         initialOrderId={trackOrderId}
+      />
+
+      {/* YOUR DEVICE CONSUMER MODAL */}
+      <YourDeviceModal
+        isOpen={isYourDeviceModalOpen}
+        onClose={() => setIsYourDeviceModalOpen(false)}
+        products={products}
+        currentDevice={userSelectedDevice}
+        onSetDevice={(dev) => {
+          handleSetUserDevice(dev);
+          showToast(`Device updated to ${dev}`);
+        }}
+        onNavigateCatalogForDevice={(dev) => {
+          setSearchQuery(dev);
+          navigate('#/products');
+        }}
+        onNavigateProduct={(id) => navigate(`#/product/${id}`)}
       />
     </div>
   );

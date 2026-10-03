@@ -368,28 +368,46 @@ export const HomeView: React.FC<HomeViewProps> = ({
         </div>
       </section>
 
-      {/* CATEGORY SECTION (80px section padding, 6 category cards 2x3 mobile, 3x2 desktop) */}
+      {/* CATEGORY SECTION (80px section padding, core categories showcase) */}
       <section className="py-20 max-w-[1280px] mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 mb-10">
           <div>
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#1A1A1F] border border-white/10 text-xs text-[#FF6B35] font-semibold mb-3">
+              <span>📱 CRAZY MOBILES ACCESSORIES HUB</span>
+            </div>
             <h2 className="font-display text-[32px] font-bold text-white leading-tight">
               Shop by Category
             </h2>
             <p className="text-sm text-[#A0A0B0] mt-1">
-              Precision-engineered gear tailored for every daily carry setup.
+              Explore our complete range of high-performance mobile accessories & daily carry essentials.
             </p>
           </div>
           <button
             type="button"
             onClick={() => onNavigateCategory('All')}
-            className="text-xs font-semibold text-[#A0A0B0] hover:text-white flex items-center gap-2 transition-colors self-start sm:self-auto"
+            className="text-xs font-semibold text-[#A0A0B0] hover:text-white flex items-center gap-2 transition-colors self-start sm:self-auto px-4 py-2 rounded-lg bg-[#1A1A1F] border border-white/10"
           >
             <span>Browse Full Catalog</span>
             <i className="fa-solid fa-arrow-right text-[11px]" />
           </button>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5 sm:gap-6">
+        {/* Core Categories Quick Pills / Toggles Bar */}
+        <div className="flex items-center gap-2.5 overflow-x-auto no-scrollbar pb-4 mb-8">
+          {CATEGORIES_DATA.map((c) => (
+            <button
+              key={c.name}
+              type="button"
+              onClick={() => onNavigateCategory(c.name)}
+              className="px-3.5 py-2 rounded-xl bg-[#141419] hover:bg-[#1F1F27] border border-white/10 hover:border-[#6C63FF]/50 text-xs font-semibold text-white transition-all whitespace-nowrap flex items-center gap-2 shrink-0 group"
+            >
+              <span className="text-sm group-hover:scale-125 transition-transform">{c.emoji}</span>
+              <span>{c.name}</span>
+            </button>
+          ))}
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3 gap-5 sm:gap-6">
           {CATEGORIES_DATA.map((cat) => (
             <button
               key={cat.name}
@@ -398,7 +416,7 @@ export const HomeView: React.FC<HomeViewProps> = ({
               className="group category-perspective text-left h-[250px] sm:h-[264px] w-full rounded-2xl focus:outline-none transition-transform duration-300 hover:-translate-y-1"
             >
               <div className="category-flip-inner rounded-2xl shadow-card">
-                {/* FRONT FACE (0deg): Category Photos (Cases, Cables, Chargers, etc.) + Info */}
+                {/* FRONT FACE (0deg): Category Photos + Info */}
                 <div className="category-face bg-[#1A1A1F] border border-white/[0.08] p-5 sm:p-6 flex flex-col justify-between">
                   {/* Subtle Ambient Radial Glow */}
                   <div
@@ -409,20 +427,24 @@ export const HomeView: React.FC<HomeViewProps> = ({
                     }}
                   />
 
-                  {/* Top Row: Category Icon Badge + Product Photos Collage */}
+                  {/* Top Row: Category Emoji Badge + Product Photos Collage */}
                   <div className="relative z-10 flex items-start justify-between gap-3 w-full">
                     <div className="space-y-2">
-                      <div className="w-11 h-11 rounded-xl bg-[#111113] border border-white/10 flex items-center justify-center text-white rotate-180-on-hover">
-                        <i className={`fa-solid ${cat.icon} text-base text-electric-gradient`} />
+                      <div className="flex items-center gap-2">
+                        <div className="w-11 h-11 rounded-xl bg-[#111113] border border-white/10 flex items-center justify-center text-white text-xl shadow-inner">
+                          {cat.emoji}
+                        </div>
+                        <div className="w-8 h-8 rounded-lg bg-[#1A1A1F] border border-white/10 flex items-center justify-center text-[#6C63FF]">
+                          <i className={`fa-solid ${cat.icon} text-xs`} />
+                        </div>
                       </div>
                       <span className="block text-[11px] text-[#A0A0B0] font-mono-num">
                         {cat.count} · From {formatINR(cat.startingPrice)}
                       </span>
                     </div>
 
-                    {/* Dual Product Photo Showcase (Primary + Secondary Category Hardware) */}
+                    {/* Dual Product Photo Showcase */}
                     <div className="relative flex items-center">
-                      {/* Secondary Category Item Photo */}
                       <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-xl overflow-hidden bg-[#111113] border border-white/15 shadow-lg -mr-4 mt-4 rotate-[-6deg] transition-transform duration-500 group-hover:rotate-180">
                         <ResilientImage
                           src={cat.secondaryImage}
@@ -432,7 +454,6 @@ export const HomeView: React.FC<HomeViewProps> = ({
                         />
                       </div>
 
-                      {/* Primary Category Item Photo */}
                       <div className="w-24 h-24 sm:w-28 sm:h-28 rounded-2xl overflow-hidden bg-[#111113] border-2 border-[#6C63FF]/40 shadow-2xl relative z-10 rotate-180-on-hover">
                         <ResilientImage
                           src={cat.image}
@@ -444,12 +465,14 @@ export const HomeView: React.FC<HomeViewProps> = ({
                     </div>
                   </div>
 
-                  {/* Bottom Row: Category Title, Subtitle & Hover Flip Hint */}
+                  {/* Bottom Row: Category Title with Emoji, Subtitle & Flip Hint */}
                   <div className="relative z-10 flex items-end justify-between gap-3 pt-2">
                     <div className="min-w-0">
-                      <h3 className="font-display text-lg sm:text-xl font-bold text-white truncate">
-                        {cat.name}
-                      </h3>
+                      <div className="flex items-center gap-2">
+                        <h3 className="font-display text-lg sm:text-xl font-bold text-white truncate">
+                          {cat.emoji} {cat.name}
+                        </h3>
+                      </div>
                       <p className="text-xs text-[#A0A0B0] truncate mt-0.5">
                         {cat.subtitle}
                       </p>
@@ -461,9 +484,8 @@ export const HomeView: React.FC<HomeViewProps> = ({
                   </div>
                 </div>
 
-                {/* BACK FACE (Rotated 180deg on Hover): Full Category Photo Showcase & Gear Manifest */}
+                {/* BACK FACE (Rotated 180deg on Hover): Gear Manifest */}
                 <div className="category-face category-face-back bg-[#14141A] border border-[#6C63FF]/60 p-5 sm:p-6 flex flex-col justify-between shadow-electric-glow">
-                  {/* Backdrop Category Photo with Dark Gradient Overlay */}
                   <div className="absolute inset-0 opacity-25 pointer-events-none">
                     <ResilientImage
                       src={cat.image}
@@ -474,21 +496,20 @@ export const HomeView: React.FC<HomeViewProps> = ({
                     <div className="absolute inset-0 bg-gradient-to-t from-[#0A0A0B] via-[#111113]/85 to-[#111113]/60" />
                   </div>
 
-                  {/* Top: Dual Side-by-Side Category Product Photos */}
                   <div className="relative z-10 flex items-center justify-between gap-3">
                     <div className="flex items-center gap-2.5">
-                      <div className="w-14 h-14 rounded-xl overflow-hidden bg-[#0A0A0B] border border-[#6C63FF]/50 shrink-0 shadow-md">
+                      <div className="w-14 h-14 rounded-xl overflow-hidden bg-[#0A0A0B] border border-[#6C63FF]/50 shrink-0 shadow-md flex items-center justify-center">
                         <ResilientImage
                           src={cat.image}
-                          alt={cat.featuredItems[0]}
+                          alt={cat.featuredItems[0] || cat.name}
                           className="w-full h-full"
                           imgClassName="object-cover"
                         />
                       </div>
-                      <div className="w-14 h-14 rounded-xl overflow-hidden bg-[#0A0A0B] border border-[#FF6B35]/50 shrink-0 shadow-md">
+                      <div className="w-14 h-14 rounded-xl overflow-hidden bg-[#0A0A0B] border border-[#FF6B35]/50 shrink-0 shadow-md flex items-center justify-center">
                         <ResilientImage
                           src={cat.secondaryImage}
-                          alt={cat.featuredItems[1]}
+                          alt={cat.featuredItems[1] || cat.name}
                           className="w-full h-full"
                           imgClassName="object-cover"
                         />
@@ -503,10 +524,10 @@ export const HomeView: React.FC<HomeViewProps> = ({
                     </div>
                   </div>
 
-                  {/* Middle: Category Gear Manifest */}
                   <div className="relative z-10 my-auto py-2">
-                    <h3 className="font-display text-base font-bold text-white mb-1.5">
-                      {cat.name} Lineup
+                    <h3 className="font-display text-base font-bold text-white mb-1.5 flex items-center gap-1.5">
+                      <span>{cat.emoji}</span>
+                      <span>{cat.name} Lineup</span>
                     </h3>
                     <div className="space-y-1">
                       {cat.featuredItems.map((itemLabel) => (
@@ -521,7 +542,6 @@ export const HomeView: React.FC<HomeViewProps> = ({
                     </div>
                   </div>
 
-                  {/* Bottom: Action Bar */}
                   <div className="relative z-10 pt-2.5 border-t border-white/10 flex items-center justify-between text-xs font-semibold">
                     <span className="text-white">Explore {cat.count}</span>
                     <span className="px-3 py-1.5 rounded-[8px] bg-electric-gradient text-white flex items-center gap-1.5 shadow-sm">
@@ -806,7 +826,7 @@ export const HomeView: React.FC<HomeViewProps> = ({
       </section>
 
       {/* DEDICATED STORE LOCATION & VISIT EXPERIENCE BANNER */}
-      <section className="py-12 max-w-[1280px] mx-auto px-4 sm:px-6 lg:px-8">
+      <section id="store-location" className="py-12 max-w-[1280px] mx-auto px-4 sm:px-6 lg:px-8">
         <div className="relative rounded-[20px] bg-gradient-to-r from-[#0E1519] via-[#121A1F] to-[#151D24] border border-[#84F229]/20 p-8 sm:p-12 overflow-hidden shadow-2xl">
           <div className="absolute -right-10 -bottom-10 w-80 h-80 rounded-full bg-[#84F229] opacity-10 blur-3xl pointer-events-none" />
 
@@ -930,9 +950,9 @@ export const ProductListingView: React.FC<ProductListingViewProps> = ({
   onNavigateProduct,
   onQuickView,
 }) => {
-  const [sortBy, setSortBy] = useState<'popular' | 'price-asc' | 'newest' | 'rating'>(
-    'popular'
-  );
+  const [sortBy, setSortBy] = useState<
+    'popular' | 'price-asc' | 'price-desc' | 'newest' | 'rating'
+  >('popular');
   const [visibleCount, setVisibleCount] = useState<number>(8);
 
   // Sidebar Filter Toggles State
@@ -958,11 +978,16 @@ export const ProductListingView: React.FC<ProductListingViewProps> = ({
 
   const filterCategories = [
     'All',
+    'Mobile Covers',
+    'Tempered Glass',
+    'Earphones',
+    'Headphones',
+    'Neckbands',
+    'Wired Accessories',
+    'Wireless Accessories',
+    'Chargers',
+    'Cables',
     'Power Banks',
-    'Chargers & Cables',
-    'Screen Protectors',
-    'Earbuds',
-    'Phone Cases',
     'Smart Watches',
   ];
 
@@ -976,10 +1001,30 @@ export const ProductListingView: React.FC<ProductListingViewProps> = ({
     });
   };
 
+  const matchesCategoryFilter = (productCat: string, selectedCat: string) => {
+    if (selectedCat === 'All') return true;
+    if (productCat === selectedCat) return true;
+    const p = productCat.toLowerCase();
+    const s = selectedCat.toLowerCase();
+
+    if (s.includes('cover') || s.includes('case')) return p.includes('case') || p.includes('cover');
+    if (s.includes('glass') || s.includes('screen') || s.includes('protector')) return p.includes('glass') || p.includes('screen') || p.includes('protector');
+    if (s.includes('earphone') || s.includes('earbud')) return p.includes('earbud') || p.includes('earphone');
+    if (s.includes('headphone')) return p.includes('headphone') || p.includes('earbud');
+    if (s.includes('neckband')) return p.includes('neckband') || p.includes('earbud');
+    if (s.includes('wired')) return p.includes('wired') || p.includes('cable');
+    if (s.includes('wireless')) return p.includes('wireless') || p.includes('power bank') || p.includes('car mount');
+    if (s === 'chargers') return p.includes('charger');
+    if (s === 'cables') return p.includes('cable');
+    if (s.includes('power bank')) return p.includes('power bank');
+    if (s.includes('watch')) return p.includes('watch') || p.includes('strap');
+
+    return p.includes(s) || s.includes(p);
+  };
+
   const filteredProducts = products
     .filter((p) => {
-      const matchesCat =
-        selectedCategory === 'All' || p.category === selectedCategory;
+      const matchesCat = matchesCategoryFilter(p.category, selectedCategory);
       const matchesSearch =
         !searchQuery.trim() ||
         p.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -1001,8 +1046,9 @@ export const ProductListingView: React.FC<ProductListingViewProps> = ({
     })
     .sort((a, b) => {
       if (sortBy === 'price-asc') return a.price - b.price;
-      if (sortBy === 'rating') return b.rating - a.rating;
+      if (sortBy === 'price-desc') return b.price - a.price;
       if (sortBy === 'newest') return b.id - a.id;
+      if (sortBy === 'rating') return b.rating - a.rating;
       return b.reviewsCount - a.reviewsCount;
     });
 
@@ -1084,11 +1130,12 @@ export const ProductListingView: React.FC<ProductListingViewProps> = ({
             id="sort-select"
             value={sortBy}
             onChange={(e) => setSortBy(e.target.value as typeof sortBy)}
-            className="px-3.5 py-2 rounded-[8px] bg-[#1A1A1F] border border-white/10 text-xs font-medium text-white focus:outline-none focus:border-[#6C63FF]"
+            className="px-3.5 py-2 rounded-[8px] bg-[#1A1A1F] border border-white/10 text-xs font-medium text-white focus:outline-none focus:border-[#6C63FF] cursor-pointer"
           >
             <option value="popular">Most Popular</option>
             <option value="price-asc">Price: Low to High</option>
-            <option value="newest">Newest</option>
+            <option value="price-desc">Price: High to Low</option>
+            <option value="newest">Newest Arrivals</option>
             <option value="rating">Top Rated</option>
           </select>
         </div>

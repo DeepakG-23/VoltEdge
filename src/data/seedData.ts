@@ -35,10 +35,16 @@ export interface Product {
   rating: number;
   reviewsCount: number;
   category:
+    | 'Mobile Covers'
     | 'Phone Cases'
-    | 'Chargers & Cables'
+    | 'Tempered Glass'
     | 'Screen Protectors'
+    | 'Chargers & Cables'
+    | 'Chargers'
+    | 'Cables'
+    | 'Earphones & Audio'
     | 'Earbuds'
+    | 'Neckbands'
     | 'Power Banks'
     | 'Smart Watches';
   stock: number;
@@ -54,6 +60,12 @@ export interface Product {
   sizes: string[];
   sizeLabel: string;
   specs: ProductSpec[];
+  compatibleBrands?: string[];
+  compatibleModels?: string[];
+  compatibleSummary?: string;
+  highlights?: string[];
+  isBundle?: boolean;
+  bundleSavings?: string;
   starBreakdown: {
     5: number;
     4: number;
@@ -63,9 +75,170 @@ export interface Product {
   };
   reviews: ProductReview[];
   isTrending?: boolean;
+  isNewArrival?: boolean;
   badge?: string;
   createdAt: string;
 }
+
+export interface PhoneBrandModels {
+  brand: string;
+  icon: string;
+  models: string[];
+}
+
+export const PHONE_BRANDS_CATALOG: PhoneBrandModels[] = [
+  {
+    brand: 'Apple',
+    icon: 'fa-apple',
+    models: [
+      'iPhone 16 Pro Max',
+      'iPhone 16 Pro',
+      'iPhone 16 Plus',
+      'iPhone 16',
+      'iPhone 15 Pro Max',
+      'iPhone 15 Pro',
+      'iPhone 15',
+      'iPhone 14 Pro Max',
+      'iPhone 14',
+      'iPhone 13',
+    ],
+  },
+  {
+    brand: 'Samsung',
+    icon: 'fa-mobile-screen-button',
+    models: [
+      'Galaxy S24 Ultra',
+      'Galaxy S24+',
+      'Galaxy S24',
+      'Galaxy S23 FE',
+      'Galaxy A55 5G',
+      'Galaxy A35 5G',
+      'Galaxy Z Fold 6',
+      'Galaxy Z Flip 6',
+    ],
+  },
+  {
+    brand: 'OnePlus',
+    icon: 'fa-bolt',
+    models: [
+      'OnePlus 12',
+      'OnePlus 12R',
+      'OnePlus Nord 4 5G',
+      'OnePlus Nord CE 4',
+      'OnePlus 11 5G',
+      'OnePlus Nord 3',
+    ],
+  },
+  {
+    brand: 'Xiaomi / Redmi',
+    icon: 'fa-microchip',
+    models: [
+      'Xiaomi 14 Ultra',
+      'Xiaomi 14',
+      'Redmi Note 13 Pro+ 5G',
+      'Redmi Note 13 Pro',
+      'Redmi 13C 5G',
+      'Poco X6 Pro 5G',
+    ],
+  },
+  {
+    brand: 'Vivo / iQOO',
+    icon: 'fa-mobile-retro',
+    models: [
+      'Vivo X100 Pro',
+      'Vivo V30 Pro',
+      'Vivo T3 Ultra',
+      'iQOO 12 5G',
+      'iQOO Neo 9 Pro',
+    ],
+  },
+  {
+    brand: 'Realme',
+    icon: 'fa-star',
+    models: [
+      'Realme GT 6',
+      'Realme GT 6T 5G',
+      'Realme 13+ 5G',
+      'Realme 12 Pro+ 5G',
+    ],
+  },
+  {
+    brand: 'Nothing',
+    icon: 'fa-shield-halved',
+    models: ['Nothing Phone (2a) Plus', 'Nothing Phone (2a)', 'Nothing Phone (2)'],
+  },
+  {
+    brand: 'OPPO',
+    icon: 'fa-circle-dot',
+    models: ['OPPO Reno 12 Pro', 'OPPO F27 Pro+ 5G', 'OPPO A3 Pro'],
+  },
+  {
+    brand: 'Motorola',
+    icon: 'fa-wave-square',
+    models: ['Moto Edge 50 Ultra', 'Moto Edge 50 Pro', 'Moto G85 5G', 'Moto Razr 50'],
+  },
+];
+
+export interface ComboBundle {
+  id: string;
+  title: string;
+  tagline: string;
+  badge: string;
+  originalPrice: number;
+  bundlePrice: number;
+  savings: string;
+  items: {
+    productId: number;
+    name: string;
+    variant: string;
+  }[];
+  image: string;
+}
+
+export const SEED_COMBO_BUNDLES: ComboBundle[] = [
+  {
+    id: 'bundle-01',
+    title: '📱 Complete Protection Combo',
+    tagline: 'Crazy Mobiles MagSafe Clear Case + 9H Full HD Tempered Glass',
+    badge: 'SAVE ₹350',
+    originalPrice: 998,
+    bundlePrice: 649,
+    savings: '35% Instant Combo Discount',
+    items: [
+      { productId: 3, name: 'Clear MagSafe Armor Case', variant: 'iPhone 16 Pro' },
+      { productId: 4, name: '9H Electroplated Tempered Glass', variant: 'Edge-to-Edge HD' },
+    ],
+    image: magsafeCaseImg,
+  },
+  {
+    id: 'bundle-02',
+    title: '⚡ 65W Turbo Charging Combo',
+    tagline: 'GaN Dual Port 65W Wall Charger + 100W Braided USB-C Cable (1.2m)',
+    badge: 'SAVE ₹600',
+    originalPrice: 2298,
+    bundlePrice: 1698,
+    savings: '26% Instant Combo Discount',
+    items: [
+      { productId: 2, name: 'GaN Fast Charger 65W', variant: 'Dual Port PD' },
+      { productId: 6, name: '100W Braided Type-C Cable', variant: '1.2m High Flex' },
+    ],
+    image: ganChargerImg,
+  },
+  {
+    id: 'bundle-03',
+    title: '🎧 Wireless Audio + Power Combo',
+    tagline: 'ANC Pro Wireless Earbuds + 10,000mAh MagSafe Power Bank',
+    badge: 'SAVE ₹1,200',
+    originalPrice: 6498,
+    bundlePrice: 5298,
+    savings: '₹1,200 Instant Combo Savings',
+    items: [
+      { productId: 5, name: 'ANC Pro Wireless Earbuds', variant: 'Matte Jet Black' },
+      { productId: 1, name: 'MagSafe Power Bank 10000mAh', variant: 'Obsidian Black' },
+    ],
+    image: ancEarbudsImg,
+  },
+];
 
 export interface CartItem {
   productId: number;
@@ -1186,65 +1359,138 @@ export const INDIAN_STATES = [
   'West Bengal',
 ];
 
-export const CATEGORIES_DATA = [
+export interface CategoryItem {
+  name: string;
+  emoji: string;
+  icon: string;
+  subtitle: string;
+  count: string;
+  image: string;
+  secondaryImage: string;
+  featuredItems: string[];
+  startingPrice: number;
+}
+
+export const CATEGORIES_DATA: CategoryItem[] = [
   {
-    name: 'Phone Cases' as const,
+    name: 'Mobile Covers',
+    emoji: '📱',
     icon: 'fa-mobile-screen-button',
-    subtitle: 'MagSafe & Drop-Tested Armor',
-    count: '14 Models',
+    subtitle: 'MagSafe, Silicone & Drop-Tested Armor',
+    count: '24+ Models',
     image: MAGSAFE_CASE_IMAGE,
     secondaryImage: CAR_MOUNT_SVG,
-    featuredItems: ['Clear MagSafe Case (iPhone 16)', 'Magnetic N52 Car Mount'],
-    startingPrice: 599,
+    featuredItems: ['Clear MagSafe Case (iPhone 16 Pro)', 'Stealth Matte Armor Case'],
+    startingPrice: 299,
   },
   {
-    name: 'Chargers & Cables' as const,
+    name: 'Tempered Glass',
+    emoji: '🛡️',
+    icon: 'fa-shield-halved',
+    subtitle: '9H Full HD & 28° Anti-Spy Glass',
+    count: '18+ Models',
+    image: TEMPERED_GLASS_SVG,
+    secondaryImage: SCHEMATIC_CUTAWAY_SVG,
+    featuredItems: ['9H Tempered Glass Pro (2-Pack)', 'Privacy Screen Guard'],
+    startingPrice: 199,
+  },
+  {
+    name: 'Earphones',
+    emoji: '🎧',
+    icon: 'fa-ear-listen',
+    subtitle: 'Type-C & 3.5mm Heavy Bass Audio',
+    count: '12+ Models',
+    image: ANC_EARBUDS_IMAGE,
+    secondaryImage: IN_BOX_CONTENTS_SVG,
+    featuredItems: ['Hi-Res Type-C Bass Earphones', '3.5mm Studio Metal In-Ear'],
+    startingPrice: 249,
+  },
+  {
+    name: 'Headphones',
+    emoji: '🎧',
+    icon: 'fa-headphones',
+    subtitle: 'Studio Wireless Over-Ear ANC Headsets',
+    count: '8+ Models',
+    image: HERO_ECOSYSTEM_IMAGE,
+    secondaryImage: ANC_EARBUDS_IMAGE,
+    featuredItems: ['Wireless Studio ANC Headphones', 'Pro Gaming Surround Headset'],
+    startingPrice: 1499,
+  },
+  {
+    name: 'Neckbands',
+    emoji: '🎵',
+    icon: 'fa-music',
+    subtitle: 'Sports Bluetooth Magnetic Neckbands',
+    count: '10+ Models',
+    image: ANC_EARBUDS_IMAGE,
+    secondaryImage: HERO_ECOSYSTEM_IMAGE,
+    featuredItems: ['60-Hour Fast Charge Neckband', 'Magnetic Bass Sports Neckband'],
+    startingPrice: 699,
+  },
+  {
+    name: 'Wired Accessories',
+    emoji: '🔌',
+    icon: 'fa-plug',
+    subtitle: 'Aux Cables, OTG Adapters & Hubs',
+    count: '15+ Accessories',
+    image: USBC_CABLE_SVG,
+    secondaryImage: IN_BOX_CONTENTS_SVG,
+    featuredItems: ['Type-C to 3.5mm DAC Adapter', 'Gold-Plated Metal Aux Cable'],
+    startingPrice: 149,
+  },
+  {
+    name: 'Wireless Accessories',
+    emoji: '📡',
+    icon: 'fa-tower-broadcast',
+    subtitle: 'MagSafe Car Mounts & Qi Pads',
+    count: '14+ Gadgets',
+    image: CAR_MOUNT_SVG,
+    secondaryImage: MAGSAFE_POWERBANK_IMAGE,
+    featuredItems: ['15W MagSafe Air Vent Car Mount', 'Desktop Qi Wireless Dock'],
+    startingPrice: 799,
+  },
+  {
+    name: 'Chargers',
+    emoji: '🔋',
     icon: 'fa-bolt',
-    subtitle: 'GaN III Bricks & 100W Kevlar',
-    count: '9 Products',
+    subtitle: 'GaN III Fast Charging Bricks & Wall Adapters',
+    count: '16+ Models',
     image: GAN_CHARGER_IMAGE,
-    secondaryImage: USBC_CABLE_SVG,
-    featuredItems: ['65W GaN III Fast Charger', '100W Braided USB-C Cable (2m)'],
+    secondaryImage: IN_BOX_CONTENTS_SVG,
+    featuredItems: ['65W GaN III Dual USB-C Brick', '33W Turbo Fast Charger'],
     startingPrice: 499,
   },
   {
-    name: 'Screen Protectors' as const,
-    icon: 'fa-shield-halved',
-    subtitle: '9H Sapphire & Privacy Glass',
-    count: '12 Models',
-    image: TEMPERED_GLASS_SVG,
-    secondaryImage: SCHEMATIC_CUTAWAY_SVG,
-    featuredItems: ['9H Tempered Glass Pro (2-Pack)', '28° Anti-Spy Privacy Glass'],
-    startingPrice: 399,
+    name: 'Cables',
+    emoji: '🔗',
+    icon: 'fa-link',
+    subtitle: '100W Kevlar Braided Type-C & Lightning',
+    count: '20+ Cables',
+    image: USBC_CABLE_SVG,
+    secondaryImage: GAN_CHARGER_IMAGE,
+    featuredItems: ['100W Braided Type-C Cable (2m)', 'MFi Fast Charge Cable'],
+    startingPrice: 199,
   },
   {
-    name: 'Earbuds' as const,
-    icon: 'fa-headphones-simple',
-    subtitle: '48dB Hybrid ANC Acoustics',
-    count: '4 Editions',
-    image: ANC_EARBUDS_IMAGE,
-    secondaryImage: HERO_ECOSYSTEM_IMAGE,
-    featuredItems: ['Wireless Earbuds 48dB ANC', 'Pro LDAC Hi-Res Edition'],
-    startingPrice: 2999,
-  },
-  {
-    name: 'Power Banks' as const,
+    name: 'Power Banks',
+    emoji: '🔋',
     icon: 'fa-battery-full',
-    subtitle: 'Qi2 Magnetic & High-Output',
-    count: '6 Models',
+    subtitle: 'Qi2 Magnetic & High-Capacity Turbo Banks',
+    count: '10+ Models',
     image: MAGSAFE_POWERBANK_IMAGE,
     secondaryImage: HERO_ECOSYSTEM_IMAGE,
-    featuredItems: ['10000mAh Qi2 MagSafe Bank', '22.5W PD Pass-Through Slim'],
-    startingPrice: 2499,
+    featuredItems: ['10000mAh Qi2 MagSafe Bank', '20000mAh 22.5W Fast Bank'],
+    startingPrice: 1299,
   },
   {
-    name: 'Smart Watches' as const,
+    name: 'Smart Watches',
+    emoji: '⌚',
     icon: 'fa-clock',
-    subtitle: 'Fluoroelastomer & Titanium Bands',
-    count: '8 Straps',
+    subtitle: 'FKM Silicone, Leather & Titanium Bands',
+    count: '18+ Straps',
     image: WATCH_STRAP_SVG,
     secondaryImage: IN_BOX_CONTENTS_SVG,
-    featuredItems: ['FKM Silicone Sport Strap', '49mm Ultra Titanium Clasp'],
+    featuredItems: ['FKM Silicone Sport Strap', '49mm Ultra Titanium Link Clasp'],
     startingPrice: 299,
   },
 ];
