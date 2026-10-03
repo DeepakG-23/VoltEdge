@@ -21,33 +21,37 @@ export function buildWhatsAppOrderMessage(order: Order): string {
   const itemsLines = order.items
     .map(
       (item, idx) =>
-        `${idx + 1}. ${item.name} (${item.color} / ${item.size}) × ${
+        `   • ${item.name} (${item.color} / ${item.size}) × ${
           item.quantity
-        } — ${formatINR(item.price * item.quantity)}`
+        } = ${formatINR(item.price * item.quantity)}`
     )
     .join('\n');
 
   return [
-    `⚡ *${STORE_MERCHANT_NAME} — OFFICIAL ORDER RECEIPT* ⚡`,
+    `🛍️ *${STORE_MERCHANT_NAME} — ORDER CONFIRMATION*`,
+    `━━━━━━━━━━━━━━━━━━━━━━━━━`,
+    `📋 *Order ID:* #${order.id}`,
+    `📅 *Date:* ${order.date || 'Today'}`,
+    `💳 *Payment Status:* PAID ONLINE VIA UPI`,
+    `🔒 *UPI ID:* ${STORE_UPI_ID}`,
+    `🔖 *Payment Ref / UTR:* ${order.paymentDetails || 'UPI-DIRECT-TXN'}`,
+    `💰 *Total Amount:* ${formatINR(order.total)}`,
     ``,
-    `*Order ID:* ${order.id}`,
-    `*Order Date:* ${order.date || 'Today'}`,
-    `*Payment Mode:* PAID ONLINE VIA UPI (${STORE_UPI_ID})`,
-    `*Payment Ref:* ${order.paymentDetails || 'Verified UPI Transfer'}`,
-    `*Total Paid:* ${formatINR(order.total)}`,
-    ``,
-    `*Customer Information:*`,
+    `👤 *Customer Details:*`,
     `• Name: ${order.customerName}`,
-    `• Phone: +91 ${order.phone}`,
+    `• Customer Mobile: +91 ${order.phone}`,
     `• Delivery Address: ${order.address.area}, ${order.address.city}, ${order.address.state} - ${order.address.pincode}`,
     ``,
-    `*Itemized Products:*`,
+    `📦 *Order Summary:*`,
     itemsLines,
     ``,
-    `*Store Contact:* +91 ${STORE_PHONE} · ${STORE_EMAIL}`,
-    `*Store Location:* ${STORE_MAPS_URL}`,
+    `🚚 *Shipping:* Express Insured Delivery (Free)`,
+    `━━━━━━━━━━━━━━━━━━━━━━━━━`,
+    `🏬 *Store Contact:* +91 ${STORE_PHONE} · ${STORE_EMAIL}`,
+    `📍 *Store Location:* ${STORE_MAPS_URL}`,
     ``,
-    `Payment verified on merchant account (${STORE_UPI_ID}). Please confirm priority dispatch!`,
+    `✅ *Verified by Customer (+91 ${order.phone}) for Order #${order.id}*`,
+    `Please confirm dispatch & send tracking updates!`,
   ].join('\n');
 }
 
@@ -1501,49 +1505,72 @@ export const OrderSuccessView: React.FC<OrderSuccessViewProps> = ({
           </p>
         </div>
 
-        {/* AUTOMATIC DIRECT WHATSAPP REDIRECT BANNER */}
-        <div className="bg-gradient-to-r from-[#0F281E] via-[#14231E] to-[#161D24] rounded-[16px] p-5 border-2 border-emerald-500/40 shadow-xl space-y-3.5 print:hidden">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-            <div className="flex items-center gap-3">
-              <div className="w-12 h-12 rounded-xl bg-[#25D366]/20 border border-[#25D366]/50 flex items-center justify-center text-[#25D366] shrink-0 shadow-[0_0_15px_rgba(37,211,102,0.25)]">
+        {/* DIRECT TO WHATSAPP TRIGGER & AUTO-REDIRECT BANNER */}
+        <div className="bg-gradient-to-r from-[#0D241B] via-[#12221C] to-[#171A24] rounded-[18px] p-5 sm:p-6 border-2 border-emerald-500/50 shadow-[0_0_25px_rgba(16,185,129,0.15)] space-y-4 print:hidden animate-page-enter">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div className="flex items-start sm:items-center gap-3.5">
+              <div className="w-13 h-13 rounded-2xl bg-[#25D366]/20 border-2 border-[#25D366]/60 flex items-center justify-center text-[#25D366] shrink-0 shadow-[0_0_18px_rgba(37,211,102,0.35)]">
                 <i className="fa-brands fa-whatsapp text-2xl" />
               </div>
-              <div>
-                <h2 className="font-display text-base font-bold text-white flex items-center gap-2">
-                  <span>Redirecting to WhatsApp with Payment Receipt</span>
-                  {!autoRedirectCancelled && countdown > 0 && (
-                    <span className="px-2 py-0.5 rounded-full bg-[#25D366]/20 text-[#25D366] text-xs font-mono-num font-bold animate-pulse">
-                      in {countdown}s
+              <div className="space-y-1">
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="font-display text-base font-bold text-white">
+                    Direct to WhatsApp Trigger
+                  </span>
+                  {!autoRedirectCancelled && countdown > 0 ? (
+                    <span className="px-2.5 py-0.5 rounded-full bg-[#25D366]/20 border border-[#25D366]/40 text-[#25D366] text-xs font-mono-num font-bold animate-pulse">
+                      Auto-opening in {countdown}s
+                    </span>
+                  ) : (
+                    <span className="px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 text-xs font-semibold">
+                      Ready to Send
                     </span>
                   )}
-                </h2>
-                <p className="text-xs text-[#A0A0B0] mt-0.5">
-                  Directly sharing your verified UPI payment receipt with store proprietor{' '}
-                  <strong className="text-white">Shaikh Shoeb</strong> (+91 {STORE_PHONE}) for immediate dispatch.
+                </div>
+                <p className="text-xs text-[#A0A0B0] leading-relaxed">
+                  Pre-filled with <strong className="text-white">Order #{displayOrderId}</strong> summary for phone{' '}
+                  <strong className="text-white font-mono-num">+91 {order?.phone || STORE_PHONE}</strong> directly to store dispatch (+91 {STORE_PHONE}).
                 </p>
               </div>
             </div>
 
-            <div className="flex items-center gap-2 shrink-0">
+            <div className="flex flex-wrap items-center gap-2 shrink-0">
               <a
                 href={whatsappUrl}
                 target="_blank"
                 rel="noopener noreferrer"
                 onClick={() => setHasRedirected(true)}
-                className="py-2.5 px-4 rounded-[8px] bg-[#25D366] hover:bg-[#20bd5a] text-[#0A0A0B] font-display text-xs font-bold shadow-lg hover:scale-[1.02] transition-all flex items-center gap-2"
+                className="py-3 px-5 rounded-[10px] bg-[#25D366] hover:bg-[#20bd5a] text-[#0A0A0B] font-display text-xs font-bold shadow-lg hover:scale-[1.02] active:scale-95 transition-all flex items-center gap-2.5 whitespace-nowrap"
               >
-                <i className="fa-brands fa-whatsapp text-sm" />
-                <span>Open WhatsApp Now</span>
+                <i className="fa-brands fa-whatsapp text-base" />
+                <span>Direct to WhatsApp</span>
+                <i className="fa-solid fa-arrow-up-right-from-square text-[11px]" />
               </a>
               {!autoRedirectCancelled && countdown > 0 && (
                 <button
                   type="button"
                   onClick={() => setAutoRedirectCancelled(true)}
-                  className="py-2.5 px-3 rounded-[8px] bg-white/10 hover:bg-white/15 text-[#A0A0B0] hover:text-white text-xs font-medium transition-colors"
+                  className="py-3 px-3.5 rounded-[10px] bg-white/10 hover:bg-white/15 text-[#A0A0B0] hover:text-white text-xs font-medium transition-colors whitespace-nowrap"
                 >
                   Stay on Page
                 </button>
               )}
+            </div>
+          </div>
+
+          {/* User & Order Summary Pill Metadata */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 pt-2 border-t border-emerald-500/20 text-[11px]">
+            <div className="bg-[#0A120E] px-3 py-1.5 rounded-lg border border-emerald-500/20 flex items-center justify-between">
+              <span className="text-[#A0A0B0]">Order ID:</span>
+              <strong className="font-mono-num text-white font-semibold">#{displayOrderId}</strong>
+            </div>
+            <div className="bg-[#0A120E] px-3 py-1.5 rounded-lg border border-emerald-500/20 flex items-center justify-between">
+              <span className="text-[#A0A0B0]">Customer Phone:</span>
+              <strong className="font-mono-num text-white font-semibold">+91 {order?.phone || STORE_PHONE}</strong>
+            </div>
+            <div className="bg-[#0A120E] px-3 py-1.5 rounded-lg border border-emerald-500/20 flex items-center justify-between">
+              <span className="text-[#A0A0B0]">Settlement Total:</span>
+              <strong className="font-mono-num text-emerald-400 font-bold">{formatINR(order?.total || 0)}</strong>
             </div>
           </div>
 
