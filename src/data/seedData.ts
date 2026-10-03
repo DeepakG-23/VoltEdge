@@ -81,6 +81,13 @@ export interface Product {
   isTrending?: boolean;
   isNewArrival?: boolean;
   badge?: string;
+  sku?: string;
+  warranty?: string;
+  tags?: string[];
+  seoTitle?: string;
+  seoDescription?: string;
+  seoKeywords?: string[];
+  slug?: string;
   createdAt: string;
 }
 

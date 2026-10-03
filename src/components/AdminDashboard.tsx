@@ -310,17 +310,170 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   const [isUploadingFiles, setIsUploadingFiles] = useState(false);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
-  // AI-Assisted Product Importer & Category Specs State
+  // 5-Layer Structured Product Form State
+  const [activeFormLayer, setActiveFormLayer] = useState<
+    'basic' | 'compatibility' | 'specs' | 'description' | 'seo'
+  >('basic');
+  const [formSubcategory, setFormSubcategory] = useState('');
+  const [formSku, setFormSku] = useState('');
+  const [formWarranty, setFormWarranty] = useState('6 Months Warranty');
+  const [formTags, setFormTags] = useState('fast charge, genuine, crazy mobiles');
+  const [formPhoneBrand, setFormPhoneBrand] = useState('Apple');
+  const [formPhoneModels, setFormPhoneModels] = useState('iPhone 16 Pro, iPhone 15, Galaxy S24');
+  const [formCompatibleDevices, setFormCompatibleDevices] = useState('Smartphones, Tablets, Laptops');
+  const [formConnectorType, setFormConnectorType] = useState('USB-C');
+  const [formSeoTitle, setFormSeoTitle] = useState('');
+  const [formSeoDescription, setFormSeoDescription] = useState('');
+  const [formSeoKeywords, setFormSeoKeywords] = useState('');
+  const [formSlug, setFormSlug] = useState('');
+  const [formTagline, setFormTagline] = useState('');
+  const [formDescription, setFormDescription] = useState('');
+  const [formSpecs, setFormSpecs] = useState<ProductSpec[]>([]);
   const [importUrl, setImportUrl] = useState('');
   const [isImportingWithAI, setIsImportingWithAI] = useState(false);
   const [importProgressStep, setImportProgressStep] = useState('');
-  const [formTagline, setFormTagline] = useState('');
-  const [formDescription, setFormDescription] = useState('');
-  const [formSpecs, setFormSpecs] = useState<ProductSpec[]>([
-    { label: 'Build Material', value: 'Anodized Aluminum & Polycarbonate' },
-    { label: 'Certification', value: 'BIS Certified India' },
-    { label: 'Warranty', value: '1-Year Replacement Warranty' },
-  ]);
+
+  // Helper to generate default specification fields based on Category
+  const getCategoryPresetSpecs = (cat: Product['category']): ProductSpec[] => {
+    switch (cat) {
+      case 'Mobile Covers':
+      case 'Phone Cases':
+        return [
+          { label: 'Case Type', value: 'MagSafe Armor Protective Case' },
+          { label: 'Main Material', value: 'Polycarbonate & TPU Shock Cushion' },
+          { label: 'Drop Rating', value: '12ft Military-Grade Drop Protection' },
+          { label: 'MagSafe', value: 'MagSafe Compatible (N52 Magnet Ring)' },
+          { label: 'Screen/Camera Lip', value: '1.5mm Elevated Bumper Rim' },
+          { label: 'Finish', value: 'Matte Anti-Fingerprint Texture' },
+        ];
+      case 'Tempered Glass':
+      case 'Screen Protectors':
+        return [
+          { label: 'Hardness Rating', value: '9H Tempered Glass' },
+          { label: 'Glass Type', value: '28° Anti-Spy Privacy Filter' },
+          { label: 'Edge Contour', value: '3D Curved Full Screen Coverage' },
+          { label: 'Coating', value: 'Oleophobic Hydrophobic Oil-Resistant' },
+          { label: 'Touch & Sensors', value: 'In-Display Fingerprint & Face ID Compatible' },
+          { label: 'Included Kit', value: 'Dust Wipes + Alignment Applicator Frame' },
+        ];
+      case 'Cables':
+        return [
+          { label: 'Cable Type', value: 'USB-C to USB-C Fast Charging Cable' },
+          { label: 'Cable Length', value: '1.5 Meter / 5 Feet' },
+          { label: 'Max Power Wattage', value: '100W Power Delivery (PD 3.0)' },
+          { label: 'Data Transfer Speed', value: '480 Mbps High Speed Sync' },
+          { label: 'Construction', value: 'Double-Braided Nylon & Reinforced SR Joint' },
+          { label: 'Warranty', value: '6 Months Replacement Warranty' },
+        ];
+      case 'Chargers':
+      case 'Chargers & Cables':
+        return [
+          { label: 'Max Wattage', value: '65W GaN Fast Charger' },
+          { label: 'Output Ports', value: '2x USB-C PD + 1x USB-A Quick Charge' },
+          { label: 'Charging Protocol', value: 'Power Delivery 3.0 / PPS / QC 4.0' },
+          { label: 'Input Voltage', value: '100-240V AC Universal Dual Pin' },
+          { label: 'Safety Protections', value: 'Over-Voltage, Over-Temp, Short-Circuit IC' },
+          { label: 'Warranty', value: '1-Year Official Warranty' },
+        ];
+      case 'Power Banks':
+        return [
+          { label: 'Battery Capacity', value: '10,000 mAh High-Density Li-Polymer' },
+          { label: 'Max Output Wattage', value: '22.5W Fast Charge / 15W MagSafe' },
+          { label: 'Ports', value: '1x USB-C PD Input/Output, 1x USB-A Output' },
+          { label: 'Features', value: 'Digital LED % Display & Pass-Through Charging' },
+          { label: 'Safety IC', value: 'Multi-Protect Temperature & Surge Control' },
+          { label: 'Dimensions & Weight', value: '105 x 68 x 16 mm, 210g' },
+        ];
+      case 'Earphones':
+      case 'Earbuds':
+      case 'Earphones & Audio':
+        return [
+          { label: 'Driver Size', value: '13mm Titanium Dynamic Drivers' },
+          { label: 'Connector / Wireless', value: 'Type-C Hi-Fi Audio / Bluetooth v5.4' },
+          { label: 'Microphone', value: 'In-Line HD Mic with Call Control Button' },
+          { label: 'Cable Material', value: 'Tangle-Free TPE Braided Cable' },
+          { label: 'Compatibility', value: 'Universal Type-C Phones, Laptops & Tablets' },
+        ];
+      case 'Headphones':
+        return [
+          { label: 'Driver Size', value: '40mm Neodymium Over-Ear Drivers' },
+          { label: 'Noise Cancellation', value: '35dB Hybrid Active Noise Cancellation (ANC)' },
+          { label: 'Battery Playtime', value: '50 Hours ANC Off / 38 Hours ANC On' },
+          { label: 'Comfort & Build', value: 'Memory Foam Ear Cushions & Foldable Hinge' },
+          { label: 'Connectivity', value: 'Bluetooth v5.3 + 3.5mm AUX Backup Cable' },
+        ];
+      case 'Neckbands':
+        return [
+          { label: 'Driver Size', value: '12mm Deep Bass Drivers' },
+          { label: 'Playback Time', value: '40 Hours Continuous Music Playback' },
+          { label: 'Fast Charge', value: '10 Mins Charge = 10 Hours Playtime' },
+          { label: 'Features', value: 'Magnetic Earbuds, ENC Call Noise Reduction' },
+          { label: 'Protection Rating', value: 'IPX5 Sweat & Water Resistant' },
+        ];
+      case 'Wireless Accessories':
+      case 'Wired Accessories':
+      case 'Smart Watches':
+      default:
+        return [
+          { label: 'Compatibility', value: 'Universal Mobile Accessories' },
+          { label: 'Build Material', value: 'Anodized Aluminum Alloy & Silicone' },
+          { label: 'Certification', value: 'BIS Certified India' },
+          { label: 'Warranty', value: '1-Year Crazy Mobile Replacement Warranty' },
+        ];
+    }
+  };
+
+  // Helper to auto-generate Layer D Marketing Description from Layer C specifications
+  const handleAutoGenerateDescription = () => {
+    const name = formName.trim() || 'Crazy Mobile Product';
+    const category = formCategory || 'Accessory';
+    const brand = 'Crazy Mobile';
+
+    const validSpecs = formSpecs.filter((s) => s.label.trim() && s.value.trim());
+    const specSummary = validSpecs.map((s) => `${s.label}: ${s.value}`).join(', ');
+
+    const paragraph1 = `The ${name} is engineered for peak performance and everyday reliability. Featuring ${
+      specSummary || 'premium quality construction'
+    }, this ${category.toLowerCase()} delivers exceptional durability and high-efficiency functionality for your mobile device.`;
+
+    const paragraph2 = `Built with high-grade materials, heat-resistant components, and rigorous testing standards, it ensures seamless integration with compatible smartphones and hardware. Backed by ${
+      formWarranty || 'Crazy Mobile Warranty'
+    }, it is the ideal upgrade for power users seeking top-tier accessories.`;
+
+    const highlightsList = validSpecs.map((s) => `• ${s.label}: ${s.value}`);
+    if (highlightsList.length === 0) {
+      highlightsList.push(`• Premium ${category} design`);
+      highlightsList.push(`• Engineered by ${brand}`);
+      highlightsList.push(`• ${formWarranty}`);
+    }
+
+    const generatedFullDesc = `${paragraph1}\n\n${paragraph2}\n\nKey Highlights:\n${highlightsList.join('\n')}`;
+
+    setFormDescription(generatedFullDesc);
+    setFormTagline(
+      formTagline.trim() ||
+        `Precision-engineered ${category} with ${
+          validSpecs[0]?.value || 'fast performance'
+        }.`
+    );
+    setFormSeoTitle(`${name} | Buy Online at ${STORE_NAME}`);
+    setFormSeoDescription(
+      `Shop ${name} at ${STORE_NAME}. ${
+        formTagline.trim() ||
+        'Genuine mobile accessories with fast delivery and warranty.'
+      }`
+    );
+    setFormSeoKeywords(
+      `${name.toLowerCase()}, ${category.toLowerCase()}, ${brand.toLowerCase()}, mobile accessories`
+    );
+    setFormSlug(
+      name
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, '-')
+        .replace(/(^-|-$)/g, '')
+    );
+    showToast('✨ Auto-generated marketing description, highlights, & SEO tags!');
+  };
 
   const handleAddSpecRow = () => {
     setFormSpecs((prev) => [...prev, { label: '', value: '' }]);
@@ -770,41 +923,61 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
 
   const openAddProductModal = () => {
     setEditingProduct(null);
+    setActiveFormLayer('basic');
     setFormName('');
     setFormPrice('1499');
     setFormOriginalPrice('2499');
-    setFormCategory('Power Banks');
+    setFormCategory('Cables');
+    setFormSubcategory('USB-C Fast Charging Cable');
+    setFormSku(`SKU-CM-${Math.floor(1000 + Math.random() * 9000)}`);
+    setFormWarranty('6 Months Replacement Warranty');
+    setFormTags('fast charge, braided, type-c, pd 3.0');
     setFormStock('40');
     setUploadedImages([]);
     setImportUrl('');
     setFormTagline('');
     setFormDescription('');
-    setFormSpecs([
-      { label: 'Build Material', value: 'Anodized Aluminum & Polycarbonate' },
-      { label: 'Certification', value: 'BIS Certified India' },
-      { label: 'Warranty', value: '1-Year Replacement Warranty' },
-    ]);
+    setFormPhoneBrand('Apple');
+    setFormPhoneModels('iPhone 16 Pro, iPhone 15, Galaxy S24');
+    setFormCompatibleDevices('Smartphones, Laptops, Tablets');
+    setFormConnectorType('USB-C to USB-C');
+    setFormSpecs(getCategoryPresetSpecs('Cables'));
+    setFormSeoTitle('');
+    setFormSeoDescription('');
+    setFormSeoKeywords('');
+    setFormSlug('');
     setIsProductModalOpen(true);
   };
 
   const openEditProductModal = (product: Product) => {
     setEditingProduct(product);
+    setActiveFormLayer('basic');
     setFormName(product.name);
     setFormPrice(String(product.price));
     setFormOriginalPrice(String(product.originalPrice));
     setFormCategory(product.category);
+    setFormSubcategory(product.category);
+    setFormSku(product.sku || `SKU-CM-${product.id}`);
+    setFormWarranty(product.warranty || '1-Year Replacement Warranty');
+    setFormTags(product.tags ? product.tags.join(', ') : 'crazy mobiles, accessory');
     setFormStock(String(product.stock));
     setImportUrl('');
     setFormTagline(product.tagline || '');
     setFormDescription(product.description || '');
+    setFormPhoneBrand(product.compatibleBrands ? product.compatibleBrands[0] || 'Apple' : 'Apple');
+    setFormPhoneModels(product.compatibleModels ? product.compatibleModels.join(', ') : 'Universal');
+    setFormCompatibleDevices('Smartphones, Laptops, Tablets');
+    setFormConnectorType('USB-C');
     setFormSpecs(
       Array.isArray(product.specs) && product.specs.length > 0
         ? product.specs
-        : [
-            { label: 'Build Material', value: 'Anodized Aluminum & Polycarbonate' },
-            { label: 'Warranty', value: '1-Year Replacement Warranty' },
-          ]
+        : getCategoryPresetSpecs(product.category)
     );
+    setFormSeoTitle(product.seoTitle || `${product.name} | ${STORE_NAME}`);
+    setFormSeoDescription(product.seoDescription || product.tagline || '');
+    setFormSeoKeywords(product.seoKeywords ? product.seoKeywords.join(', ') : '');
+    setFormSlug(product.slug || product.name.toLowerCase().replace(/[^a-z0-9]+/g, '-'));
+
     const existingGalleryUrls =
       product.gallery && product.gallery.length > 0
         ? product.gallery.map((g) => g.url)
@@ -877,6 +1050,26 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
             { label: 'Internal Architecture', url: TEMPERED_GLASS_SVG },
           ];
 
+    const formattedTags = formTags
+      .split(',')
+      .map((t) => t.trim())
+      .filter(Boolean);
+
+    const formattedBrands = formPhoneBrand
+      .split(',')
+      .map((b) => b.trim())
+      .filter(Boolean);
+
+    const formattedModels = formPhoneModels
+      .split(',')
+      .map((m) => m.trim())
+      .filter(Boolean);
+
+    const formattedKeywords = formSeoKeywords
+      .split(',')
+      .map((k) => k.trim())
+      .filter(Boolean);
+
     if (editingProduct) {
       onUpdateProduct({
         ...editingProduct,
@@ -888,6 +1081,15 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
         stock: numericStock,
         image: primaryImg,
         gallery: galleryList,
+        sku: formSku.trim() || editingProduct.sku,
+        warranty: formWarranty.trim() || editingProduct.warranty,
+        tags: formattedTags,
+        compatibleBrands: formattedBrands,
+        compatibleModels: formattedModels,
+        seoTitle: formSeoTitle.trim() || `${formName.trim()} | ${STORE_NAME}`,
+        seoDescription: formSeoDescription.trim() || formTagline.trim(),
+        seoKeywords: formattedKeywords,
+        slug: formSlug.trim() || formName.trim().toLowerCase().replace(/[^a-z0-9]+/g, '-'),
         tagline: formTagline.trim() || editingProduct.tagline || `Precision-engineered ${STORE_NAME} mobile accessory.`,
         description: formDescription.trim() || editingProduct.description || 'Designed for durability, high-efficiency power transfer, and seamless compatibility.',
         specs: formSpecs.filter((s) => s.label.trim() && s.value.trim()),
@@ -910,6 +1112,15 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
         image: primaryImg,
         placeholderUrl: fallbackPlaceholder,
         gallery: galleryList,
+        sku: formSku.trim() || `SKU-CM-${Math.floor(1000 + Math.random() * 9000)}`,
+        warranty: formWarranty.trim() || '6 Months Warranty',
+        tags: formattedTags,
+        compatibleBrands: formattedBrands,
+        compatibleModels: formattedModels,
+        seoTitle: formSeoTitle.trim() || `${formName.trim()} | ${STORE_NAME}`,
+        seoDescription: formSeoDescription.trim() || formTagline.trim(),
+        seoKeywords: formattedKeywords,
+        slug: formSlug.trim() || formName.trim().toLowerCase().replace(/[^a-z0-9]+/g, '-'),
         tagline: formTagline.trim() || `Precision-engineered ${STORE_NAME} mobile smartphone & performance accessory.`,
         description:
           formDescription.trim() ||
@@ -3222,47 +3433,77 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
         )}
       </div>
 
-      {/* ADD / EDIT PRODUCT MODAL (With Multi-Image Device Upload) */}
+      {/* ADD / EDIT PRODUCT MODAL (5-Layer Category-Aware Architecture) */}
       {isProductModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
           <div
             onClick={() => setIsProductModalOpen(false)}
-            className="absolute inset-0 bg-black/75 backdrop-blur-sm"
+            className="absolute inset-0 bg-black/80 backdrop-blur-md"
           />
           <form
             onSubmit={handleSaveProduct}
-            className="relative z-10 w-full max-w-lg max-h-[90vh] overflow-y-auto bg-[#111113] border border-white/15 rounded-[16px] p-6 shadow-2xl space-y-4 animate-page-enter"
+            className="relative z-10 w-full max-w-2xl max-h-[90vh] overflow-y-auto bg-[#111113] border border-white/15 rounded-[20px] p-6 sm:p-7 shadow-2xl space-y-5 animate-page-enter"
           >
-            <div className="flex items-center justify-between pb-3 border-b border-white/[0.08]">
-              <div>
-                <h3 className="font-display text-base font-bold text-white flex items-center gap-2">
-                  <span>{editingProduct ? 'Edit Product' : 'Add New Product'}</span>
-                  <span className="px-2 py-0.5 rounded-full bg-electric-gradient text-[10px] font-bold text-white uppercase">
-                    AI Assisted
-                  </span>
-                </h3>
-                <p className="text-[11px] text-[#A0A0B0]">
-                  Paste a product URL below to auto-scrape, identify category &amp; pre-fill specs
-                </p>
+            {/* Modal Header & Layer Stepper */}
+            <div className="space-y-3 pb-3 border-b border-white/[0.08]">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="font-display text-lg font-bold text-white flex items-center gap-2">
+                    <span>{editingProduct ? 'Edit Product' : 'Add New Product'}</span>
+                    <span className="px-2.5 py-0.5 rounded-full bg-electric-gradient text-[10px] font-bold text-white uppercase tracking-wide">
+                      5-Layer Catalog
+                    </span>
+                  </h3>
+                  <p className="text-xs text-[#A0A0B0] mt-0.5">
+                    Category-aware product structuring with auto-generated descriptions
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setIsProductModalOpen(false)}
+                  className="w-8 h-8 rounded-lg bg-[#1A1A1F] text-[#A0A0B0] hover:text-white flex items-center justify-center transition-colors"
+                >
+                  <i className="fa-solid fa-xmark text-sm" />
+                </button>
               </div>
-              <button
-                type="button"
-                onClick={() => setIsProductModalOpen(false)}
-                className="text-[#A0A0B0] hover:text-white"
-              >
-                <i className="fa-solid fa-xmark" />
-              </button>
+
+              {/* 5-Layer Navigation Bar */}
+              <div className="grid grid-cols-5 gap-1.5 pt-1">
+                {(
+                  [
+                    { id: 'basic', label: 'A. Basic Info', icon: 'fa-cube' },
+                    { id: 'compatibility', label: 'B. Compatibility', icon: 'fa-mobile-screen' },
+                    { id: 'specs', label: 'C. Category Specs', icon: 'fa-sliders' },
+                    { id: 'description', label: 'D. Description', icon: 'fa-wand-magic-sparkles' },
+                    { id: 'seo', label: 'E. SEO Info', icon: 'fa-magnifying-glass' },
+                  ] as const
+                ).map((layer) => (
+                  <button
+                    key={layer.id}
+                    type="button"
+                    onClick={() => setActiveFormLayer(layer.id)}
+                    className={`py-2 px-1.5 rounded-[8px] text-[11px] font-semibold flex flex-col sm:flex-row items-center justify-center gap-1.5 transition-all ${
+                      activeFormLayer === layer.id
+                        ? 'bg-electric-gradient text-white shadow-electric-glow font-bold'
+                        : 'bg-[#1A1A1F] text-[#A0A0B0] hover:text-white border border-white/5'
+                    }`}
+                  >
+                    <i className={`fa-solid ${layer.icon} text-[10px]`} />
+                    <span className="truncate">{layer.label}</span>
+                  </button>
+                ))}
+              </div>
             </div>
 
-            {/* AI-ASSISTED PRODUCT IMPORTER BANNER */}
-            <div className="p-3.5 rounded-[12px] bg-[#16161C] border border-[#6C63FF]/40 space-y-2.5 shadow-lg">
+            {/* AI-ASSISTED URL IMPORTER TOOLBAR */}
+            <div className="p-3.5 rounded-[14px] bg-[#16161C] border border-[#6C63FF]/40 space-y-2 shadow-lg">
               <div className="flex items-center justify-between">
                 <label className="text-xs font-bold text-white flex items-center gap-1.5">
                   <i className="fa-solid fa-wand-magic-sparkles text-[#FF6B35]" />
                   <span>AI Product URL Importer</span>
                 </label>
                 <span className="text-[10px] text-emerald-400 font-mono-num font-bold">
-                  Powered by Gemini 3.8 Flash
+                  Auto-Fills All 5 Layers
                 </span>
               </div>
 
@@ -3272,23 +3513,23 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                   value={importUrl}
                   onChange={(e) => setImportUrl(e.target.value)}
                   placeholder="Paste URL (Amazon, Flipkart, official site)..."
-                  className="flex-1 px-3 py-2 rounded-[8px] bg-[#111113] border border-white/15 text-xs text-white placeholder-[#6B6B7B] focus:outline-none focus:border-[#6C63FF]"
+                  className="flex-1 px-3.5 py-2 rounded-[8px] bg-[#111113] border border-white/15 text-xs text-white placeholder-[#6B6B7B] focus:outline-none focus:border-[#6C63FF]"
                 />
                 <button
                   type="button"
                   disabled={isImportingWithAI}
                   onClick={(e) => void handleScrapeProductWithAI(e)}
-                  className="px-3.5 py-2 rounded-[8px] bg-electric-gradient text-white text-xs font-semibold shadow-electric-glow whitespace-nowrap flex items-center gap-1.5 hover:scale-[1.02] active:scale-95 transition-all disabled:opacity-50"
+                  className="px-4 py-2 rounded-[8px] bg-electric-gradient text-white text-xs font-semibold shadow-electric-glow whitespace-nowrap flex items-center gap-1.5 hover:scale-[1.02] active:scale-95 transition-all disabled:opacity-50"
                 >
                   {isImportingWithAI ? (
                     <>
                       <i className="fa-solid fa-circle-notch fa-spin text-xs" />
-                      <span>Scraping...</span>
+                      <span>Extracting...</span>
                     </>
                   ) : (
                     <>
                       <i className="fa-solid fa-bolt text-xs text-[#FF6B35]" />
-                      <span>Auto-Pre-Fill</span>
+                      <span>Auto-Import</span>
                     </>
                   )}
                 </button>
@@ -3296,289 +3537,547 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
 
               {isImportingWithAI && (
                 <div className="flex items-center gap-2 pt-1 text-[11px] text-[#6C63FF] font-medium animate-pulse">
-                  <i className="fa-solid fa-gear fa-spin" />
+                  <i className="fa-solid fa-gear fa-spin text-xs" />
                   <span>{importProgressStep}</span>
                 </div>
               )}
             </div>
 
-            <div>
-              <label className="block text-xs text-[#A0A0B0] mb-1">
-                Product Name *
-              </label>
-              <input
-                type="text"
-                required
-                value={formName}
-                onChange={(e) => setFormName(e.target.value)}
-                placeholder="e.g. Crazy Mobiles Titanium MagSafe Wallet"
-                className="w-full px-3.5 py-2.5 rounded-[8px] bg-[#1A1A1F] border border-white/10 text-xs text-white focus:outline-none focus:border-[#6C63FF]"
-              />
-            </div>
+            {/* LAYER A: BASIC INFORMATION */}
+            {activeFormLayer === 'basic' && (
+              <div className="space-y-4 animate-page-enter">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div className="sm:col-span-2">
+                    <label className="block text-xs font-semibold text-[#A0A0B0] mb-1">
+                      Product Name *
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      value={formName}
+                      onChange={(e) => setFormName(e.target.value)}
+                      placeholder="e.g. CrazyCharge 100W Braided USB-C Cable"
+                      className="w-full px-3.5 py-2.5 rounded-[8px] bg-[#1A1A1F] border border-white/10 text-xs text-white focus:outline-none focus:border-[#6C63FF]"
+                    />
+                  </div>
 
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <label className="block text-xs text-[#A0A0B0] mb-1">
-                  Selling Price (₹) *
-                </label>
-                <input
-                  type="number"
-                  required
-                  value={formPrice}
-                  onChange={(e) => setFormPrice(e.target.value)}
-                  className="w-full px-3.5 py-2.5 rounded-[8px] bg-[#1A1A1F] border border-white/10 text-xs font-mono-num text-white focus:outline-none focus:border-[#6C63FF]"
-                />
-              </div>
-              <div>
-                <label className="block text-xs text-[#A0A0B0] mb-1">
-                  MRP Price (₹)
-                </label>
-                <input
-                  type="number"
-                  value={formOriginalPrice}
-                  onChange={(e) => setFormOriginalPrice(e.target.value)}
-                  className="w-full px-3.5 py-2.5 rounded-[8px] bg-[#1A1A1F] border border-white/10 text-xs font-mono-num text-white focus:outline-none focus:border-[#6C63FF]"
-                />
-              </div>
-            </div>
+                  <div>
+                    <label className="block text-xs font-semibold text-[#A0A0B0] mb-1">
+                      Category *
+                    </label>
+                    <select
+                      value={formCategory}
+                      onChange={(e) => {
+                        const newCat = e.target.value as Product['category'];
+                        setFormCategory(newCat);
+                        setFormSpecs(getCategoryPresetSpecs(newCat));
+                        showToast(`Switched specs preset to ${newCat}`);
+                      }}
+                      className="w-full px-3.5 py-2.5 rounded-[8px] bg-[#1A1A1F] border border-white/10 text-xs text-white focus:outline-none focus:border-[#6C63FF]"
+                    >
+                      <option value="Mobile Covers">📱 Mobile Covers</option>
+                      <option value="Tempered Glass">🛡️ Tempered Glass</option>
+                      <option value="Cables">🔗 Cables</option>
+                      <option value="Chargers">🔋 Chargers &amp; Adapters</option>
+                      <option value="Earphones">🎧 Wired Earphones</option>
+                      <option value="Earbuds">🎧 Wireless Earbuds / TWS</option>
+                      <option value="Headphones">🎧 Headphones (Over-Ear)</option>
+                      <option value="Neckbands">🎵 Bluetooth Neckbands</option>
+                      <option value="Power Banks">⚡ Power Banks</option>
+                      <option value="Smart Watches">⌚ Smart Watches</option>
+                      <option value="Wired Accessories">🔌 Wired Accessories</option>
+                      <option value="Wireless Accessories">📡 Wireless Accessories</option>
+                    </select>
+                  </div>
 
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <label className="block text-xs text-[#A0A0B0] mb-1">Category</label>
-                <select
-                  value={formCategory}
-                  onChange={(e) =>
-                    setFormCategory(e.target.value as Product['category'])
-                  }
-                  className="w-full px-3 py-2.5 rounded-[8px] bg-[#1A1A1F] border border-white/10 text-xs text-white focus:outline-none focus:border-[#6C63FF]"
-                >
-                  <option value="Mobile Covers">📱 Mobile Covers</option>
-                  <option value="Tempered Glass">🛡️ Tempered Glass</option>
-                  <option value="Earphones">🎧 Earphones</option>
-                  <option value="Headphones">🎧 Headphones</option>
-                  <option value="Neckbands">🎵 Neckbands</option>
-                  <option value="Wired Accessories">🔌 Wired Accessories</option>
-                  <option value="Wireless Accessories">📡 Wireless Accessories</option>
-                  <option value="Chargers">🔋 Chargers</option>
-                  <option value="Cables">🔗 Cables</option>
-                  <option value="Power Banks">⚡ Power Banks</option>
-                  <option value="Smart Watches">⌚ Smart Watches</option>
-                  <option value="Phone Cases">📱 Phone Cases</option>
-                  <option value="Screen Protectors">🛡️ Screen Protectors</option>
-                  <option value="Chargers & Cables">🔌 Chargers &amp; Cables</option>
-                  <option value="Earbuds">🎧 Earbuds</option>
-                </select>
-              </div>
-              <div>
-                <label className="block text-xs text-[#A0A0B0] mb-1">
-                  Stock Quantity *
-                </label>
-                <input
-                  type="number"
-                  required
-                  value={formStock}
-                  onChange={(e) => setFormStock(e.target.value)}
-                  className="w-full px-3.5 py-2.5 rounded-[8px] bg-[#1A1A1F] border border-white/10 text-xs font-mono-num text-white focus:outline-none focus:border-[#6C63FF]"
-                />
-              </div>
-            </div>
+                  <div>
+                    <label className="block text-xs font-semibold text-[#A0A0B0] mb-1">
+                      Subcategory / Type
+                    </label>
+                    <input
+                      type="text"
+                      value={formSubcategory}
+                      onChange={(e) => setFormSubcategory(e.target.value)}
+                      placeholder="e.g. Fast Charging Cable"
+                      className="w-full px-3.5 py-2.5 rounded-[8px] bg-[#1A1A1F] border border-white/10 text-xs text-white focus:outline-none focus:border-[#6C63FF]"
+                    />
+                  </div>
 
-            {/* CATEGORY-SPECIFIC SPECIFICATIONS SECTION */}
-            <div className="space-y-2.5 pt-2 border-t border-white/[0.08]">
-              <div className="flex items-center justify-between">
-                <div>
-                  <label className="text-xs font-bold text-white flex items-center gap-1.5">
-                    <i className="fa-solid fa-list-check text-emerald-400" />
-                    <span>Category-Specific Specifications ({formSpecs.length})</span>
-                  </label>
-                  <p className="text-[10px] text-[#A0A0B0]">
-                    Auto-extracted specs for review &amp; editing before saving
+                  <div>
+                    <label className="block text-xs font-semibold text-[#A0A0B0] mb-1">
+                      Selling Price (₹) *
+                    </label>
+                    <input
+                      type="number"
+                      required
+                      value={formPrice}
+                      onChange={(e) => setFormPrice(e.target.value)}
+                      className="w-full px-3.5 py-2.5 rounded-[8px] bg-[#1A1A1F] border border-white/10 text-xs font-mono-num text-white focus:outline-none focus:border-[#6C63FF]"
+                    />
+                  </div>
+
+                  <div>
+                    <div className="flex items-center justify-between mb-1">
+                      <label className="block text-xs font-semibold text-[#A0A0B0]">
+                        MRP Price (₹)
+                      </label>
+                      {Number(formOriginalPrice) > Number(formPrice) && (
+                        <span className="text-[10px] text-[#84F229] font-mono-num font-bold">
+                          {Math.round(
+                            ((Number(formOriginalPrice) - Number(formPrice)) /
+                              Number(formOriginalPrice)) *
+                              100
+                          )}
+                          % OFF
+                        </span>
+                      )}
+                    </div>
+                    <input
+                      type="number"
+                      value={formOriginalPrice}
+                      onChange={(e) => setFormOriginalPrice(e.target.value)}
+                      className="w-full px-3.5 py-2.5 rounded-[8px] bg-[#1A1A1F] border border-white/10 text-xs font-mono-num text-white focus:outline-none focus:border-[#6C63FF]"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-semibold text-[#A0A0B0] mb-1">
+                      Stock Quantity *
+                    </label>
+                    <input
+                      type="number"
+                      required
+                      value={formStock}
+                      onChange={(e) => setFormStock(e.target.value)}
+                      className="w-full px-3.5 py-2.5 rounded-[8px] bg-[#1A1A1F] border border-white/10 text-xs font-mono-num text-white focus:outline-none focus:border-[#6C63FF]"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-semibold text-[#A0A0B0] mb-1">
+                      SKU Code
+                    </label>
+                    <input
+                      type="text"
+                      value={formSku}
+                      onChange={(e) => setFormSku(e.target.value)}
+                      placeholder="e.g. SKU-CM-9081"
+                      className="w-full px-3.5 py-2.5 rounded-[8px] bg-[#1A1A1F] border border-white/10 text-xs font-mono-num text-white focus:outline-none focus:border-[#6C63FF]"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-semibold text-[#A0A0B0] mb-1">
+                      Warranty Policy
+                    </label>
+                    <input
+                      type="text"
+                      value={formWarranty}
+                      onChange={(e) => setFormWarranty(e.target.value)}
+                      placeholder="e.g. 6 Months Replacement Warranty"
+                      className="w-full px-3.5 py-2.5 rounded-[8px] bg-[#1A1A1F] border border-white/10 text-xs text-white focus:outline-none focus:border-[#6C63FF]"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-semibold text-[#A0A0B0] mb-1">
+                      Search Tags (Comma Separated)
+                    </label>
+                    <input
+                      type="text"
+                      value={formTags}
+                      onChange={(e) => setFormTags(e.target.value)}
+                      placeholder="fast charge, braided, type-c"
+                      className="w-full px-3.5 py-2.5 rounded-[8px] bg-[#1A1A1F] border border-white/10 text-xs text-white focus:outline-none focus:border-[#6C63FF]"
+                    />
+                  </div>
+                </div>
+
+                {/* MULTI-IMAGE DEVICE UPLOADER */}
+                <div className="space-y-3 pt-2 border-t border-white/[0.08]">
+                  <div className="flex items-center justify-between">
+                    <label className="block text-xs font-bold text-white">
+                      Product Photos ({uploadedImages.length} selected)
+                    </label>
+                    {uploadedImages.length > 0 && (
+                      <button
+                        type="button"
+                        onClick={() => setUploadedImages([])}
+                        className="text-[11px] text-rose-400 hover:underline"
+                      >
+                        Clear All Photos
+                      </button>
+                    )}
+                  </div>
+
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="image/*"
+                    multiple
+                    onChange={(e) => void handleProcessSelectedFiles(e.target.files)}
+                    className="hidden"
+                  />
+
+                  <div
+                    onDragOver={(e) => {
+                      e.preventDefault();
+                      setIsDraggingFiles(true);
+                    }}
+                    onDragLeave={() => setIsDraggingFiles(false)}
+                    onDrop={(e) => {
+                      e.preventDefault();
+                      setIsDraggingFiles(false);
+                      void handleProcessSelectedFiles(e.dataTransfer.files);
+                    }}
+                    onClick={() => fileInputRef.current?.click()}
+                    className={`cursor-pointer rounded-[12px] border-2 border-dashed p-4 text-center transition-all ${
+                      isDraggingFiles
+                        ? 'border-[#6C63FF] bg-[#6C63FF]/10'
+                        : 'border-white/15 bg-[#1A1A1F]/70 hover:border-[#6C63FF]/60 hover:bg-[#1A1A1F]'
+                    }`}
+                  >
+                    <div className="w-8 h-8 rounded-xl bg-[#111113] border border-white/10 flex items-center justify-center mx-auto mb-2 text-[#6C63FF]">
+                      {isUploadingFiles ? (
+                        <i className="fa-solid fa-circle-notch fa-spin text-xs" />
+                      ) : (
+                        <i className="fa-solid fa-cloud-arrow-up text-xs" />
+                      )}
+                    </div>
+                    <p className="text-xs font-semibold text-white">
+                      {isUploadingFiles
+                        ? 'Processing & optimizing photos...'
+                        : 'Upload Device Photos'}
+                    </p>
+                    <p className="text-[10px] text-[#A0A0B0] mt-0.5">
+                      Click to select or drag &amp; drop PNG, JPG, WEBP photos
+                    </p>
+                  </div>
+
+                  {uploadedImages.length > 0 && (
+                    <div className="grid grid-cols-4 gap-2 pt-1">
+                      {uploadedImages.map((imgSrc, idx) => (
+                        <div
+                          key={`${idx}-${imgSrc.slice(0, 20)}`}
+                          className={`group relative aspect-square rounded-[8px] overflow-hidden bg-[#1A1A1F] border ${
+                            idx === 0 ? 'border-[#6C63FF] ring-1 ring-[#6C63FF]' : 'border-white/10'
+                          }`}
+                        >
+                          <ResilientImage
+                            src={imgSrc}
+                            alt={`Preview ${idx + 1}`}
+                            className="w-full h-full object-cover"
+                          />
+                          <span
+                            className={`absolute top-1 left-1 px-1 py-0.5 rounded text-[8px] font-mono-num font-bold ${
+                              idx === 0 ? 'bg-electric-gradient text-white' : 'bg-black/75 text-[#A0A0B0]'
+                            }`}
+                          >
+                            {idx === 0 ? 'Cover' : `#${idx + 1}`}
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => handleRemoveUploadedImage(idx)}
+                            className="absolute top-1 right-1 w-5 h-5 rounded bg-black/80 hover:bg-rose-500 text-white flex items-center justify-center text-[9px]"
+                          >
+                            <i className="fa-solid fa-xmark" />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* LAYER B: DEVICE COMPATIBILITY */}
+            {activeFormLayer === 'compatibility' && (
+              <div className="space-y-4 animate-page-enter">
+                <div className="p-3.5 rounded-[12px] bg-[#16161C] border border-white/10 space-y-1">
+                  <h4 className="text-xs font-bold text-white flex items-center gap-1.5">
+                    <i className="fa-solid fa-mobile-screen-button text-[#FF6B35]" />
+                    <span>Target Smartphone &amp; Connector Compatibility</span>
+                  </h4>
+                  <p className="text-[11px] text-[#A0A0B0]">
+                    Ensures customers find exact accessory fits for their device
                   </p>
                 </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-xs font-semibold text-[#A0A0B0] mb-1">
+                      Primary Phone Brand
+                    </label>
+                    <select
+                      value={formPhoneBrand}
+                      onChange={(e) => setFormPhoneBrand(e.target.value)}
+                      className="w-full px-3.5 py-2.5 rounded-[8px] bg-[#1A1A1F] border border-white/10 text-xs text-white focus:outline-none focus:border-[#6C63FF]"
+                    >
+                      <option value="Apple">Apple (iPhone)</option>
+                      <option value="Samsung">Samsung (Galaxy)</option>
+                      <option value="OnePlus">OnePlus</option>
+                      <option value="Vivo">Vivo</option>
+                      <option value="Oppo">Oppo</option>
+                      <option value="Realme">Realme</option>
+                      <option value="Redmi">Redmi / Xiaomi</option>
+                      <option value="Motorola">Motorola</option>
+                      <option value="Universal">Universal All Brands</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-semibold text-[#A0A0B0] mb-1">
+                      Connector / Interface
+                    </label>
+                    <select
+                      value={formConnectorType}
+                      onChange={(e) => setFormConnectorType(e.target.value)}
+                      className="w-full px-3.5 py-2.5 rounded-[8px] bg-[#1A1A1F] border border-white/10 text-xs text-white focus:outline-none focus:border-[#6C63FF]"
+                    >
+                      <option value="USB-C to USB-C">USB-C to USB-C</option>
+                      <option value="USB-A to USB-C">USB-A to USB-C</option>
+                      <option value="USB-C to Lightning">USB-C to Lightning</option>
+                      <option value="Lightning to USB-A">Lightning to USB-A</option>
+                      <option value="MagSafe Wireless">MagSafe Qi Magnetic</option>
+                      <option value="3.5mm Audio AUX">3.5mm Audio AUX</option>
+                      <option value="Bluetooth Wireless">Bluetooth Wireless</option>
+                    </select>
+                  </div>
+
+                  <div className="sm:col-span-2">
+                    <label className="block text-xs font-semibold text-[#A0A0B0] mb-1">
+                      Compatible Phone Models (Comma Separated)
+                    </label>
+                    <input
+                      type="text"
+                      value={formPhoneModels}
+                      onChange={(e) => setFormPhoneModels(e.target.value)}
+                      placeholder="e.g. iPhone 16 Pro Max, iPhone 15 Pro, Galaxy S24 Ultra"
+                      className="w-full px-3.5 py-2.5 rounded-[8px] bg-[#1A1A1F] border border-white/10 text-xs text-white focus:outline-none focus:border-[#6C63FF]"
+                    />
+                  </div>
+
+                  <div className="sm:col-span-2">
+                    <label className="block text-xs font-semibold text-[#A0A0B0] mb-1">
+                      Compatible Hardware Devices
+                    </label>
+                    <input
+                      type="text"
+                      value={formCompatibleDevices}
+                      onChange={(e) => setFormCompatibleDevices(e.target.value)}
+                      placeholder="e.g. Smartphones, Laptops, MacBooks, Tablets, Power Banks"
+                      className="w-full px-3.5 py-2.5 rounded-[8px] bg-[#1A1A1F] border border-white/10 text-xs text-white focus:outline-none focus:border-[#6C63FF]"
+                    />
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* LAYER C: CATEGORY-SPECIFIC SPECIFICATIONS */}
+            {activeFormLayer === 'specs' && (
+              <div className="space-y-3.5 animate-page-enter">
+                <div className="flex items-center justify-between p-3 rounded-[12px] bg-[#16161C] border border-white/10">
+                  <div>
+                    <h4 className="text-xs font-bold text-white flex items-center gap-1.5">
+                      <i className="fa-solid fa-list-check text-emerald-400" />
+                      <span>{formCategory} Specifications ({formSpecs.length} fields)</span>
+                    </h4>
+                    <p className="text-[11px] text-[#A0A0B0]">
+                      Tailored fields automatically customize when you change category
+                    </p>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={handleAddSpecRow}
+                    className="px-3 py-1.5 rounded-[8px] bg-[#1A1A1F] hover:bg-[#25252E] border border-white/15 text-xs font-semibold text-white flex items-center gap-1.5 shadow-sm"
+                  >
+                    <i className="fa-solid fa-plus text-xs text-[#6C63FF]" />
+                    <span>Add Custom Field</span>
+                  </button>
+                </div>
+
+                <div className="space-y-2.5 max-h-[320px] overflow-y-auto pr-1">
+                  {formSpecs.map((spec, idx) => (
+                    <div key={idx} className="flex items-center gap-2">
+                      <input
+                        type="text"
+                        value={spec.label}
+                        onChange={(e) => handleUpdateSpecRow(idx, 'label', e.target.value)}
+                        placeholder="Field Name (e.g. Length)"
+                        className="w-2/5 px-3 py-2 rounded-[8px] bg-[#1A1A1F] border border-white/10 text-xs font-semibold text-white placeholder-[#6B6B7B] focus:outline-none focus:border-[#6C63FF]"
+                      />
+                      <input
+                        type="text"
+                        value={spec.value}
+                        onChange={(e) => handleUpdateSpecRow(idx, 'value', e.target.value)}
+                        placeholder="Specification Value (e.g. 1.5m Braided Nylon)"
+                        className="flex-1 px-3 py-2 rounded-[8px] bg-[#1A1A1F] border border-white/10 text-xs text-white placeholder-[#6B6B7B] focus:outline-none focus:border-[#6C63FF]"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => handleRemoveSpecRow(idx)}
+                        className="w-8 h-8 rounded-[8px] bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 flex items-center justify-center shrink-0"
+                        title="Delete field"
+                      >
+                        <i className="fa-solid fa-xmark text-xs" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* LAYER D: MARKETING DESCRIPTION */}
+            {activeFormLayer === 'description' && (
+              <div className="space-y-3.5 animate-page-enter">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 p-3.5 rounded-[12px] bg-[#16161C] border border-[#6C63FF]/30">
+                  <div>
+                    <h4 className="text-xs font-bold text-white flex items-center gap-1.5">
+                      <i className="fa-solid fa-wand-magic-sparkles text-[#FF6B35]" />
+                      <span>Auto-Generate Marketing Copy</span>
+                    </h4>
+                    <p className="text-[11px] text-[#A0A0B0]">
+                      Creates polished paragraphs &amp; bullet highlights directly from Layer C specs
+                    </p>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={handleAutoGenerateDescription}
+                    className="px-3.5 py-2 rounded-[8px] bg-electric-gradient text-white text-xs font-semibold shadow-electric-glow whitespace-nowrap flex items-center gap-1.5 hover:scale-[1.02] active:scale-95 transition-all shrink-0"
+                  >
+                    <i className="fa-solid fa-rotate text-xs" />
+                    <span>✨ Auto-Generate Copy</span>
+                  </button>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-[#A0A0B0] mb-1">
+                    Short Catchy Tagline
+                  </label>
+                  <input
+                    type="text"
+                    value={formTagline}
+                    onChange={(e) => setFormTagline(e.target.value)}
+                    placeholder="e.g. 100W Ultra-Fast Power Delivery with 25000+ Bend Protection"
+                    className="w-full px-3.5 py-2.5 rounded-[8px] bg-[#1A1A1F] border border-white/10 text-xs text-white focus:outline-none focus:border-[#6C63FF]"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-[#A0A0B0] mb-1">
+                    Full Customer Description &amp; Highlights (Editable)
+                  </label>
+                  <textarea
+                    rows={6}
+                    value={formDescription}
+                    onChange={(e) => setFormDescription(e.target.value)}
+                    placeholder="Click 'Auto-Generate Copy' above or enter custom description..."
+                    className="w-full p-3.5 rounded-[10px] bg-[#1A1A1F] border border-white/10 text-xs text-white placeholder-[#6B6B7B] focus:outline-none focus:border-[#6C63FF] leading-relaxed"
+                  />
+                </div>
+              </div>
+            )}
+
+            {/* LAYER E: SEO INFORMATION */}
+            {activeFormLayer === 'seo' && (
+              <div className="space-y-3.5 animate-page-enter">
+                <div className="p-3.5 rounded-[12px] bg-[#16161C] border border-white/10 space-y-1">
+                  <h4 className="text-xs font-bold text-white flex items-center gap-1.5">
+                    <i className="fa-solid fa-magnifying-glass text-emerald-400" />
+                    <span>Search Engine Optimization (SEO Metadata)</span>
+                  </h4>
+                  <p className="text-[11px] text-[#A0A0B0]">
+                    Controls how this product appears on Google Search and social share cards
+                  </p>
+                </div>
+
+                <div className="space-y-3">
+                  <div>
+                    <label className="block text-xs font-semibold text-[#A0A0B0] mb-1">
+                      SEO Title Tag
+                    </label>
+                    <input
+                      type="text"
+                      value={formSeoTitle}
+                      onChange={(e) => setFormSeoTitle(e.target.value)}
+                      placeholder="e.g. Buy CrazyCharge 100W USB-C Cable | Best Price India"
+                      className="w-full px-3.5 py-2.5 rounded-[8px] bg-[#1A1A1F] border border-white/10 text-xs text-white focus:outline-none focus:border-[#6C63FF]"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-semibold text-[#A0A0B0] mb-1">
+                      Meta Description
+                    </label>
+                    <textarea
+                      rows={2}
+                      value={formSeoDescription}
+                      onChange={(e) => setFormSeoDescription(e.target.value)}
+                      placeholder="Brief search snippet describing product features & warranty..."
+                      className="w-full p-3 rounded-[8px] bg-[#1A1A1F] border border-white/10 text-xs text-white placeholder-[#6B6B7B] focus:outline-none focus:border-[#6C63FF]"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-semibold text-[#A0A0B0] mb-1">
+                      Keywords (Comma Separated)
+                    </label>
+                    <input
+                      type="text"
+                      value={formSeoKeywords}
+                      onChange={(e) => setFormSeoKeywords(e.target.value)}
+                      placeholder="usb-c cable, 100w pd, fast charging, crazy mobiles"
+                      className="w-full px-3.5 py-2.5 rounded-[8px] bg-[#1A1A1F] border border-white/10 text-xs text-white focus:outline-none focus:border-[#6C63FF]"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-semibold text-[#A0A0B0] mb-1">
+                      URL Slug
+                    </label>
+                    <input
+                      type="text"
+                      value={formSlug}
+                      onChange={(e) => setFormSlug(e.target.value)}
+                      placeholder="e.g. crazycharge-100w-usb-c-cable"
+                      className="w-full px-3.5 py-2.5 rounded-[8px] bg-[#1A1A1F] border border-white/10 text-xs font-mono-num text-white focus:outline-none focus:border-[#6C63FF]"
+                    />
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Modal Actions */}
+            <div className="flex items-center justify-between pt-4 border-t border-white/[0.08]">
+              <div className="flex items-center gap-2">
                 <button
                   type="button"
-                  onClick={handleAddSpecRow}
-                  className="px-2.5 py-1 rounded-[6px] bg-[#1A1A1F] hover:bg-[#25252E] border border-white/15 text-[11px] font-semibold text-white flex items-center gap-1"
+                  onClick={handleAutoGenerateDescription}
+                  className="px-3 py-1.5 rounded-[8px] bg-[#1A1A1F] hover:bg-[#25252E] border border-white/15 text-xs text-white font-medium flex items-center gap-1.5"
                 >
-                  <i className="fa-solid fa-plus text-[10px] text-[#6C63FF]" />
-                  <span>Add Spec</span>
+                  <i className="fa-solid fa-wand-magic-sparkles text-[#FF6B35] text-xs" />
+                  <span>Auto-Gen Description</span>
                 </button>
               </div>
 
-              <div className="space-y-2 max-h-48 overflow-y-auto pr-1">
-                {formSpecs.map((spec, idx) => (
-                  <div key={idx} className="flex items-center gap-2">
-                    <input
-                      type="text"
-                      value={spec.label}
-                      onChange={(e) => handleUpdateSpecRow(idx, 'label', e.target.value)}
-                      placeholder="Spec Name (e.g. Wattage)"
-                      className="w-1/3 px-2.5 py-1.5 rounded-[6px] bg-[#1A1A1F] border border-white/10 text-xs text-white placeholder-[#6B6B7B] focus:outline-none focus:border-[#6C63FF]"
-                    />
-                    <input
-                      type="text"
-                      value={spec.value}
-                      onChange={(e) => handleUpdateSpecRow(idx, 'value', e.target.value)}
-                      placeholder="Spec Value (e.g. 65W GaN Fast Charge)"
-                      className="flex-1 px-2.5 py-1.5 rounded-[6px] bg-[#1A1A1F] border border-white/10 text-xs text-white placeholder-[#6B6B7B] focus:outline-none focus:border-[#6C63FF]"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => handleRemoveSpecRow(idx)}
-                      className="w-7 h-7 rounded-[6px] bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 flex items-center justify-center shrink-0"
-                      title="Remove specification"
-                    >
-                      <i className="fa-solid fa-xmark text-xs" />
-                    </button>
-                  </div>
-                ))}
+              <div className="flex items-center gap-2.5">
+                <button
+                  type="button"
+                  onClick={() => setIsProductModalOpen(false)}
+                  className="px-4 py-2 rounded-[8px] bg-[#1A1A1F] text-xs text-[#A0A0B0] hover:text-white"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={isUploadingFiles || isImportingWithAI}
+                  className="px-5 py-2 rounded-[8px] bg-electric-gradient text-white text-xs font-semibold shadow-electric-glow hover:scale-[1.02] active:scale-95 transition-all"
+                >
+                  {editingProduct ? 'Save Product Changes' : 'Create Product Catalog Entry'}
+                </button>
               </div>
-            </div>
-
-            {/* MULTI-IMAGE DEVICE UPLOADER */}
-            <div className="space-y-3">
-              <div className="flex items-center justify-between">
-                <label className="block text-xs text-[#A0A0B0]">
-                  Product Photos ({uploadedImages.length} selected)
-                </label>
-                {uploadedImages.length > 0 && (
-                  <button
-                    type="button"
-                    onClick={() => setUploadedImages([])}
-                    className="text-[11px] text-rose-400 hover:underline"
-                  >
-                    Clear All Photos
-                  </button>
-                )}
-              </div>
-
-              {/* Hidden Native Multi-File Picker */}
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept="image/*"
-                multiple
-                onChange={(e) => void handleProcessSelectedFiles(e.target.files)}
-                className="hidden"
-              />
-
-              {/* Interactive Device File Dropzone */}
-              <div
-                onDragOver={(e) => {
-                  e.preventDefault();
-                  setIsDraggingFiles(true);
-                }}
-                onDragLeave={() => setIsDraggingFiles(false)}
-                onDrop={(e) => {
-                  e.preventDefault();
-                  setIsDraggingFiles(false);
-                  void handleProcessSelectedFiles(e.dataTransfer.files);
-                }}
-                onClick={() => fileInputRef.current?.click()}
-                className={`cursor-pointer rounded-[12px] border-2 border-dashed p-5 text-center transition-all ${
-                  isDraggingFiles
-                    ? 'border-[#6C63FF] bg-[#6C63FF]/10'
-                    : 'border-white/15 bg-[#1A1A1F]/70 hover:border-[#6C63FF]/60 hover:bg-[#1A1A1F]'
-                }`}
-              >
-                <div className="w-10 h-10 rounded-xl bg-[#111113] border border-white/10 flex items-center justify-center mx-auto mb-2.5 text-[#6C63FF]">
-                  {isUploadingFiles ? (
-                    <i className="fa-solid fa-circle-notch fa-spin text-sm" />
-                  ) : (
-                    <i className="fa-solid fa-cloud-arrow-up text-sm" />
-                  )}
-                </div>
-                <p className="text-xs font-semibold text-white">
-                  {isUploadingFiles
-                    ? 'Processing & optimizing device images...'
-                    : 'Select Product Images from Device'}
-                </p>
-                <p className="text-[11px] text-[#A0A0B0] mt-1">
-                  Click to browse or drag &amp; drop multiple photos (PNG, JPG, WEBP)
-                </p>
-              </div>
-
-              {/* Uploaded Images Preview Grid */}
-              {uploadedImages.length > 0 && (
-                <div className="grid grid-cols-3 sm:grid-cols-4 gap-2.5 pt-1">
-                  {uploadedImages.map((imgSrc, idx) => (
-                    <div
-                      key={`${idx}-${imgSrc.slice(0, 24)}`}
-                      className={`group relative aspect-square rounded-[10px] overflow-hidden bg-[#1A1A1F] border ${
-                        idx === 0
-                          ? 'border-[#6C63FF] ring-1 ring-[#6C63FF]'
-                          : 'border-white/10'
-                      }`}
-                    >
-                      <ResilientImage
-                        src={imgSrc}
-                        alt={`Uploaded preview ${idx + 1}`}
-                        className="w-full h-full"
-                        imgClassName="object-cover"
-                      />
-
-                      {/* Primary / Angle Indicator */}
-                      <span
-                        className={`absolute top-1.5 left-1.5 px-1.5 py-0.5 rounded text-[9px] font-mono-num font-bold ${
-                          idx === 0
-                            ? 'bg-electric-gradient text-white'
-                            : 'bg-black/75 text-[#A0A0B0]'
-                        }`}
-                      >
-                        {idx === 0 ? 'Cover' : `#${idx + 1}`}
-                      </span>
-
-                      {/* Delete Button */}
-                      <button
-                        type="button"
-                        onClick={() => handleRemoveUploadedImage(idx)}
-                        title="Remove photo"
-                        className="absolute top-1.5 right-1.5 w-6 h-6 rounded-md bg-black/80 hover:bg-rose-500 text-white flex items-center justify-center text-[10px] transition-colors"
-                      >
-                        <i className="fa-solid fa-xmark" />
-                      </button>
-
-                      {/* Promote to Cover Button */}
-                      {idx > 0 && (
-                        <button
-                          type="button"
-                          onClick={() => handleSetPrimaryImage(idx)}
-                          className="absolute inset-x-1 bottom-1 py-1 rounded bg-black/80 hover:bg-[#6C63FF] text-[9px] font-semibold text-white opacity-0 group-hover:opacity-100 transition-opacity"
-                        >
-                          Set Cover
-                        </button>
-                      )}
-                    </div>
-                  ))}
-
-                  {/* Add More Tile */}
-                  <button
-                    type="button"
-                    onClick={() => fileInputRef.current?.click()}
-                    className="aspect-square rounded-[10px] border border-dashed border-white/15 bg-[#1A1A1F]/50 hover:bg-[#1A1A1F] hover:border-[#6C63FF] flex flex-col items-center justify-center gap-1 text-[#A0A0B0] hover:text-white transition-all"
-                  >
-                    <i className="fa-solid fa-plus text-xs text-[#6C63FF]" />
-                    <span className="text-[10px] font-semibold">Add More</span>
-                  </button>
-                </div>
-              )}
-            </div>
-
-            <div className="flex justify-end gap-2.5 pt-3 border-t border-white/[0.08]">
-              <button
-                type="button"
-                onClick={() => setIsProductModalOpen(false)}
-                className="px-4 py-2 rounded-[8px] bg-[#1A1A1F] text-xs text-[#A0A0B0] hover:text-white"
-              >
-                Cancel
-              </button>
-              <button
-                type="submit"
-                disabled={isUploadingFiles}
-                className="px-5 py-2 rounded-[8px] bg-electric-gradient text-white text-xs font-semibold shadow-electric-glow"
-              >
-                {editingProduct ? 'Save Changes' : 'Create Product'}
-              </button>
             </div>
           </form>
         </div>
