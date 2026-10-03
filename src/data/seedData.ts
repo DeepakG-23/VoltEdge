@@ -327,12 +327,13 @@ export const SCHEMATIC_CUTAWAY_SVG = createStudioSvgDataUri(`
 `);
 
 export const STORE_NAME = 'Crazy Mobiles';
+export const STORE_MERCHANT_NAME = 'CRAZY MOBILE SHOP AND MULTISERVICES';
 export const STORE_PHONE = '9011221665';
 export const STORE_PHONE_DISPLAY = '+91 9011221665';
 export const STORE_EMAIL = 'Shaikhshoeb2624@gmail.com';
 export const STORE_MAPS_URL = 'https://maps.app.goo.gl/NSSmCF7NBKMX34CQ6?g_st=iw';
-export const STORE_UPI_ID = '9011221665@ybl';
-export const STORE_UPI_ID_ALT = 'shaikhshoeb2624@okaxis';
+export const STORE_UPI_ID = 'merchantqr.b5bhzh5d@digikhata';
+export const STORE_UPI_ID_ALT = 'merchantqr.b5bhzh5d@digikhata';
 
 export const IN_BOX_CONTENTS_SVG = createStudioSvgDataUri(`
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 600" width="600" height="600">
@@ -1256,6 +1257,64 @@ export interface TrendingSpotlightItem {
   customImage: string;
   badgeLabel: string;
 }
+
+export interface AuditLogEntry {
+  id: string;
+  timestamp: number;
+  action:
+    | 'Product Added'
+    | 'Product Updated'
+    | 'Product Deleted'
+    | 'Order Status Changed'
+    | 'Home CMS Updated'
+    | 'Price Discount Applied'
+    | 'Store Settings Saved'
+    | 'Data Reset'
+    | 'Admin Login'
+    | 'Admin Logout'
+    | string;
+  details: string;
+  actor: string;
+  entityId?: string | number;
+  category?: 'products' | 'orders' | 'cms' | 'auth' | 'settings' | 'system';
+}
+
+export const SEED_AUDIT_LOGS: AuditLogEntry[] = [
+  {
+    id: 'log-101',
+    timestamp: Date.now() - 1000 * 60 * 18,
+    action: 'Admin Login',
+    details: 'Store Owner Shaikh Shoeb authenticated into Operations Console.',
+    actor: 'Shaikh Shoeb (Admin)',
+    category: 'auth',
+  },
+  {
+    id: 'log-102',
+    timestamp: Date.now() - 1000 * 60 * 45,
+    action: 'Order Status Changed',
+    details: 'Order CM-20260929-001 updated from Packed to Shipped (Tracking: BLUEDART-IN-8829).',
+    actor: 'Shaikh Shoeb (Admin)',
+    entityId: 'CM-20260929-001',
+    category: 'orders',
+  },
+  {
+    id: 'log-103',
+    timestamp: Date.now() - 1000 * 60 * 120,
+    action: 'Home CMS Updated',
+    details: 'Refreshed Flash Sale campaign banner: FLAT 30% OFF on GaN Chargers & ANC Earbuds.',
+    actor: 'Shaikh Shoeb (Admin)',
+    category: 'cms',
+  },
+  {
+    id: 'log-104',
+    timestamp: Date.now() - 1000 * 60 * 240,
+    action: 'Product Updated',
+    details: 'Updated inventory stock for Crazy Mobiles MagSafe Power Bank 10000mAh to 45 units.',
+    actor: 'Shaikh Shoeb (Admin)',
+    entityId: 1,
+    category: 'products',
+  },
+];
 
 export interface HomePageConfig {
   heroFeaturedProductIds: number[];

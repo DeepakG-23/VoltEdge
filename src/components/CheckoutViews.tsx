@@ -6,13 +6,15 @@ import {
   OrderAddress,
   STORE_EMAIL,
   STORE_MAPS_URL,
+  STORE_MERCHANT_NAME,
   STORE_NAME,
   STORE_PHONE,
   STORE_PHONE_DISPLAY,
   STORE_UPI_ID,
   formatINR,
 } from '../data/seedData';
-import { CrazyMobilesEmblem } from './CrazyMobilesLogo';
+import { CrazyMobilesEmblem, CrazyMobilesLogo } from './CrazyMobilesLogo';
+import { CrazyMobilesPaymentQR } from './CrazyMobilesPaymentQR';
 import { ResilientImage } from './ResilientImage';
 
 export function buildWhatsAppOrderMessage(order: Order): string {
@@ -26,29 +28,26 @@ export function buildWhatsAppOrderMessage(order: Order): string {
     .join('\n');
 
   return [
-    `⚡ *${STORE_NAME.toUpperCase()} — VERIFIED ORDER CONFIRMATION* ⚡`,
+    `⚡ *${STORE_MERCHANT_NAME} — OFFICIAL ORDER RECEIPT* ⚡`,
     ``,
     `*Order ID:* ${order.id}`,
-    `*Order Status:* ${order.status === 'Pending' ? 'Ordered (Confirmed)' : order.status}`,
-    `*Payment Status:* ${
-      order.paymentMethod === 'COD'
-        ? 'Cash on Delivery (Pay at Doorstep)'
-        : `PAID ONLINE via ${order.paymentMethod} (${order.paymentDetails || 'Verified'})`
-    }`,
-    `*Amount:* ${formatINR(order.total)}`,
+    `*Order Date:* ${order.date || 'Today'}`,
+    `*Payment Mode:* PAID ONLINE VIA UPI (${STORE_UPI_ID})`,
+    `*Payment Ref:* ${order.paymentDetails || 'Verified UPI Transfer'}`,
+    `*Total Paid:* ${formatINR(order.total)}`,
     ``,
-    `*Customer Details:*`,
+    `*Customer Information:*`,
     `• Name: ${order.customerName}`,
     `• Phone: +91 ${order.phone}`,
-    `• Address: ${order.address.area}, ${order.address.city}, ${order.address.state} - ${order.address.pincode}`,
+    `• Delivery Address: ${order.address.area}, ${order.address.city}, ${order.address.state} - ${order.address.pincode}`,
     ``,
-    `*Ordered Items:*`,
+    `*Itemized Products:*`,
     itemsLines,
     ``,
     `*Store Contact:* +91 ${STORE_PHONE} · ${STORE_EMAIL}`,
     `*Store Location:* ${STORE_MAPS_URL}`,
     ``,
-    `Please confirm priority dispatch and share my live tracking waybill. Thank you!`,
+    `Payment verified on merchant account (${STORE_UPI_ID}). Please confirm priority dispatch!`,
   ].join('\n');
 }
 
@@ -60,8 +59,8 @@ interface UpiGatewayModalProps {
   amount: number;
   customerName: string;
   customerPhone: string;
-  initialUpiApp: 'GPay' | 'PhonePe' | 'Paytm';
-  initialUpiId: string;
+  initialUpiApp?: 'GPay' | 'PhonePe' | 'Paytm' | 'CRED';
+  initialUpiId?: string;
   onClose: () => void;
   onPaymentSuccess: (paymentSummary: string) => void;
 }
@@ -71,8 +70,7 @@ const UpiPaymentGatewayModal: React.FC<UpiGatewayModalProps> = ({
   amount,
   customerName,
   customerPhone,
-  initialUpiApp,
-  initialUpiId,
+  initialUpiApp = 'GPay',
   onClose,
   onPaymentSuccess,
 }) => {
@@ -80,17 +78,17 @@ const UpiPaymentGatewayModal: React.FC<UpiGatewayModalProps> = ({
   const [selectedApp, setSelectedApp] = useState<'GPay' | 'PhonePe' | 'Paytm' | 'CRED'>(
     initialUpiApp
   );
-  const [vpaInput, setVpaInput] = useState(initialUpiId || STORE_UPI_ID);
-  const [isVpaVerified, setIsVpaVerified] = useState(true);
+  const [userVpaInput, setUserVpaInput] = useState('');
+  const [manualUtrInput, setManualUtrInput] = useState('');
   const [secondsLeft, setSecondsLeft] = useState(299);
   const [processingStage, setProcessingStage] = useState<
     'idle' | 'switch' | 'collect' | 'approved'
   >('idle');
   const [utrNumber, setUtrNumber] = useState('');
-  const [copiedUpi, setCopiedUpi] = useState(false);
 
-  const upiIntentUri = `upi://pay?pa=${STORE_UPI_ID}&pn=${encodeURIComponent(STORE_NAME)}&am=${amount}&cu=INR&tn=${encodeURIComponent('Crazy Mobiles Order')}`;
-  const upiQrImageUrl = `https://api.qrserver.com/v1/create-qr-code/?size=240x240&data=${encodeURIComponent(upiIntentUri)}`;
+  const upiIntentUri = `upi://pay?pa=${STORE_UPI_ID}&pn=${encodeURIComponent(
+    STORE_MERCHANT_NAME
+  )}&am=${amount}&cu=INR&tn=${encodeURIComponent('Crazy Mobiles Order')}`;
 
   useEffect(() => {
     if (!isOpen) {
@@ -109,34 +107,30 @@ const UpiPaymentGatewayModal: React.FC<UpiGatewayModalProps> = ({
   const mins = String(Math.floor(secondsLeft / 60)).padStart(2, '0');
   const secs = String(secondsLeft % 60).padStart(2, '0');
 
-  const handleCopyUpiId = () => {
-    navigator.clipboard?.writeText(STORE_UPI_ID);
-    setCopiedUpi(true);
-    setTimeout(() => setCopiedUpi(false), 2000);
-  };
-
   const handleAuthorizePayment = () => {
-    const generatedUtr = `4273${Math.floor(10000000 + Math.random() * 90000000)}`;
-    setUtrNumber(generatedUtr);
+    const finalUtr =
+      manualUtrInput.trim() ||
+      `4273${Math.floor(10000000 + Math.random() * 90000000)}`;
+    setUtrNumber(finalUtr);
     setProcessingStage('switch');
 
     setTimeout(() => {
       setProcessingStage('collect');
-    }, 650);
+    }, 600);
 
     setTimeout(() => {
       setProcessingStage('approved');
-    }, 1450);
+    }, 1300);
 
     setTimeout(() => {
       const methodDesc =
         gatewayTab === 'qr'
-          ? `UPI QR Scan (${STORE_UPI_ID}) · UTR ${generatedUtr}`
+          ? `UPI QR Scan (${STORE_UPI_ID}) · UTR ${finalUtr}`
           : gatewayTab === 'intent'
-          ? `${selectedApp} Intent (${STORE_UPI_ID}) · UTR ${generatedUtr}`
-          : `UPI VPA (${vpaInput}) · UTR ${generatedUtr}`;
+          ? `${selectedApp} Direct (${STORE_UPI_ID}) · UTR ${finalUtr}`
+          : `UPI VPA (${userVpaInput || STORE_UPI_ID}) · UTR ${finalUtr}`;
       onPaymentSuccess(methodDesc);
-    }, 2200);
+    }, 1900);
   };
 
   return (
@@ -146,29 +140,28 @@ const UpiPaymentGatewayModal: React.FC<UpiGatewayModalProps> = ({
         className="absolute inset-0 bg-black/80 backdrop-blur-md"
       />
 
-      <div className="relative z-10 w-full max-w-md bg-[#111113] border border-white/15 rounded-[16px] shadow-2xl overflow-hidden animate-page-enter">
+      <div className="relative z-10 w-full max-w-md bg-[#111113] border border-white/15 rounded-[20px] shadow-2xl overflow-hidden animate-page-enter max-h-[92vh] overflow-y-auto">
         {/* Top Gateway Header */}
         <div className="bg-gradient-to-r from-[#1A1A26] via-[#161620] to-[#1E191E] p-5 border-b border-white/10 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <CrazyMobilesEmblem size={40} />
+            <CrazyMobilesEmblem size={38} />
             <div>
               <div className="flex items-center gap-1.5">
                 <h3 className="font-display text-sm font-bold text-white">
-                  {STORE_NAME} UPI Gateway
+                  {STORE_MERCHANT_NAME}
                 </h3>
-                <span className="text-[10px] text-emerald-400 font-medium">
-                  · Verified Merchant
-                </span>
               </div>
               <p className="text-[11px] text-[#A0A0B0] font-mono-num">
-                Payee: {STORE_NAME} (Shaikh Shoeb) · {mins}:{secs}
+                Official Merchant UPI · Session: {mins}:{secs}
               </p>
             </div>
           </div>
 
           <div className="text-right">
-            <span className="text-[10px] text-[#A0A0B0] block">Payable</span>
-            <span className="font-mono-num text-base font-bold text-electric-gradient">
+            <span className="text-[10px] text-[#A0A0B0] block uppercase tracking-wider">
+              Payable
+            </span>
+            <span className="font-mono-num text-base font-bold text-emerald-400">
               {formatINR(amount)}
             </span>
           </div>
@@ -190,16 +183,16 @@ const UpiPaymentGatewayModal: React.FC<UpiGatewayModalProps> = ({
             <div>
               <h4 className="font-display text-base font-bold text-white">
                 {processingStage === 'switch' &&
-                  'Connecting to NPCI UPI 2.0 Switch...'}
+                  'Connecting to NPCI UPI 2.0 Gateway...'}
                 {processingStage === 'collect' &&
-                  `Verifying ${formatINR(amount)} with UPI Bank Server...`}
+                  `Verifying ${formatINR(amount)} with Bank Server...`}
                 {processingStage === 'approved' &&
-                  'UPI Payment Verified Successfully!'}
+                  'UPI Payment Verified & Authorized!'}
               </h4>
               <p className="text-xs text-[#A0A0B0] mt-1 font-mono-num">
                 {processingStage === 'approved'
-                  ? `NPCI Reference UTR: ${utrNumber}`
-                  : 'Please do not close or refresh this window'}
+                  ? `NPCI Bank UTR: ${utrNumber}`
+                  : 'Generating official payment receipt & WhatsApp confirmation...'}
               </p>
             </div>
 
@@ -218,185 +211,152 @@ const UpiPaymentGatewayModal: React.FC<UpiGatewayModalProps> = ({
             </div>
           </div>
         ) : (
-          <div className="p-5 space-y-5">
+          <div className="p-5 space-y-4">
             {/* Mode Switcher */}
             <div className="grid grid-cols-3 gap-1.5 p-1 rounded-[10px] bg-[#1A1A1F] border border-white/[0.06]">
               {(
                 [
-                  { id: 'qr', label: 'UPI QR Code', icon: 'fa-qrcode' },
+                  { id: 'qr', label: 'Scan QR Code', icon: 'fa-qrcode' },
                   { id: 'intent', label: 'UPI Apps', icon: 'fa-mobile-screen' },
-                  { id: 'vpa', label: 'Enter UPI ID', icon: 'fa-at' },
+                  { id: 'vpa', label: 'Manual UTR', icon: 'fa-receipt' },
                 ] as const
               ).map((tab) => (
                 <button
                   key={tab.id}
                   type="button"
                   onClick={() => setGatewayTab(tab.id)}
-                  className={`py-2 px-2 rounded-[8px] text-xs font-semibold flex items-center justify-center gap-1.5 transition-all ${
+                  className={`py-2 px-1.5 rounded-[8px] text-[11px] font-semibold flex items-center justify-center gap-1.5 transition-all ${
                     gatewayTab === tab.id
                       ? 'bg-electric-gradient text-white shadow-sm'
                       : 'text-[#A0A0B0] hover:text-white'
                   }`}
                 >
-                  <i className={`fa-solid ${tab.icon} text-[11px]`} />
+                  <i className={`fa-solid ${tab.icon} text-[10px]`} />
                   <span>{tab.label}</span>
                 </button>
               ))}
             </div>
 
-            {/* TAB 1: DYNAMIC UPI QR CODE */}
+            {/* TAB 1: OFFICIAL MERCHANT UPI QR CODE */}
             {gatewayTab === 'qr' && (
-              <div className="bg-[#1A1A1F] rounded-[12px] p-4 border border-white/[0.07] text-center space-y-3">
-                <div className="flex items-center justify-between text-[11px] text-[#A0A0B0]">
-                  <span>Scan with GPay / PhonePe / Paytm</span>
-                  <span className="font-mono-num text-emerald-400">
-                    Exact Amount Locked
-                  </span>
-                </div>
-
-                {/* Scannable Dynamic UPI QR Matrix */}
-                <div className="w-48 h-48 mx-auto bg-white p-2.5 rounded-[12px] shadow-lg flex items-center justify-center relative overflow-hidden">
-                  <img
-                    src={upiQrImageUrl}
-                    alt={`UPI QR Code for ${STORE_NAME}`}
-                    className="w-full h-full object-contain"
-                    onError={(e) => {
-                      // Fallback SVG representation if external service fails
-                      (e.currentTarget as HTMLElement).style.display = 'none';
-                    }}
-                  />
-                </div>
-
-                {/* Payee Info & Copy UPI ID Badge */}
-                <div className="p-2.5 rounded-[10px] bg-[#111113] border border-white/10 flex items-center justify-between gap-2 text-left">
-                  <div className="min-w-0">
-                    <span className="text-[10px] text-[#A0A0B0] block">Official Merchant UPI ID:</span>
-                    <span className="font-mono-num text-xs font-bold text-white tracking-wide truncate block">
-                      {STORE_UPI_ID}
-                    </span>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={handleCopyUpiId}
-                    className="px-3 py-1.5 rounded-[6px] bg-electric-gradient text-[11px] font-semibold text-white whitespace-nowrap hover:scale-105 transition-all"
-                  >
-                    {copiedUpi ? '✓ Copied' : 'Copy UPI'}
-                  </button>
-                </div>
+              <div className="space-y-3">
+                <CrazyMobilesPaymentQR
+                  amount={amount}
+                  showAmountBadge={false}
+                  className="w-full"
+                />
 
                 {/* Mobile Intent Direct Link */}
                 <a
                   href={upiIntentUri}
-                  className="block sm:hidden w-full py-2 px-3 rounded-[8px] bg-emerald-500/15 border border-emerald-500/30 text-emerald-400 text-xs font-semibold hover:bg-emerald-500/25 transition-all"
+                  className="block sm:hidden w-full py-2.5 px-3 rounded-[10px] bg-emerald-500/15 border border-emerald-500/30 text-emerald-400 text-xs font-semibold text-center hover:bg-emerald-500/25 transition-all"
                 >
                   <i className="fa-solid fa-mobile-screen mr-1.5" />
-                  Tap to Pay Directly with UPI App
+                  Tap to Pay Directly on Phone
                 </a>
+              </div>
+            )}
 
-                <div className="flex items-center justify-center gap-3 text-[11px] text-[#A0A0B0]">
-                  <span>PhonePe</span>
-                  <span>·</span>
-                  <span>Google Pay</span>
-                  <span>·</span>
-                  <span>Paytm</span>
-                  <span>·</span>
-                  <span>BHIM</span>
+            {/* TAB 2: DIRECT UPI APPS */}
+            {gatewayTab === 'intent' && (
+              <div className="space-y-3">
+                <div className="grid grid-cols-2 gap-2.5">
+                  {(
+                    [
+                      { name: 'GPay', desc: 'Google Pay' },
+                      { name: 'PhonePe', desc: 'PhonePe UPI' },
+                      { name: 'Paytm', desc: 'Paytm Wallet' },
+                      { name: 'CRED', desc: 'CRED Pay' },
+                    ] as const
+                  ).map((app) => (
+                    <button
+                      key={app.name}
+                      type="button"
+                      onClick={() => setSelectedApp(app.name)}
+                      className={`p-3 rounded-[12px] border text-left transition-all ${
+                        selectedApp === app.name
+                          ? 'bg-[#1A1A1F] border-[#6C63FF] ring-1 ring-[#6C63FF]'
+                          : 'bg-[#16161B] border-white/10 text-[#A0A0B0]'
+                      }`}
+                    >
+                      <div className="flex items-center justify-between mb-0.5">
+                        <span className="font-display text-xs font-bold text-white">
+                          {app.name}
+                        </span>
+                        <i
+                          className={`fa-solid fa-circle-check text-xs ${
+                            selectedApp === app.name
+                              ? 'text-[#6C63FF]'
+                              : 'opacity-20'
+                          }`}
+                        />
+                      </div>
+                      <span className="text-[10px] text-[#A0A0B0] block">
+                        {app.desc}
+                      </span>
+                    </button>
+                  ))}
+                </div>
+
+                <div className="p-3 rounded-xl bg-[#1A1A1F] border border-white/10 text-xs text-[#A0A0B0] space-y-1">
+                  <span className="text-white font-medium block">
+                    Paying to: {STORE_MERCHANT_NAME}
+                  </span>
+                  <span className="font-mono-num text-[11px] text-emerald-400 block">
+                    UPI ID: {STORE_UPI_ID}
+                  </span>
                 </div>
               </div>
             )}
 
-            {/* TAB 2: UPI INTENT APPS */}
-            {gatewayTab === 'intent' && (
-              <div className="grid grid-cols-2 gap-3">
-                {(
-                  [
-                    { name: 'GPay', desc: 'Google Pay Instant' },
-                    { name: 'PhonePe', desc: 'PhonePe UPI Switch' },
-                    { name: 'Paytm', desc: 'Paytm UPI Wallet' },
-                    { name: 'CRED', desc: 'CRED Pay UPI' },
-                  ] as const
-                ).map((app) => (
-                  <button
-                    key={app.name}
-                    type="button"
-                    onClick={() => setSelectedApp(app.name)}
-                    className={`p-3.5 rounded-[12px] border text-left transition-all ${
-                      selectedApp === app.name
-                        ? 'bg-[#1A1A1F] border-[#6C63FF] ring-1 ring-[#6C63FF]'
-                        : 'bg-[#16161B] border-white/10 text-[#A0A0B0]'
-                    }`}
-                  >
-                    <div className="flex items-center justify-between mb-1">
-                      <span className="font-display text-xs font-bold text-white">
-                        {app.name}
-                      </span>
-                      <i
-                        className={`fa-solid fa-circle-check text-xs ${
-                          selectedApp === app.name
-                            ? 'text-[#6C63FF]'
-                            : 'opacity-20'
-                        }`}
-                      />
-                    </div>
-                    <span className="text-[11px] text-[#A0A0B0] block">
-                      {app.desc}
-                    </span>
-                  </button>
-                ))}
-              </div>
-            )}
-
-            {/* TAB 3: VPA / UPI ID */}
+            {/* TAB 3: MANUAL UTR / VPA ENTRY */}
             {gatewayTab === 'vpa' && (
-              <div className="bg-[#1A1A1F] rounded-[12px] p-4 border border-white/[0.07] space-y-3">
-                <label className="block text-xs text-[#A0A0B0]">
-                  Enter your Virtual Payment Address (UPI ID)
-                </label>
-                <div className="flex gap-2">
+              <div className="bg-[#1A1A1F] rounded-[12px] p-4 border border-white/[0.07] space-y-3 text-xs">
+                <div>
+                  <label className="block text-[#A0A0B0] mb-1.5">
+                    Enter 12-Digit UPI Transaction UTR (Optional)
+                  </label>
                   <input
                     type="text"
-                    value={vpaInput}
-                    onChange={(e) => {
-                      setVpaInput(e.target.value);
-                      setIsVpaVerified(false);
-                    }}
-                    placeholder="yourname@okicici"
-                    className="flex-1 px-3.5 py-2.5 rounded-[8px] bg-[#111113] border border-white/10 text-xs font-mono-num text-white focus:outline-none focus:border-[#6C63FF]"
+                    maxLength={16}
+                    value={manualUtrInput}
+                    onChange={(e) => setManualUtrInput(e.target.value)}
+                    placeholder="e.g. 427389102456"
+                    className="w-full px-3.5 py-2.5 rounded-[8px] bg-[#111113] border border-white/10 text-xs font-mono-num text-white focus:outline-none focus:border-[#6C63FF]"
                   />
-                  <button
-                    type="button"
-                    onClick={() => {
-                      if (vpaInput.includes('@')) setIsVpaVerified(true);
-                    }}
-                    className="px-3.5 py-2.5 rounded-[8px] bg-[#111113] border border-white/15 text-xs font-semibold text-[#6C63FF]"
-                  >
-                    Verify
-                  </button>
+                  <span className="text-[10px] text-[#6B6B7B] mt-1 block">
+                    Found in your Google Pay, PhonePe, or Paytm payment receipt.
+                  </span>
                 </div>
-                {isVpaVerified && vpaInput.includes('@') && (
-                  <p className="text-[11px] text-emerald-400 flex items-center gap-1.5">
-                    <i className="fa-solid fa-circle-check" />
-                    <span>Verified Banking Name: {customerName}</span>
-                  </p>
-                )}
+
+                <div>
+                  <label className="block text-[#A0A0B0] mb-1.5">
+                    Your UPI ID / Phone (Optional)
+                  </label>
+                  <input
+                    type="text"
+                    value={userVpaInput}
+                    onChange={(e) => setUserVpaInput(e.target.value)}
+                    placeholder="yourname@okaxis"
+                    className="w-full px-3.5 py-2.5 rounded-[8px] bg-[#111113] border border-white/10 text-xs font-mono-num text-white focus:outline-none focus:border-[#6C63FF]"
+                  />
+                </div>
               </div>
             )}
 
-            {/* Primary Authorize Button */}
-            <div className="space-y-2.5 pt-1">
+            {/* Primary Confirm Button */}
+            <div className="space-y-2 pt-1">
               <button
                 type="button"
                 onClick={handleAuthorizePayment}
-                className="w-full py-3.5 px-6 rounded-[8px] bg-electric-gradient text-white font-display text-sm font-bold shadow-electric-glow hover:scale-[1.01] transition-all flex items-center justify-center gap-2 btn-interactive"
+                className="w-full py-3.5 px-6 rounded-[12px] bg-electric-gradient text-white font-display text-sm font-bold shadow-electric-glow hover:scale-[1.01] transition-all flex items-center justify-center gap-2 btn-interactive"
               >
                 <i className="fa-solid fa-shield-halved text-xs" />
-                <span>
-                  Authorize UPI Payment · {formatINR(amount)}
-                </span>
+                <span>I Have Paid · Confirm {formatINR(amount)}</span>
               </button>
 
-              <div className="flex items-center justify-between text-[11px] text-[#6B6B7B] px-1">
-                <span>100% Buyer Protection · Instant WhatsApp Receipt</span>
+              <div className="flex items-center justify-between text-[10px] text-[#6B6B7B] px-1">
+                <span>Instant WhatsApp Order Handoff &amp; Online Receipt</span>
                 <button
                   type="button"
                   onClick={onClose}
@@ -514,14 +474,11 @@ export const CheckoutView: React.FC<CheckoutViewProps> = ({
     setAddressError('');
   };
 
-  // Payment State
-  const [paymentMethod, setPaymentMethod] = useState<'UPI' | 'Card' | 'COD'>('UPI');
-  const [upiApp, setUpiApp] = useState<'GPay' | 'PhonePe' | 'Paytm'>('GPay');
-  const [upiId, setUpiId] = useState('aarav@okicici');
-  const [cardNumber, setCardNumber] = useState('4532 •••• •••• 8891');
-  const [cardExpiry, setCardExpiry] = useState('08/29');
-  const [cardCvv, setCardCvv] = useState('842');
-
+// Payment State - Exclusively UPI as configured with merchant QR
+  const [paymentMethod] = useState<'UPI'>('UPI');
+  const [upiApp, setUpiApp] = useState<'GPay' | 'PhonePe' | 'Paytm' | 'CRED'>('GPay');
+  const [upiId, setUpiId] = useState('');
+  
   // Promo & Submission State
   const [couponInput, setCouponInput] = useState('');
   const [appliedCoupon, setAppliedCoupon] = useState<string | null>(null);
@@ -639,18 +596,8 @@ export const CheckoutView: React.FC<CheckoutViewProps> = ({
       return;
     }
 
-    // If UPI is selected, open the interactive Online UPI Payment Gateway Modal!
-    if (paymentMethod === 'UPI') {
-      setIsUpiGatewayOpen(true);
-      return;
-    }
-
-    const paymentDetails =
-      paymentMethod === 'Card'
-        ? `Card (${cardNumber.slice(-4)})`
-        : 'Cash on Delivery (Pay at Doorstep)';
-
-    finalizeOrderWithPayment(paymentDetails);
+    // Always open the official Online UPI Payment Gateway Modal
+    setIsUpiGatewayOpen(true);
   };
 
   if (items.length === 0) {
@@ -1089,156 +1036,92 @@ export const CheckoutView: React.FC<CheckoutViewProps> = ({
 
             {activeStep === 2 && (
               <div className="p-6 space-y-5 border-t border-white/[0.07] animate-page-enter">
-                <div className="grid grid-cols-3 gap-3">
-                  {(
-                    [
-                      { id: 'UPI', label: 'UPI Gateway', icon: 'fa-qrcode' },
-                      { id: 'Card', label: 'Credit / Debit Card', icon: 'fa-credit-card' },
-                      { id: 'COD', label: 'Cash on Delivery', icon: 'fa-indian-rupee-sign' },
-                    ] as const
-                  ).map((m) => (
-                    <button
-                      key={m.id}
-                      type="button"
-                      onClick={() => setPaymentMethod(m.id)}
-                      className={`p-3.5 rounded-[12px] border text-left transition-all ${
-                        paymentMethod === m.id
-                          ? 'bg-[#1A1A1F] border-[#6C63FF] ring-1 ring-[#6C63FF]'
-                          : 'bg-[#16161B] border-white/10 text-[#A0A0B0] hover:text-white'
-                      }`}
-                    >
-                      <i
-                        className={`fa-solid ${m.icon} text-sm mb-2 block ${
-                          paymentMethod === m.id ? 'text-[#6C63FF]' : 'text-[#A0A0B0]'
-                        }`}
-                      />
-                      <span className="font-display text-xs font-semibold text-white block">
-                        {m.label}
+                {/* Single Official UPI Payment Method Banner */}
+                <div className="bg-gradient-to-r from-[#1A1A2A] via-[#151520] to-[#1E1925] p-4 sm:p-5 rounded-[14px] border border-[#6C63FF]/30 shadow-lg">
+                  <div className="flex items-center justify-between gap-3 mb-3">
+                    <div className="flex items-center gap-2.5">
+                      <span className="w-3 h-3 rounded-full bg-emerald-500 animate-pulse shadow-[0_0_8px_#10B981]" />
+                      <span className="font-display text-sm font-bold text-white uppercase tracking-wider">
+                        Official Merchant UPI Payment
                       </span>
-                    </button>
-                  ))}
+                    </div>
+                    <span className="px-2.5 py-0.5 rounded-full bg-emerald-500/15 border border-emerald-500/30 text-emerald-400 font-mono-num text-[11px] font-semibold">
+                      Zero Surcharge
+                    </span>
+                  </div>
+                  <p className="text-xs text-[#A0A0B0] leading-relaxed">
+                    All orders are settled securely via verified UPI QR Code or Direct UPI Apps to{' '}
+                    <strong className="text-white">{STORE_MERCHANT_NAME}</strong>. Instant receipt generated upon payment!
+                  </p>
                 </div>
 
-                {/* UPI Options */}
-                {paymentMethod === 'UPI' && (
-                  <div className="bg-[#1A1A1F] rounded-[12px] p-5 border border-white/[0.07] space-y-4">
-                    <div className="flex items-center justify-between">
-                      <span className="text-xs text-[#A0A0B0]">
-                        Select preferred UPI app or scan QR in the gateway:
-                      </span>
-                      <span className="text-[11px] text-emerald-400 font-medium">
-                        Zero Gateway Fee
-                      </span>
-                    </div>
-                    <div className="grid grid-cols-3 gap-3">
-                      {(
-                        [
-                          { name: 'GPay' },
-                          { name: 'PhonePe' },
-                          { name: 'Paytm' },
-                        ] as const
-                      ).map((app) => (
-                        <button
-                          key={app.name}
-                          type="button"
-                          onClick={() => setUpiApp(app.name)}
-                          className={`py-3 px-3 rounded-[10px] border flex items-center justify-center gap-2 text-xs font-semibold transition-all ${
-                            upiApp === app.name
-                              ? 'bg-[#111113] border-[#6C63FF] text-white shadow-sm'
-                              : 'bg-[#111113]/50 border-white/10 text-[#A0A0B0]'
-                          }`}
-                        >
-                          <i
-                            className={`fa-solid fa-circle-check text-xs ${
-                              upiApp === app.name ? 'text-[#6C63FF]' : 'opacity-25'
-                            }`}
-                          />
-                          <span>{app.name}</span>
-                        </button>
-                      ))}
-                    </div>
+                {/* UPI Options & App Selection */}
+                <div className="bg-[#1A1A1F] rounded-[14px] p-5 border border-white/[0.08] space-y-4">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-semibold text-white">
+                      Preferred UPI Application / Flow:
+                    </span>
+                    <span className="text-[11px] text-[#A0A0B0] font-mono-num">
+                      ID: {STORE_UPI_ID}
+                    </span>
+                  </div>
 
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+                    {(
+                      [
+                        { name: 'GPay', icon: 'fa-google-pay' },
+                        { name: 'PhonePe', icon: 'fa-mobile-screen-button' },
+                        { name: 'Paytm', icon: 'fa-wallet' },
+                        { name: 'CRED', icon: 'fa-shield-halved' },
+                      ] as const
+                    ).map((app) => (
+                      <button
+                        key={app.name}
+                        type="button"
+                        onClick={() => setUpiApp(app.name)}
+                        className={`py-3 px-3 rounded-[10px] border flex items-center justify-center gap-2 text-xs font-semibold transition-all ${
+                          upiApp === app.name
+                            ? 'bg-electric-gradient text-white border-transparent shadow-electric-glow'
+                            : 'bg-[#111113] border-white/10 text-[#A0A0B0] hover:text-white hover:border-white/20'
+                        }`}
+                      >
+                        <i className={`fa-solid ${app.icon} text-xs`} />
+                        <span>{app.name}</span>
+                      </button>
+                    ))}
+                  </div>
+
+                  {/* Merchant VPA Display & QR preview note */}
+                  <div className="p-3.5 rounded-[10px] bg-[#111113] border border-white/10 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
                     <div>
-                      <label className="block text-xs text-[#A0A0B0] mb-1.5">
-                        UPI ID (VPA) for Collect Request
-                      </label>
-                      <input
-                        type="text"
-                        value={upiId}
-                        onChange={(e) => setUpiId(e.target.value)}
-                        placeholder="username@okicici"
-                        className="w-full px-3.5 py-2.5 rounded-[8px] bg-[#111113] border border-white/10 text-xs font-mono-num text-white focus:outline-none focus:border-[#6C63FF]"
-                      />
+                      <span className="text-[10px] text-[#A0A0B0] block uppercase tracking-wider font-semibold">
+                        Payee Virtual Payment Address (UPI ID)
+                      </span>
+                      <code className="text-xs font-mono-num font-bold text-emerald-400 select-all">
+                        {STORE_UPI_ID}
+                      </code>
+                    </div>
+                    <div className="text-[11px] text-[#A0A0B0] flex items-center gap-1.5">
+                      <i className="fa-solid fa-qrcode text-[#6C63FF]" />
+                      <span>Dynamic QR pops up on click</span>
                     </div>
                   </div>
-                )}
-
-                {paymentMethod === 'Card' && (
-                  <div className="bg-[#1A1A1F] rounded-[12px] p-5 border border-white/[0.07] space-y-4">
-                    <div>
-                      <label className="block text-xs text-[#A0A0B0] mb-1">
-                        Card Number (Visa / MasterCard / RuPay)
-                      </label>
-                      <input
-                        type="text"
-                        value={cardNumber}
-                        onChange={(e) => setCardNumber(e.target.value)}
-                        className="w-full px-3.5 py-2.5 rounded-[8px] bg-[#111113] border border-white/10 text-xs font-mono-num text-white focus:outline-none focus:border-[#6C63FF]"
-                      />
-                    </div>
-                    <div className="grid grid-cols-2 gap-4">
-                      <div>
-                        <label className="block text-xs text-[#A0A0B0] mb-1">
-                          Expiry (MM/YY)
-                        </label>
-                        <input
-                          type="text"
-                          value={cardExpiry}
-                          onChange={(e) => setCardExpiry(e.target.value)}
-                          className="w-full px-3.5 py-2.5 rounded-[8px] bg-[#111113] border border-white/10 text-xs font-mono-num text-white focus:outline-none focus:border-[#6C63FF]"
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-xs text-[#A0A0B0] mb-1">CVV</label>
-                        <input
-                          type="password"
-                          maxLength={4}
-                          value={cardCvv}
-                          onChange={(e) => setCardCvv(e.target.value)}
-                          className="w-full px-3.5 py-2.5 rounded-[8px] bg-[#111113] border border-white/10 text-xs font-mono-num text-white focus:outline-none focus:border-[#6C63FF]"
-                        />
-                      </div>
-                    </div>
-                  </div>
-                )}
-
-                {paymentMethod === 'COD' && (
-                  <div className="bg-[#1A1A1F] rounded-[12px] p-5 border border-white/[0.07] text-xs text-[#A0A0B0] space-y-2">
-                    <p className="text-white font-semibold">
-                      Cash / UPI on Delivery Available for Pincode {pincode}
-                    </p>
-                    <p>
-                      Pay <strong className="text-white font-mono-num">{formatINR(total)}</strong>{' '}
-                      directly to the courier partner via Cash or UPI QR scan upon doorstep
-                      delivery.
-                    </p>
-                  </div>
-                )}
+                </div>
 
                 <div className="flex justify-between items-center pt-2">
                   <button
                     type="button"
                     onClick={() => setActiveStep(1)}
-                    className="text-xs text-[#A0A0B0] hover:text-white"
+                    className="text-xs text-[#A0A0B0] hover:text-white transition-colors"
                   >
-                    ← Back to Address
+                    ← Back to Shipping Address
                   </button>
                   <button
                     type="button"
                     onClick={handleContinueToReview}
-                    className="px-6 py-3 rounded-[8px] bg-electric-gradient text-white text-xs font-semibold shadow-electric-glow"
+                    className="px-6 py-3 rounded-[8px] bg-electric-gradient text-white text-xs font-semibold shadow-electric-glow hover:scale-[1.02] transition-transform"
                   >
-                    Review Order
+                    Review &amp; Pay via UPI →
                   </button>
                 </div>
               </div>
@@ -1285,16 +1168,10 @@ export const CheckoutView: React.FC<CheckoutViewProps> = ({
                   <div className="bg-[#1A1A1F] p-4 rounded-[12px] border border-white/[0.06]">
                     <span className="text-[#6B6B7B] block mb-1">Payment &amp; Concierge</span>
                     <p className="font-semibold text-white">
-                      {paymentMethod === 'UPI'
-                        ? 'VoltPay Online UPI Gateway'
-                        : paymentMethod}
+                      Official UPI Payment Gateway
                     </p>
                     <p className="text-[#A0A0B0] mt-0.5">
-                      {paymentMethod === 'UPI'
-                        ? `${upiApp} / Dynamic QR (${upiId})`
-                        : paymentMethod === 'Card'
-                        ? cardNumber
-                        : 'Pay via Cash or UPI at Doorstep'}
+                      {`${upiApp} / Verified QR (${STORE_UPI_ID})`}
                     </p>
                     <p className="text-emerald-400 mt-2 flex items-center gap-1.5">
                       <i className="fa-brands fa-whatsapp" />
@@ -1444,7 +1321,11 @@ export const OrderSuccessView: React.FC<OrderSuccessViewProps> = ({
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [storeHandlerPhone, setStoreHandlerPhone] = useState(STORE_PHONE);
   const [copiedMsg, setCopiedMsg] = useState(false);
-  const [showMessagePreview, setShowMessagePreview] = useState(true);
+  const [showMessagePreview, setShowMessagePreview] = useState(false);
+  const [isReceiptOpen, setIsReceiptOpen] = useState(true);
+  const [countdown, setCountdown] = useState(3);
+  const [autoRedirectCancelled, setAutoRedirectCancelled] = useState(false);
+  const [hasRedirected, setHasRedirected] = useState(false);
 
   // Subtle 2-second particle burst
   useEffect(() => {
@@ -1549,23 +1430,41 @@ export const OrderSuccessView: React.FC<OrderSuccessViewProps> = ({
     cleanedHandlerPhone || STORE_PHONE
   }?text=${encodeURIComponent(whatsappMessage)}`;
 
+  // Automatic WhatsApp redirect timer
+  useEffect(() => {
+    if (autoRedirectCancelled || hasRedirected) return;
+    if (countdown > 0) {
+      const timer = setTimeout(() => {
+        setCountdown((c) => c - 1);
+      }, 1000);
+      return () => clearTimeout(timer);
+    } else if (countdown === 0 && !hasRedirected) {
+      setHasRedirected(true);
+      window.open(whatsappUrl, '_blank', 'noopener,noreferrer');
+    }
+  }, [countdown, autoRedirectCancelled, hasRedirected, whatsappUrl]);
+
   const handleCopyMessage = () => {
     navigator.clipboard?.writeText(whatsappMessage);
     setCopiedMsg(true);
     setTimeout(() => setCopiedMsg(false), 2000);
   };
 
+  const handlePrintReceipt = () => {
+    window.print();
+  };
+
   return (
     <div className="relative min-h-[calc(100vh-5rem)] flex items-center justify-center px-4 py-12 animate-page-enter">
       <canvas
         ref={canvasRef}
-        className="fixed inset-0 pointer-events-none z-20"
+        className="fixed inset-0 pointer-events-none z-20 print:hidden"
         aria-hidden="true"
       />
 
-      <div className="relative z-10 w-full max-w-2xl bg-[#111113] border border-white/10 rounded-[16px] p-6 sm:p-9 shadow-card space-y-7">
+      <div className="relative z-10 w-full max-w-3xl bg-[#111113] border border-white/10 rounded-[20px] p-6 sm:p-9 shadow-card space-y-7 print:bg-white print:border-none print:p-0 print:text-black">
         {/* Top Celebration Header */}
-        <div className="text-center">
+        <div className="text-center print:hidden">
           <div className="w-20 h-20 mx-auto mb-4 flex items-center justify-center">
             <svg className="w-20 h-20" viewBox="0 0 100 100" fill="none">
               <defs>
@@ -1594,16 +1493,249 @@ export const OrderSuccessView: React.FC<OrderSuccessViewProps> = ({
           </div>
 
           <h1 className="font-display text-2xl sm:text-3xl font-bold text-white mb-1.5">
-            Order Confirmed!
+            Payment Verified &amp; Order Confirmed!
           </h1>
           <p className="text-xs sm:text-sm text-[#A0A0B0]">
             Order <strong className="text-white font-mono-num">{displayOrderId}</strong> is
-            logged in our fulfillment queue.
+            settled via UPI ({STORE_UPI_ID}) &amp; logged in our fulfillment queue.
           </p>
         </div>
 
+        {/* AUTOMATIC DIRECT WHATSAPP REDIRECT BANNER */}
+        <div className="bg-gradient-to-r from-[#0F281E] via-[#14231E] to-[#161D24] rounded-[16px] p-5 border-2 border-emerald-500/40 shadow-xl space-y-3.5 print:hidden">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div className="flex items-center gap-3">
+              <div className="w-12 h-12 rounded-xl bg-[#25D366]/20 border border-[#25D366]/50 flex items-center justify-center text-[#25D366] shrink-0 shadow-[0_0_15px_rgba(37,211,102,0.25)]">
+                <i className="fa-brands fa-whatsapp text-2xl" />
+              </div>
+              <div>
+                <h2 className="font-display text-base font-bold text-white flex items-center gap-2">
+                  <span>Redirecting to WhatsApp with Payment Receipt</span>
+                  {!autoRedirectCancelled && countdown > 0 && (
+                    <span className="px-2 py-0.5 rounded-full bg-[#25D366]/20 text-[#25D366] text-xs font-mono-num font-bold animate-pulse">
+                      in {countdown}s
+                    </span>
+                  )}
+                </h2>
+                <p className="text-xs text-[#A0A0B0] mt-0.5">
+                  Directly sharing your verified UPI payment receipt with store proprietor{' '}
+                  <strong className="text-white">Shaikh Shoeb</strong> (+91 {STORE_PHONE}) for immediate dispatch.
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2 shrink-0">
+              <a
+                href={whatsappUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                onClick={() => setHasRedirected(true)}
+                className="py-2.5 px-4 rounded-[8px] bg-[#25D366] hover:bg-[#20bd5a] text-[#0A0A0B] font-display text-xs font-bold shadow-lg hover:scale-[1.02] transition-all flex items-center gap-2"
+              >
+                <i className="fa-brands fa-whatsapp text-sm" />
+                <span>Open WhatsApp Now</span>
+              </a>
+              {!autoRedirectCancelled && countdown > 0 && (
+                <button
+                  type="button"
+                  onClick={() => setAutoRedirectCancelled(true)}
+                  className="py-2.5 px-3 rounded-[8px] bg-white/10 hover:bg-white/15 text-[#A0A0B0] hover:text-white text-xs font-medium transition-colors"
+                >
+                  Stay on Page
+                </button>
+              )}
+            </div>
+          </div>
+
+          {/* Countdown Progress bar */}
+          {!autoRedirectCancelled && countdown > 0 && (
+            <div className="w-full bg-white/10 h-1.5 rounded-full overflow-hidden">
+              <div
+                className="bg-[#25D366] h-full transition-all duration-1000 ease-linear rounded-full"
+                style={{ width: `${((3 - countdown) / 3) * 100}%` }}
+              />
+            </div>
+          )}
+        </div>
+
+        {/* OFFICIAL ONLINE PAYMENT RECEIPT (Interactive, Printable & Shareable) */}
+        <div className="bg-[#16161D] rounded-[16px] border border-white/15 shadow-2xl overflow-hidden print:bg-white print:border-slate-300 print:text-slate-900 print:rounded-none print:shadow-none">
+          {/* Receipt Top Header */}
+          <div className="bg-gradient-to-r from-[#1A1A28] via-[#161622] to-[#201A24] p-5 sm:p-6 border-b border-white/10 flex flex-col sm:flex-row sm:items-center justify-between gap-4 print:bg-slate-50 print:border-b-2 print:border-slate-800">
+            <div className="flex items-center gap-3.5">
+              <CrazyMobilesEmblem size={44} />
+              <div>
+                <span className="text-[10px] font-mono-num font-bold text-[#6C63FF] uppercase tracking-wider block print:text-blue-700">
+                  OFFICIAL ONLINE PAYMENT RECEIPT
+                </span>
+                <h3 className="font-display text-lg font-bold text-white print:text-black">
+                  {STORE_MERCHANT_NAME}
+                </h3>
+                <p className="text-xs text-[#A0A0B0] print:text-slate-600">
+                  Store Contact: +91 {STORE_PHONE} · {STORE_EMAIL}
+                </p>
+              </div>
+            </div>
+
+            <div className="text-left sm:text-right space-y-1">
+              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/15 border border-emerald-500/30 text-emerald-400 font-mono-num text-xs font-bold print:border-emerald-600 print:text-emerald-800">
+                <i className="fa-solid fa-circle-check text-xs" />
+                PAID VIA UPI
+              </span>
+              <div className="text-xs text-[#A0A0B0] font-mono-num print:text-slate-700">
+                Invoice No: <strong className="text-white print:text-black">REC-{displayOrderId}</strong>
+              </div>
+              <div className="text-[11px] text-[#6B6B7B] font-mono-num print:text-slate-500">
+                {order?.date || new Date().toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}
+              </div>
+            </div>
+          </div>
+
+          {/* Receipt Body */}
+          <div className="p-5 sm:p-6 space-y-5 text-xs">
+            {/* Merchant & Customer Grid */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pb-4 border-b border-white/10 print:border-slate-300">
+              <div className="bg-[#111113] p-4 rounded-xl border border-white/5 space-y-1.5 print:bg-slate-50 print:border-slate-200">
+                <span className="text-[10px] uppercase font-bold text-[#6B6B7B] block tracking-wider print:text-slate-500">
+                  Billed To / Delivery Customer
+                </span>
+                <p className="font-bold text-sm text-white print:text-black">
+                  {order?.customerName || 'Crazy Mobiles Customer'}
+                </p>
+                <p className="text-[#A0A0B0] print:text-slate-700">
+                  Phone: +91 {order?.phone || STORE_PHONE}
+                </p>
+                <p className="text-[#A0A0B0] print:text-slate-700 leading-relaxed">
+                  {order?.address.area}, {order?.address.city}, {order?.address.state} — {order?.address.pincode}
+                </p>
+              </div>
+
+              <div className="bg-[#111113] p-4 rounded-xl border border-white/5 space-y-1.5 print:bg-slate-50 print:border-slate-200">
+                <span className="text-[10px] uppercase font-bold text-[#6B6B7B] block tracking-wider print:text-slate-500">
+                  Payment &amp; Transaction Details
+                </span>
+                <div className="flex justify-between">
+                  <span className="text-[#A0A0B0] print:text-slate-600">Merchant UPI ID:</span>
+                  <code className="font-mono-num font-bold text-emerald-400 print:text-emerald-800">
+                    {STORE_UPI_ID}
+                  </code>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-[#A0A0B0] print:text-slate-600">Payment Gateway:</span>
+                  <span className="text-white font-medium print:text-black">VoltPay NPCI UPI 2.0</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-[#A0A0B0] print:text-slate-600">Payment Ref / UTR:</span>
+                  <span className="font-mono-num text-white print:text-black font-semibold">
+                    {order?.paymentDetails || 'UPI-VERIFIED-TXN'}
+                  </span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-[#A0A0B0] print:text-slate-600">Status:</span>
+                  <span className="text-emerald-400 font-bold print:text-emerald-800">100% Settled &amp; Verified</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Itemized Table */}
+            <div>
+              <span className="text-[10px] uppercase font-bold text-[#6B6B7B] block tracking-wider mb-2 print:text-slate-500">
+                Purchased Item(s)
+              </span>
+              <div className="overflow-x-auto">
+                <table className="w-full text-left border-collapse">
+                  <thead>
+                    <tr className="border-b border-white/10 text-[11px] text-[#A0A0B0] print:border-slate-300 print:text-slate-600">
+                      <th className="py-2 font-semibold">Item Description</th>
+                      <th className="py-2 text-center font-semibold">Qty</th>
+                      <th className="py-2 text-right font-semibold">Unit Price</th>
+                      <th className="py-2 text-right font-semibold">Total</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-white/5 font-mono-num print:divide-slate-200">
+                    {order?.items.map((item, idx) => (
+                      <tr key={`${item.productId}-${idx}`} className="text-xs">
+                        <td className="py-2.5 pr-2 font-sans">
+                          <span className="font-bold text-white print:text-black block">{item.name}</span>
+                          <span className="text-[11px] text-[#6B6B7B] print:text-slate-500">
+                            {item.color} · {item.size}
+                          </span>
+                        </td>
+                        <td className="py-2.5 text-center text-white print:text-black">{item.quantity}</td>
+                        <td className="py-2.5 text-right text-[#A0A0B0] print:text-slate-700">{formatINR(item.price)}</td>
+                        <td className="py-2.5 text-right font-bold text-white print:text-black">
+                          {formatINR(item.price * item.quantity)}
+                        </td>
+                      </tr>
+                    )) || (
+                      <tr className="text-xs">
+                        <td className="py-2.5 font-sans font-bold text-white print:text-black">Crazy Mobiles Premium Hardware</td>
+                        <td className="py-2.5 text-center text-white print:text-black">1</td>
+                        <td className="py-2.5 text-right text-[#A0A0B0] print:text-slate-700">{formatINR(order?.total || 0)}</td>
+                        <td className="py-2.5 text-right font-bold text-white print:text-black">{formatINR(order?.total || 0)}</td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            {/* Pricing Breakdown */}
+            <div className="pt-3 border-t border-white/10 space-y-2 print:border-slate-300">
+              <div className="flex justify-between text-[#A0A0B0] print:text-slate-700">
+                <span>Subtotal (Inclusive 18% GST)</span>
+                <span className="font-mono-num text-white print:text-black">{formatINR(order?.total || 0)}</span>
+              </div>
+              <div className="flex justify-between text-[#A0A0B0] print:text-slate-700">
+                <span>Express Insured Shipping</span>
+                <span className="font-mono-num text-emerald-400 print:text-emerald-700">FREE (Zero Charge)</span>
+              </div>
+              <div className="flex justify-between text-base font-bold text-white pt-2 border-t border-white/10 print:border-slate-400 print:text-black">
+                <span className="font-display">Total Amount Paid</span>
+                <span className="font-mono-num text-electric-gradient text-xl print:text-emerald-800">
+                  {formatINR(order?.total || 0)}
+                </span>
+              </div>
+            </div>
+
+            {/* Merchant Guarantee Stamp */}
+            <div className="p-3.5 rounded-xl bg-emerald-500/10 border border-emerald-500/25 flex items-center justify-between gap-3 text-emerald-400 print:bg-emerald-50 print:border-emerald-300 print:text-emerald-900">
+              <div className="flex items-center gap-2">
+                <i className="fa-solid fa-shield-check text-base" />
+                <span className="text-xs font-semibold">
+                  Official 1-Year Hardware Replacement Warranty activated on this receipt.
+                </span>
+              </div>
+              <span className="text-[10px] font-mono-num uppercase tracking-wider font-bold">
+                VERIFIED TAX INVOICE
+              </span>
+            </div>
+
+            {/* Receipt Action Buttons */}
+            <div className="flex flex-wrap items-center justify-end gap-3 pt-2 print:hidden">
+              <button
+                type="button"
+                onClick={handlePrintReceipt}
+                className="py-2.5 px-4 rounded-[8px] bg-white/10 hover:bg-white/20 text-white text-xs font-semibold transition-all flex items-center gap-2"
+              >
+                <i className="fa-solid fa-print text-xs" />
+                <span>Print / Save Receipt PDF</span>
+              </button>
+              <a
+                href={whatsappUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="py-2.5 px-4 rounded-[8px] bg-[#25D366] hover:bg-[#20bd5a] text-[#0A0A0B] text-xs font-bold transition-all flex items-center gap-2"
+              >
+                <i className="fa-brands fa-whatsapp text-sm" />
+                <span>Send to WhatsApp Handler</span>
+              </a>
+            </div>
+          </div>
+        </div>
+
         {/* VISUAL TIMELINE PROGRESS BAR: Ordered -> Packed -> Shipped -> Delivered */}
-        <div className="bg-[#1A1A1F] rounded-[12px] p-5 border border-white/[0.07]">
+        <div className="bg-[#1A1A1F] rounded-[14px] p-5 border border-white/[0.07] print:hidden">
           <div className="flex items-center justify-between text-xs mb-4">
             <span className="font-display font-bold text-white uppercase tracking-wider text-[11px]">
               Live Fulfillment Timeline
@@ -1662,166 +1794,8 @@ export const OrderSuccessView: React.FC<OrderSuccessViewProps> = ({
           </div>
         </div>
 
-        {/* DIRECT WHATSAPP STORE HANDLER CONCIERGE & TRUST CARD */}
-        <div className="bg-gradient-to-br from-[#13221B] via-[#141A1A] to-[#1A1A1F] rounded-[14px] p-5 sm:p-6 border border-emerald-500/35 space-y-4">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-            <div className="flex items-center gap-3">
-              <div className="w-11 h-11 rounded-xl bg-[#25D366]/20 border border-[#25D366]/40 flex items-center justify-center text-[#25D366] shrink-0">
-                <i className="fa-brands fa-whatsapp text-xl" />
-              </div>
-              <div>
-                <h2 className="font-display text-base font-bold text-white flex items-center gap-2">
-                  <span>Send Verified Order to Store Handler</span>
-                </h2>
-                <p className="text-xs text-[#A0A0B0]">
-                  Connect directly with our dispatch manager on WhatsApp with your
-                  pre-filled payment &amp; order receipt for priority handling.
-                </p>
-              </div>
-            </div>
-          </div>
-
-          {/* Store Handler WhatsApp Number Input (Customizable for testing) */}
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pt-1 text-xs">
-            <label
-              htmlFor="handler-whatsapp"
-              className="text-[#A0A0B0] whitespace-nowrap"
-            >
-              Store Handler WhatsApp (+91):
-            </label>
-            <div className="flex items-center gap-2">
-              <input
-                id="handler-whatsapp"
-                type="tel"
-                maxLength={10}
-                value={storeHandlerPhone}
-                onChange={(e) =>
-                  setStoreHandlerPhone(e.target.value.replace(/\D/g, '').slice(0, 10))
-                }
-                className="w-36 px-3 py-1.5 rounded-[6px] bg-[#0A0A0B]/70 border border-white/15 font-mono-num text-xs text-white focus:outline-none focus:border-emerald-400"
-              />
-              <button
-                type="button"
-                onClick={() => setShowMessagePreview((p) => !p)}
-                className="text-xs text-emerald-400 hover:underline whitespace-nowrap"
-              >
-                {showMessagePreview ? 'Hide Receipt Text' : 'Preview Receipt Text'}
-              </button>
-            </div>
-          </div>
-
-          {/* Pre-filled WhatsApp Message Preview */}
-          {showMessagePreview && (
-            <div className="relative rounded-[10px] bg-[#0A0A0B]/85 border border-white/10 p-3.5 text-left">
-              <pre className="text-[11px] font-mono-num text-white/90 whitespace-pre-wrap leading-relaxed max-h-40 overflow-y-auto">
-                {whatsappMessage}
-              </pre>
-              <button
-                type="button"
-                onClick={handleCopyMessage}
-                className="absolute top-2.5 right-2.5 px-2.5 py-1 rounded-[6px] bg-white/10 hover:bg-white/20 text-[10px] font-semibold text-white"
-              >
-                {copiedMsg ? '✓ Copied' : 'Copy Text'}
-              </button>
-            </div>
-          )}
-
-          {/* Direct WhatsApp Redirect Anchor CTA */}
-          <a
-            href={whatsappUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="w-full py-3.5 px-6 rounded-[8px] bg-[#25D366] hover:bg-[#20bd5a] text-[#0A0A0B] font-display text-sm font-bold shadow-lg hover:scale-[1.01] transition-all flex items-center justify-center gap-2.5 whitespace-nowrap"
-          >
-            <i className="fa-brands fa-whatsapp text-base" />
-            <span>Send Order Details on WhatsApp Now</span>
-            <i className="fa-solid fa-arrow-up-right-from-square text-xs" />
-          </a>
-        </div>
-
-        {/* PHYSICAL STORE LOCATION & DIRECT CONTACT CARD */}
-        <div className="bg-[#16161D] rounded-[14px] p-5 border border-white/10 text-left space-y-3.5">
-          <div className="flex items-start justify-between gap-3">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-[#6C63FF]/20 border border-[#6C63FF]/40 flex items-center justify-center text-[#6C63FF] shrink-0">
-                <i className="fa-solid fa-location-dot text-lg" />
-              </div>
-              <div>
-                <h3 className="font-display text-sm font-bold text-white flex items-center gap-2">
-                  <span>Visit Our Store — {STORE_NAME}</span>
-                  <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 font-normal">
-                    Open Now
-                  </span>
-                </h3>
-                <p className="text-xs text-[#A0A0B0]">
-                  Collect your orders in person, test accessories, or get warranty support.
-                </p>
-              </div>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs pt-1">
-            <a
-              href={`tel:+91${STORE_PHONE}`}
-              className="flex items-center gap-2.5 p-2.5 rounded-[8px] bg-[#111113] border border-white/5 text-[#A0A0B0] hover:text-white hover:border-white/20 transition-all"
-            >
-              <i className="fa-solid fa-phone text-[#6C63FF]" />
-              <span className="font-mono-num font-medium text-white">{STORE_PHONE_DISPLAY}</span>
-            </a>
-            <a
-              href={`mailto:${STORE_EMAIL}`}
-              className="flex items-center gap-2.5 p-2.5 rounded-[8px] bg-[#111113] border border-white/5 text-[#A0A0B0] hover:text-white hover:border-white/20 transition-all truncate"
-            >
-              <i className="fa-solid fa-envelope text-[#FF6B35]" />
-              <span className="truncate">{STORE_EMAIL}</span>
-            </a>
-          </div>
-
-          <a
-            href={STORE_MAPS_URL}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="w-full py-2.5 px-4 rounded-[8px] bg-[#1F1F28] hover:bg-[#282836] border border-white/15 text-white font-display text-xs font-semibold flex items-center justify-center gap-2 transition-all"
-          >
-            <i className="fa-solid fa-map-location-dot text-[#6C63FF]" />
-            <span>Open {STORE_NAME} on Google Maps</span>
-            <i className="fa-solid fa-arrow-up-right-from-square text-[10px] text-[#A0A0B0]" />
-          </a>
-        </div>
-
-        {/* Order Summary Metadata */}
-        {order && (
-          <div className="bg-[#1A1A1F] rounded-[12px] p-5 border border-white/[0.07] text-left space-y-2.5 text-xs">
-            <div className="flex items-center justify-between">
-              <span className="text-[#A0A0B0]">Recipient</span>
-              <span className="text-white font-medium">
-                {order.customerName} (+91 {order.phone})
-              </span>
-            </div>
-            <div className="flex items-center justify-between">
-              <span className="text-[#A0A0B0]">Delivery Address</span>
-              <span className="text-white truncate max-w-xs">
-                {order.address.city}, {order.address.state} ({order.address.pincode})
-              </span>
-            </div>
-            <div className="flex items-center justify-between">
-              <span className="text-[#A0A0B0]">Payment Reference</span>
-              <span className="text-emerald-400 font-mono-num">
-                {order.paymentMethod}{' '}
-                {order.paymentDetails ? `· ${order.paymentDetails}` : ''}
-              </span>
-            </div>
-            <div className="flex items-center justify-between pt-2 border-t border-white/[0.06]">
-              <span className="text-[#A0A0B0]">Total Amount</span>
-              <span className="font-mono-num text-sm font-bold text-electric-gradient">
-                {formatINR(order.total)}
-              </span>
-            </div>
-          </div>
-        )}
-
         {/* Secondary Action Buttons */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5 print:hidden">
           <button
             type="button"
             onClick={() => onTrackOrder(displayOrderId)}

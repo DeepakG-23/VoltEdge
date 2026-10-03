@@ -19,6 +19,7 @@ import {
   WishlistView,
 } from './components/StoreViews';
 import {
+  AuditLogEntry,
   CartItem,
   DEFAULT_HOME_PAGE_CONFIG,
   HomePageConfig,
@@ -27,6 +28,7 @@ import {
   OrderStatus,
   Product,
   ProductReview,
+  SEED_AUDIT_LOGS,
   SEED_ORDERS,
   SEED_PRODUCTS,
   STORE_EMAIL,
@@ -70,7 +72,39 @@ const STORAGE_KEYS = {
   WISHLIST: 'voltedge_wishlist_v1',
   PROFILE: 'voltedge_profile_v1',
   HOME_CONFIG: 'voltedge_home_config_v1',
+  AUDIT_LOGS: 'voltedge_audit_logs_v1',
 };
+
+/**
+ * Protected Route Guard Component
+ * Ensures unauthorized visitors attempting direct URL manipulation to access /admin
+ * are immediately blocked and redirected to the home page without viewing admin data.
+ */
+function AdminProtectedRoute({
+  isAdminAuthenticated,
+  onRedirectUnauthorized,
+  children,
+}: {
+  isAdminAuthenticated: boolean;
+  onRedirectUnauthorized: () => void;
+  children: React.ReactNode;
+}) {
+  const hasSession =
+    isAdminAuthenticated &&
+    sessionStorage.getItem('voltedge_admin_auth') === 'true';
+
+  useEffect(() => {
+    if (!hasSession) {
+      onRedirectUnauthorized();
+    }
+  }, [hasSession, onRedirectUnauthorized]);
+
+  if (!hasSession) {
+    return null;
+  }
+
+  return <>{children}</>;
+}
 
 export default function App() {
   // Firebase Auth User State & Owner Admin Session State
@@ -186,6 +220,58 @@ export default function App() {
     };
   });
 
+  // Local State Audit Log for Admin Operations & Auditing
+  const [auditLogs, setAuditLogs] = useState<AuditLogEntry[]>(() => {
+    try {
+      const saved = localStorage.getItem(STORAGE_KEYS.AUDIT_LOGS);
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          return parsed;
+        }
+      }
+    } catch {
+      // ignore
+    }
+    return SEED_AUDIT_LOGS;
+  });
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(STORAGE_KEYS.AUDIT_LOGS, JSON.stringify(auditLogs));
+    } catch {
+      // ignore
+    }
+  }, [auditLogs]);
+
+  const logAdminAction = (
+    action: string,
+    details: string,
+    entityId?: string | number,
+    category?: AuditLogEntry['category']
+  ) => {
+    const newEntry: AuditLogEntry = {
+      id: `log-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
+      timestamp: Date.now(),
+      action,
+      details,
+      actor: 'Shaikh Shoeb (Admin)',
+      entityId,
+      category: category || 'system',
+    };
+    setAuditLogs((prev) => [newEntry, ...prev.slice(0, 99)]);
+  };
+
+  const handleClearAuditLogs = () => {
+    setAuditLogs([]);
+    try {
+      localStorage.removeItem(STORAGE_KEYS.AUDIT_LOGS);
+    } catch {
+      // ignore
+    }
+    showToast('Admin audit logs cleared');
+  };
+
   // Persisted Home Page Configuration (Hero Division, Sliding Sales Bar, Trending Section)
   const [homeConfig, setHomeConfig] = useState<HomePageConfig>(() => {
     try {
@@ -266,13 +352,22 @@ export default function App() {
     }
   }, [customerProfile]);
 
-  // Hash Route State
+  // Hash Route State (Protected with Session Verification for /admin)
   const [hashRoute, setHashRoute] = useState<string>(() => {
-    if (window.location.pathname === '/admin') {
+    const rawPath = window.location.pathname;
+    const rawHash = window.location.hash;
+    const isTargetingAdmin =
+      rawPath === '/admin' || rawHash.startsWith('#/admin');
+    if (isTargetingAdmin) {
+      const isAuth = sessionStorage.getItem('voltedge_admin_auth') === 'true';
+      if (!isAuth) {
+        window.history.replaceState(null, '', '#/home');
+        return '#/home';
+      }
       window.location.hash = '#/admin';
       return '#/admin';
     }
-    return window.location.hash || '#/home';
+    return rawHash || '#/home';
   });
 
   // Filter & Search State
@@ -496,8 +591,27 @@ export default function App() {
   const handleAdminLoginSuccess = () => {
     sessionStorage.setItem('voltedge_admin_auth', 'true');
     setIsAdminAuthenticated(true);
+    logAdminAction(
+      'Admin Login',
+      'Store Owner Shaikh Shoeb authenticated into Operations Console.',
+      undefined,
+      'auth'
+    );
     showToast('Welcome Store Owner! Opening Admin Operations Console...');
     navigate('#/admin');
+  };
+
+  const handleAdminLogout = () => {
+    logAdminAction(
+      'Admin Logout',
+      'Store Owner signed out of Admin Console.',
+      undefined,
+      'auth'
+    );
+    sessionStorage.removeItem('voltedge_admin_auth');
+    setIsAdminAuthenticated(false);
+    showToast('Logged out of Admin Console');
+    navigate('#/home');
   };
 
   const handleCustomerLoginSuccess = (loginId: string, displayName?: string) => {
@@ -571,10 +685,20 @@ export default function App() {
     }
   };
 
-  // Listen to hash changes & scroll
+  // Listen to hash changes & scroll with Route Guard protection for /admin
   useEffect(() => {
     const onHashChange = () => {
       const h = window.location.hash || '#/home';
+      if (h.startsWith('#/admin')) {
+        const isAuth =
+          sessionStorage.getItem('voltedge_admin_auth') === 'true';
+        if (!isAuth) {
+          showToast('Access denied: Store Owner login required.');
+          window.history.replaceState(null, '', '#/home');
+          setHashRoute('#/home');
+          return;
+        }
+      }
       if (h === '#/cart') {
         setIsCartOpen(true);
         window.history.replaceState(null, '', '#/products');
@@ -598,6 +722,16 @@ export default function App() {
   }, []);
 
   const navigate = (hash: string) => {
+    if (hash.startsWith('#/admin')) {
+      const isAuth =
+        sessionStorage.getItem('voltedge_admin_auth') === 'true';
+      if (!isAuth) {
+        showToast('Access denied: Store Owner login required.');
+        window.location.hash = '#/login';
+        setHashRoute('#/login');
+        return;
+      }
+    }
     if (hash === '#/cart') {
       setIsCartOpen(true);
       return;
@@ -921,19 +1055,44 @@ export default function App() {
     const nextId =
       products.reduce((maxId, p) => Math.max(maxId, p.id), 0) + 1;
     setProducts((prev) => [{ ...newProd, id: nextId }, ...prev]);
+    logAdminAction(
+      'Product Added',
+      `Added product "${newProd.name}" (${formatINR(newProd.price)}, Stock: ${newProd.stock})`,
+      nextId,
+      'products'
+    );
   };
 
   const handleAdminUpdateProduct = (updated: Product) => {
     setProducts((prev) => prev.map((p) => (p.id === updated.id ? updated : p)));
+    logAdminAction(
+      'Product Updated',
+      `Updated product #${updated.id} "${updated.name}" (${formatINR(updated.price)}, Stock: ${updated.stock})`,
+      updated.id,
+      'products'
+    );
   };
 
   const handleAdminDeleteProduct = (productId: number) => {
+    const target = products.find((p) => p.id === productId);
     setProducts((prev) => prev.filter((p) => p.id !== productId));
+    logAdminAction(
+      'Product Deleted',
+      `Deleted product #${productId} "${target?.name || 'Item'}"`,
+      productId,
+      'products'
+    );
   };
 
   const handleAdminUpdateOrderStatus = (orderId: string, status: OrderStatus) => {
     setOrders((prev) =>
       prev.map((o) => (o.id === orderId ? { ...o, status } : o))
+    );
+    logAdminAction(
+      'Order Status Changed',
+      `Order #${orderId} status changed to ${status}`,
+      orderId,
+      'orders'
     );
   };
 
@@ -947,6 +1106,13 @@ export default function App() {
     setProducts(SEED_PRODUCTS);
     setOrders(SEED_ORDERS);
     setHomeConfig(DEFAULT_HOME_PAGE_CONFIG);
+    logAdminAction(
+      'Data Reset',
+      'Reset products, orders, and CMS configuration to factory seed data.',
+      undefined,
+      'system'
+    );
+    showToast('Catalog, orders, and CMS reset to initial seed data');
   };
 
   // Determine Active View from Hash
@@ -955,42 +1121,47 @@ export default function App() {
 
   const renderMainView = () => {
     if (hashRoute.startsWith('#/admin')) {
-      if (!isAdminAuthenticated) {
-        return (
-          <LoginOtpView
-            currentUser={currentUser}
-            profile={customerProfile}
-            isAdminAuthenticated={isAdminAuthenticated}
-            onAdminLoginSuccess={handleAdminLoginSuccess}
-            onCustomerLoginSuccess={handleCustomerLoginSuccess}
-            onPhoneVerifiedSuccess={handlePhoneVerifiedSuccess}
-            onGoogleSignIn={handleGoogleSignIn}
-            onNavigateAccount={() => navigate('#/account')}
-            onNavigateAdmin={() => navigate('#/admin')}
+      return (
+        <AdminProtectedRoute
+          isAdminAuthenticated={isAdminAuthenticated}
+          onRedirectUnauthorized={() => {
+            showToast('Access denied: Admin credentials required to view console.');
+            navigate('#/home');
+          }}
+        >
+          <AdminDashboard
+            products={products}
+            orders={orders}
+            homeConfig={homeConfig}
+            auditLogs={auditLogs}
+            onAddLog={(entry) =>
+              logAdminAction(
+                entry.action,
+                entry.details,
+                entry.entityId,
+                entry.category
+              )
+            }
+            onClearLogs={handleClearAuditLogs}
+            onUpdateHomeConfig={(cfg) => {
+              setHomeConfig(cfg);
+              logAdminAction(
+                'Home CMS Updated',
+                `Updated home page configuration (Hero, Sales ${cfg.salesPercentage}%, Trending items)`,
+                undefined,
+                'cms'
+              );
+            }}
+            onAddProduct={handleAdminAddProduct}
+            onUpdateProduct={handleAdminUpdateProduct}
+            onDeleteProduct={handleAdminDeleteProduct}
+            onUpdateOrderStatus={handleAdminUpdateOrderStatus}
+            onResetDemoData={handleResetDemoData}
+            onExitAdmin={() => navigate('#/home')}
+            onAdminLogout={handleAdminLogout}
             showToast={showToast}
           />
-        );
-      }
-
-      return (
-        <AdminDashboard
-          products={products}
-          orders={orders}
-          homeConfig={homeConfig}
-          onUpdateHomeConfig={setHomeConfig}
-          onAddProduct={handleAdminAddProduct}
-          onUpdateProduct={handleAdminUpdateProduct}
-          onDeleteProduct={handleAdminDeleteProduct}
-          onUpdateOrderStatus={handleAdminUpdateOrderStatus}
-          onResetDemoData={handleResetDemoData}
-          onExitAdmin={() => navigate('#/home')}
-          onAdminLogout={() => {
-            sessionStorage.removeItem('voltedge_admin_auth');
-            setIsAdminAuthenticated(false);
-            navigate('#/login');
-          }}
-          showToast={showToast}
-        />
+        </AdminProtectedRoute>
       );
     }
 

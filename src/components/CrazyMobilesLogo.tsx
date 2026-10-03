@@ -1,7 +1,7 @@
 import React from 'react';
 
 interface LogoProps {
-  variant?: 'full' | 'horizontal' | 'compact' | 'icon-only';
+  variant?: 'full' | 'horizontal' | 'compact' | 'icon-only' | 'stacked';
   size?: 'xs' | 'sm' | 'md' | 'lg' | 'xl';
   className?: string;
   showSubtitle?: boolean;
