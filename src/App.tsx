@@ -388,6 +388,7 @@ export default function App() {
   });
   const [lastPlacedOrder, setLastPlacedOrder] = useState<Order | null>(null);
   const [isScrolled, setIsScrolled] = useState<boolean>(false);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState<boolean>(false);
   const [toasts, setToasts] = useState<ToastMessage[]>([]);
 
   const handleSetUserDevice = (deviceModel: string) => {
@@ -1517,7 +1518,7 @@ export default function App() {
           </div>
 
           {/* ZONE 3: Wishlist Icon, Cart Icon (with animated badge) & Account / Admin Icon */}
-          <div className="flex items-center gap-2.5 shrink-0">
+          <div className="flex items-center gap-2 lg:gap-2.5 shrink-0">
             <a
               href={STORE_MAPS_URL}
               target="_blank"
@@ -1534,7 +1535,7 @@ export default function App() {
               onClick={() => navigate('#/wishlist')}
               aria-label="Open Wishlist"
               title="Wishlist (#/wishlist)"
-              className={`relative h-10 px-3.5 rounded-[8px] border flex items-center gap-2 transition-colors ${
+              className={`relative h-10 px-3.5 rounded-[8px] border flex items-center gap-2 transition-colors hidden md:flex ${
                 hashRoute.startsWith('#/wishlist')
                   ? 'bg-[#1A1A1F] border-[#FF6B35]/60 text-white'
                   : 'bg-[#1A1A1F] hover:bg-[#23232C] border-white/10 text-white'
@@ -1577,7 +1578,7 @@ export default function App() {
               onClick={() => navigate('#/account')}
               aria-label="Customer Account Settings"
               title="Account Settings (#/account)"
-              className={`h-10 px-3.5 rounded-[8px] border text-xs font-medium flex items-center gap-2 transition-colors whitespace-nowrap ${
+              className={`h-10 px-3.5 rounded-[8px] border text-xs font-medium flex items-center gap-2 transition-colors whitespace-nowrap hidden md:flex ${
                 hashRoute.startsWith('#/account') || hashRoute.startsWith('#/login')
                   ? 'bg-electric-gradient text-white border-transparent shadow-electric-glow'
                   : 'bg-[#1A1A1F] hover:bg-[#23232C] border-white/10 text-white'
@@ -1593,7 +1594,7 @@ export default function App() {
                 onClick={() => navigate('#/admin')}
                 aria-label="Store Owner Admin Console"
                 title="Store Owner Admin Console (#/admin)"
-                className={`h-10 px-3 rounded-[8px] border text-xs font-medium flex items-center gap-1.5 transition-colors whitespace-nowrap ${
+                className={`h-10 px-3 rounded-[8px] border text-xs font-medium flex items-center gap-1.5 transition-colors whitespace-nowrap hidden md:flex ${
                   isAdminRoute
                     ? 'bg-electric-gradient text-white border-transparent'
                     : 'bg-[#1A1A1F] hover:bg-[#23232C] border-[#6C63FF]/50 text-white'
@@ -1609,7 +1610,7 @@ export default function App() {
                 type="button"
                 onClick={handleGoogleSignOut}
                 title={`Signed in as ${currentUser.email} (Click to Sign Out)`}
-                className="h-10 px-2.5 rounded-[8px] bg-[#1A1A1F] hover:bg-[#23232C] border border-[#6C63FF]/50 text-xs font-medium text-white flex items-center gap-1.5 transition-colors whitespace-nowrap"
+                className="h-10 px-2.5 rounded-[8px] bg-[#1A1A1F] hover:bg-[#23232C] border border-[#6C63FF]/50 text-xs font-medium text-white flex items-center gap-1.5 transition-colors whitespace-nowrap hidden md:flex"
               >
                 <span className="w-5 h-5 rounded-full bg-electric-gradient text-[10px] font-bold flex items-center justify-center text-white shrink-0">
                   {(currentUser.displayName || currentUser.email || 'U')
@@ -1621,15 +1622,252 @@ export default function App() {
               <button
                 type="button"
                 onClick={() => navigate('#/login')}
-                className="h-10 px-3.5 rounded-[8px] bg-electric-gradient text-white text-xs font-semibold shadow-electric-glow hover:scale-[1.02] transition-all flex items-center gap-2 whitespace-nowrap"
+                className="h-10 px-3.5 rounded-[8px] bg-electric-gradient text-white text-xs font-semibold shadow-electric-glow hover:scale-[1.02] transition-all flex items-center gap-2 whitespace-nowrap hidden md:flex"
               >
                 <i className="fa-solid fa-right-to-bracket text-xs" />
                 <span className="hidden sm:inline">Login</span>
               </button>
             )}
+
+            {/* HAMBURGER BUTTON (Three lines mobile/tablet toggle button) */}
+            <button
+              type="button"
+              onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+              aria-label="Toggle Navigation Menu"
+              className="h-10 w-10 rounded-[8px] bg-[#1A1A1F] hover:bg-[#23232C] border border-white/10 text-[#A0A0B0] hover:text-white flex items-center justify-center md:hidden transition-colors"
+            >
+              <i className={`fa-solid ${isMobileMenuOpen ? 'fa-xmark' : 'fa-bars'} text-sm`} />
+            </button>
           </div>
         </div>
       </header>
+
+      {/* MOBILE RESPONSIVE DRAWER OVERLAY & DROPDOWN MENU */}
+      {isMobileMenuOpen && (
+        <>
+          {/* Semi-transparent Backdrop with Blur */}
+          <div
+            onClick={() => setIsMobileMenuOpen(false)}
+            className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm md:hidden"
+          />
+
+          {/* Slide-out Sidebar Drawer */}
+          <div className="fixed inset-y-0 right-0 z-50 w-[300px] max-w-full bg-[#0E0E12] border-l border-white/[0.08] shadow-2xl p-5 flex flex-col justify-between md:hidden animate-page-enter overflow-y-auto">
+            <div className="space-y-6">
+              {/* Drawer Header with Close button */}
+              <div className="flex items-center justify-between pb-4 border-b border-white/[0.08]">
+                <CrazyMobilesLogo variant="horizontal" size="sm" />
+                <button
+                  type="button"
+                  onClick={() => setIsMobileMenuOpen(false)}
+                  aria-label="Close Navigation Menu"
+                  className="w-9 h-9 rounded-lg bg-[#1A1A1F] hover:bg-white/[0.06] text-[#A0A0B0] hover:text-white flex items-center justify-center transition-colors border border-white/5"
+                >
+                  <i className="fa-solid fa-xmark text-sm" />
+                </button>
+              </div>
+
+              {/* Mobile Search Input with high touch comfort */}
+              <div className="relative">
+                <div className="flex items-center rounded-full bg-[#141419] border border-white/10 px-4 py-2.5">
+                  <i className="fa-solid fa-magnifying-glass text-[#6B6B7B] text-xs mr-3" />
+                  <input
+                    type="text"
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' && searchQuery.trim()) {
+                        navigate('#/products');
+                        setIsMobileMenuOpen(false);
+                      }
+                    }}
+                    placeholder="Search accessories..."
+                    className="w-full bg-transparent text-xs text-white placeholder-[#6B6B7B] focus:outline-none"
+                  />
+                  {searchQuery && (
+                    <button
+                      type="button"
+                      onClick={() => setSearchQuery('')}
+                      className="text-[#6B6B7B] hover:text-white text-xs ml-1"
+                    >
+                      <i className="fa-solid fa-xmark" />
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              {/* Touch-Friendly Core Navigation Links */}
+              <nav className="flex flex-col gap-2">
+                <a
+                  href="#/home"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    navigate('#/home');
+                    setIsMobileMenuOpen(false);
+                  }}
+                  className={`p-3.5 rounded-[12px] hover:bg-white/[0.04] text-xs font-semibold flex items-center gap-3 transition-colors ${
+                    hashRoute === '#/home' || hashRoute === '' ? 'text-[#84F229] bg-[#84F229]/5 border border-[#84F229]/20' : 'text-[#A0A0B0] border border-transparent'
+                  }`}
+                >
+                  <i className="fa-solid fa-house w-5 text-center text-sm" />
+                  <span>Home</span>
+                </a>
+
+                <a
+                  href="#/products"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    setSelectedCategory('All');
+                    navigate('#/products');
+                    setIsMobileMenuOpen(false);
+                  }}
+                  className={`p-3.5 rounded-[12px] hover:bg-white/[0.04] text-xs font-semibold flex items-center gap-3 transition-colors ${
+                    hashRoute.startsWith('#/products') ? 'text-[#6C63FF] bg-[#6C63FF]/5 border border-[#6C63FF]/20' : 'text-[#A0A0B0] border border-transparent'
+                  }`}
+                >
+                  <i className="fa-solid fa-layer-group w-5 text-center text-sm" />
+                  <span>Product Catalog</span>
+                </a>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsYourDeviceModalOpen(true);
+                    setIsMobileMenuOpen(false);
+                  }}
+                  className="p-3.5 rounded-[12px] hover:bg-white/[0.04] text-xs font-semibold flex items-center gap-3 transition-colors text-left text-white border border-transparent w-full"
+                >
+                  <i className="fa-solid fa-mobile-screen-button w-5 text-center text-[#FF6B35] text-sm" />
+                  <div className="flex-1 min-w-0">
+                    <span className="block">Your Device</span>
+                    {userSelectedDevice && (
+                      <span className="block text-[10px] text-emerald-400 font-mono-num font-bold">
+                        {userSelectedDevice.split(' ').pop()}
+                      </span>
+                    )}
+                  </div>
+                  <i className="fa-solid fa-chevron-right text-[10px] text-[#6B6B7B]" />
+                </button>
+
+                <a
+                  href="#store-location"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    setIsMobileMenuOpen(false);
+                    handleNavigateToStoreLocation();
+                  }}
+                  className="p-3.5 rounded-[12px] hover:bg-white/[0.04] text-xs font-semibold flex items-center gap-3 text-[#84F229] border border-transparent transition-colors"
+                >
+                  <i className="fa-solid fa-store w-5 text-center text-sm" />
+                  <span>Store Location</span>
+                </a>
+
+                <a
+                  href="#/wishlist"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    navigate('#/wishlist');
+                    setIsMobileMenuOpen(false);
+                  }}
+                  className={`p-3.5 rounded-[12px] hover:bg-white/[0.04] text-xs font-semibold flex items-center justify-between gap-3 transition-colors ${
+                    hashRoute.startsWith('#/wishlist') ? 'text-[#FF6B35] bg-[#FF6B35]/5 border border-[#FF6B35]/20' : 'text-[#A0A0B0] border border-transparent'
+                  }`}
+                >
+                  <div className="flex items-center gap-3">
+                    <i className="fa-solid fa-heart w-5 text-center text-[#FF6B35] text-sm" />
+                    <span>Wishlist</span>
+                  </div>
+                  <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-[#FF6B35]/15 text-[#FF6B35] border border-[#FF6B35]/30 font-mono-num">
+                    {wishlistIds.length}
+                  </span>
+                </a>
+
+                <a
+                  href="#/account"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    navigate('#/account');
+                    setIsMobileMenuOpen(false);
+                  }}
+                  className={`p-3.5 rounded-[12px] hover:bg-white/[0.04] text-xs font-semibold flex items-center gap-3 transition-colors ${
+                    hashRoute.startsWith('#/account') ? 'text-[#6C63FF] bg-[#6C63FF]/5 border border-[#6C63FF]/20' : 'text-[#A0A0B0] border border-transparent'
+                  }`}
+                >
+                  <i className="fa-solid fa-user w-5 text-center text-sm" />
+                  <span>Account Settings</span>
+                </a>
+
+                {isAdminAuthenticated && (
+                  <a
+                    href="#/admin"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      navigate('#/admin');
+                      setIsMobileMenuOpen(false);
+                    }}
+                    className={`p-3.5 rounded-[12px] hover:bg-[#6C63FF]/10 text-xs font-semibold flex items-center gap-3 transition-colors ${
+                      isAdminRoute ? 'text-white bg-[#6C63FF]/20 border border-[#6C63FF]/30' : 'text-[#9D95FF] border border-transparent'
+                    }`}
+                  >
+                    <i className="fa-solid fa-sliders w-5 text-center text-[#FF6B35] text-sm" />
+                    <span>Owner Admin Console</span>
+                  </a>
+                )}
+              </nav>
+            </div>
+
+            {/* User Profile / Authentication Section with generous touch area */}
+            <div className="pt-4 border-t border-white/[0.08] mt-6 flex flex-col gap-3">
+              {currentUser ? (
+                <div className="flex items-center gap-3 p-3 rounded-[12px] bg-[#141419] border border-white/5">
+                  <div className="w-10 h-10 rounded-full bg-electric-gradient text-sm font-bold flex items-center justify-center text-white shrink-0 shadow-lg">
+                    {(currentUser.displayName || currentUser.email || 'U').charAt(0).toUpperCase()}
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="text-xs font-bold text-white truncate">
+                      {currentUser.displayName || 'VoltEdge User'}
+                    </p>
+                    <p className="text-[10px] text-[#A0A0B0] truncate">
+                      {currentUser.email}
+                    </p>
+                  </div>
+                </div>
+              ) : (
+                <div className="p-3 text-center rounded-[12px] bg-[#141419] border border-white/5">
+                  <p className="text-xs font-semibold text-white">Guest Account</p>
+                  <p className="text-[10px] text-[#A0A0B0] mt-0.5">Log in to track orders & view history</p>
+                </div>
+              )}
+
+              {currentUser ? (
+                <button
+                  type="button"
+                  onClick={() => {
+                    handleGoogleSignOut();
+                    setIsMobileMenuOpen(false);
+                  }}
+                  className="w-full py-3.5 rounded-[12px] bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/20 text-xs font-bold text-center transition-all flex items-center justify-center gap-2"
+                >
+                  <i className="fa-solid fa-right-from-bracket text-xs" />
+                  <span>Sign Out Store Session</span>
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => {
+                    navigate('#/login');
+                    setIsMobileMenuOpen(false);
+                  }}
+                  className="w-full py-3.5 rounded-[12px] bg-electric-gradient text-white text-xs font-bold shadow-electric-glow hover:scale-[1.01] transition-all text-center flex items-center justify-center gap-2"
+                >
+                  <i className="fa-solid fa-right-to-bracket text-xs" />
+                  <span>Login / Register Account</span>
+                </button>
+              )}
+            </div>
+          </div>
+        </>
+      )}
 
       {/* MAIN VIEWPORT */}
       <main className="flex-1">{renderMainView()}</main>

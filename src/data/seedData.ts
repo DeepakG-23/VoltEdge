@@ -59,6 +59,7 @@ export interface Product {
     url: string;
   }[];
   tagline: string;
+  shortDescription?: string;
   description: string;
   colors: ProductColor[];
   sizes: string[];

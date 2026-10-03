@@ -12,7 +12,7 @@ const __dirname = path.dirname(__filename);
 const app = express();
 const PORT = Number(process.env.PORT) || 3000;
 
-app.use(express.json());
+app.use(express.json({ limit: '10mb' }));
 
 // Initialize Gemini Client with User-Agent header as required
 const ai = new GoogleGenAI({
@@ -24,75 +24,176 @@ const ai = new GoogleGenAI({
   },
 });
 
-// API Route: AI Product Importer (URL Scraper & Category/Spec Extractor)
+// Helper to extract meta content
+function extractMeta(html: string, propertyOrName: string): string {
+  const regex = new RegExp(
+    `<meta\\s+(?:property|name)=["']${propertyOrName}["']\\s+content=["']([^"']+)["']|<meta\\s+content=["']([^"']+)["']\\s+(?:property|name)=["']${propertyOrName}["']`,
+    'i'
+  );
+  const match = html.match(regex);
+  return match ? (match[1] || match[2] || '').trim() : '';
+}
+
+// -----------------------------------------------------------------------------
+// API ROUTE 1: AI Product Importer (Universal URL Scraper & Spec Extractor)
+// -----------------------------------------------------------------------------
 app.post('/api/admin/scrape-product', async (req, res) => {
   try {
     const { url } = req.body;
     if (!url || typeof url !== 'string' || !url.trim()) {
-      return res.status(400).json({ error: 'Valid product URL is required' });
+      return res.status(400).json({ error: 'Valid product URL or search name is required' });
     }
 
-    const cleanUrl = url.trim();
+    const cleanInput = url.trim();
+    const isUrl = cleanInput.startsWith('http://') || cleanInput.startsWith('https://');
+
     let pageText = '';
     let fetchedTitle = '';
+    let ogDescription = '';
+    let ogImage = '';
+    let extractedImages: string[] = [];
+    let jsonLdData: any = null;
 
-    try {
-      const pageRes = await fetch(cleanUrl, {
-        headers: {
-          'User-Agent':
-            'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-          Accept:
-            'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8',
-        },
-        signal: AbortSignal.timeout(6000),
-      });
+    if (isUrl) {
+      try {
+        const pageRes = await fetch(cleanInput, {
+          headers: {
+            'User-Agent':
+              'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
+            Accept:
+              'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8',
+            'Accept-Language': 'en-US,en;q=0.9',
+          },
+          redirect: 'follow',
+          signal: AbortSignal.timeout(7000),
+        });
 
-      if (pageRes.ok) {
-        const html = await pageRes.text();
+        if (pageRes.ok) {
+          const html = await pageRes.text();
 
-        // Extract Title tag
-        const titleMatch = html.match(/<title[^>]*>([^<]+)<\/title>/i);
-        if (titleMatch) fetchedTitle = titleMatch[1].trim();
+          // Extract Title tag
+          const titleMatch = html.match(/<title[^>]*>([^<]+)<\/title>/i);
+          if (titleMatch) fetchedTitle = titleMatch[1].trim();
 
-        // Strip scripts, styles, HTML tags
-        pageText = html
-          .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '')
-          .replace(/<style\b[^<]*(?:(?!<\/style>)<[^<]*)*<\/style>/gi, '')
-          .replace(/<[^>]+>/g, ' ')
-          .replace(/\s+/g, ' ')
-          .slice(0, 12000);
+          // Extract OpenGraph tags
+          const ogTitle = extractMeta(html, 'og:title');
+          if (ogTitle && (!fetchedTitle || ogTitle.length > fetchedTitle.length)) {
+            fetchedTitle = ogTitle;
+          }
+          ogDescription =
+            extractMeta(html, 'og:description') ||
+            extractMeta(html, 'description');
+          ogImage =
+            extractMeta(html, 'og:image') ||
+            extractMeta(html, 'twitter:image');
+
+          if (ogImage) {
+            extractedImages.push(ogImage);
+          }
+
+          // Check for JSON-LD Schema
+          const jsonLdMatches = html.match(
+            /<script[^>]+type=["']application\/ld\+json["'][^>]*>([\s\S]*?)<\/script>/gi
+          );
+          if (jsonLdMatches) {
+            for (const block of jsonLdMatches.slice(0, 3)) {
+              try {
+                const rawJson = block.replace(
+                  /<script[^>]*>|<\/script>/gi,
+                  ''
+                );
+                const parsed = JSON.parse(rawJson);
+                if (
+                  parsed['@type'] === 'Product' ||
+                  parsed['@type'] === 'IndividualProduct' ||
+                  (Array.isArray(parsed['@graph']) &&
+                    parsed['@graph'].some((g: any) => g['@type'] === 'Product'))
+                ) {
+                  jsonLdData = parsed;
+                  if (parsed.image) {
+                    const imgs = Array.isArray(parsed.image)
+                      ? parsed.image
+                      : [parsed.image];
+                    imgs.forEach((img: any) => {
+                      const src = typeof img === 'string' ? img : img.url;
+                      if (src && !extractedImages.includes(src))
+                        extractedImages.push(src);
+                    });
+                  }
+                  break;
+                }
+              } catch {
+                // Ignore JSON-LD parse errors
+              }
+            }
+          }
+
+          // Extract main text content
+          pageText = html
+            .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '')
+            .replace(/<style\b[^<]*(?:(?!<\/style>)<[^<]*)*<\/style>/gi, '')
+            .replace(/<nav\b[^<]*(?:(?!<\/nav>)<[^<]*)*<\/nav>/gi, '')
+            .replace(/<footer\b[^<]*(?:(?!<\/footer>)<[^<]*)*<\/footer>/gi, '')
+            .replace(/<[^>]+>/g, ' ')
+            .replace(/\s+/g, ' ')
+            .slice(0, 14000);
+        }
+      } catch {
+        // If fetching fails or is blocked, Gemini will use live search grounding
       }
-    } catch {
-      // If fetching fails, proceed with Gemini analyzing the URL string
     }
 
-    const prompt = `You are an expert e-commerce product analysis engine for 'Crazy Mobile' mobile accessories store.
-Analyze the following product page content and URL to identify product category, specifications, pricing, brand, and details.
+    const prompt = `You are an expert e-commerce product catalog importer for 'Crazy Mobile' mobile accessories store (India).
+Analyze the following input, which is a ${isUrl ? 'product page URL' : 'product name / search query'}.
+Identify the product category, specifications, pricing in Indian Rupees (INR ₹), brand, compatibility, and customer-friendly marketing descriptions.
 
-PRODUCT URL: ${cleanUrl}
-PAGE TITLE: ${fetchedTitle || 'N/A'}
-PAGE CONTENT SUMMARY:
-${pageText || 'Content could not be directly fetched; analyze product details from the URL path, keywords, brand, and model numbers.'}
+INPUT: ${cleanInput}
+${isUrl ? `- INPUT_TYPE: URL` : `- INPUT_TYPE: PRODUCT_NAME_SEARCH_QUERY`}
+${fetchedTitle ? `- FETCHED TITLE: ${fetchedTitle}` : ''}
+${ogDescription ? `- OG DESCRIPTION: ${ogDescription}` : ''}
+${jsonLdData ? `- JSON-LD SCHEMA: ${JSON.stringify(jsonLdData).slice(0, 1500)}` : ''}
+${extractedImages.length > 0 ? `- DISCOVERED IMAGES: ${JSON.stringify(extractedImages)}` : ''}
+${pageText ? `- PAGE CONTENT SUMMARY: ${pageText}` : '- NO DIRECT WEBPAGE TEXT CONTENT FETCHED (Use the Google Search tool and your own knowledge to retrieve accurate specs, prices, models, colors, materials, and features for this product)'}
 
-CATEGORIES AVAILABLE (MUST CHOOSE EXACTLY ONE):
+MANDATORY CATEGORIES (MUST CHOOSE EXACTLY ONE):
 - 'Mobile Covers'
 - 'Tempered Glass'
 - 'Earphones'
+- 'Earbuds'
 - 'Headphones'
 - 'Neckbands'
-- 'Wired Accessories'
-- 'Wireless Accessories'
-- 'Chargers'
 - 'Cables'
+- 'Chargers'
 - 'Power Banks'
 - 'Smart Watches'
+- 'Wired Accessories'
+- 'Wireless Accessories'
 
-EXTRACT CATEGORY-SPECIFIC SPECIFICATIONS (ARRAY OF {label, value}):
-- For Chargers: Output Power (e.g. 65W GaN), Ports (e.g. 2x USB-C + 1x USB-A), Fast Charging Tech (e.g. PD 3.0 / PPS), Input Voltage, Safety Certification
-- For Cables: Length (e.g. 1.2m), Connector (e.g. USB-C to USB-C), Max Wattage (e.g. 100W PD), Data Speed (e.g. 480 Mbps), Jacket Material (e.g. Nylon Braided)
-- For Mobile Covers: Material (e.g. TPU & Polycarbonate), Drop Rating (e.g. 12ft Military Grade), MagSafe (e.g. MagSafe Compatible), Screen/Camera Lip, Finish (e.g. Matte Anti-Scratch)
-- For Tempered Glass: Hardness (e.g. 9H Hardness), Glass Type (e.g. 28° Anti-Spy Privacy Glass), Edge Contour (e.g. 3D Curved Full Edge), Oleophobic Coating, Thickness (e.g. 0.33mm)
-- For Earphones/Earbuds/Headphones/Neckbands: Driver Size (e.g. 13mm Dynamic), Battery Playtime (e.g. 40 Hours), ANC Level (e.g. 35dB Hybrid ANC), Bluetooth Version (e.g. v5.4), Water Resistance (e.g. IPX5)
+SPECIFICATIONS EXTRACTION GUIDELINES:
+- Mobile Covers: Material (e.g. TPU, Silicone, Polycarbonate, Leather), Drop Protection (e.g. 10ft Military Grade), MagSafe (Yes/No), Raised Lip (e.g. 1.5mm Screen & Camera Lip), Finish (e.g. Matte Anti-Scratch)
+- Tempered Glass: Hardness (e.g. 9H Hardness), Glass Type (e.g. 2.5D Full Cover / 28° Privacy / Anti-Blue Ray), Oleophobic Coating (Yes), Thickness (e.g. 0.33mm), Edge (3D Curved Full Glue)
+- Cables: Cable Type (e.g. USB-A → USB-C / USB-C → USB-C / USB-C → Lightning / Lightning → USB-A / Micro USB / AUX / HDMI), Length (0.5m / 1m / 1.2m / 1.5m / 2m), Max Wattage (e.g. 100W PD / 60W / 18W), Power Delivery (Yes/No), Current Rating (e.g. 3A / 5A), Braided (Yes/No), Material (Braided Nylon, PVC, TPU)
+- Chargers: Max Output (e.g. 65W GaN / 33W Fast Charger / 20W PD), Input/Output Voltage, Ports (Number of Ports, USB-A, USB-C, USB-C PD), Charging Technology (Power Delivery, Quick Charge, PPS), Safety (Over Voltage Protection, Over Current Protection, Over Temperature Protection, Short Circuit Protection, Surge Protection)
+- Earbuds/Earphones/Neckbands/Headphones: Driver Size (e.g. 10mm, 13mm, 40mm), Driver Type, Bluetooth Version, Battery Capacity, Playtime/Playback Time, Charging Time, Features (ANC, ENC, Transparency, Low Latency, Gaming Mode), IP Rating
+- Power Banks: Capacity (e.g. 10,000 mAh, 20,000 mAh), Rated Capacity, Input/Output, Max Wattage, USB-A Ports, USB-C Ports, Number of Outputs, PD, Fast Charging, Wireless Charging, Safety Protection
+
+Generate:
+1. 'name': Clean, professional product title without excessive spam keywords (under 75 chars, e.g., "Anker PowerPort III 20W Fast Charger").
+2. 'brand': Brand name (e.g., Apple, Spigen, Anker, boAt, Crazy Mobile, Samsung, OnePlus, Ambrane, Baseus).
+3. 'price': Realistic Indian Rupee integer selling price (e.g. 799, 1299, 1999).
+4. 'originalPrice': MRP integer (must be higher than selling price for discount, e.g. 1999, 2999).
+5. 'shortDescription': A highly polished, marketing-ready 2-3 sentence customer-facing summary. It MUST translate raw specs (wattage, materials, drivers, drop rating, IP rating) into relatable, everyday customer benefits (e.g., "Rapidly power up your devices to 50% in just 25 minutes while maintaining low operating temperatures for maximum safety.").
+6. 'tagline': Catchy 1-sentence hook.
+7. 'description': Full multi-paragraph description with key highlights.
+8. 'specs': Array of 4-8 category-specific specifications {label, value}.
+9. 'compatibleBrands': Array of phone brands (e.g. ["Apple", "Samsung", "OnePlus"]).
+10. 'compatibleModels': Array of models (e.g. ["iPhone 16 Pro Max", "iPhone 15 Pro", "Galaxy S24 Ultra"]).
+11. 'highlights': Array of 4-6 bullet points of premium customer benefits.
+12. 'images': Array of image URLs (include discovered images, Google search images or reliable placeholders).
+13. 'seoTitle': High-CTR search title tag.
+14. 'seoDescription': 150-character meta description optimized for Google.
+15. 'seoKeywords': Comma-separated list of 5-8 relevant search terms.
+16. 'slug': Clean URL slug (e.g., "anker-powerport-iii-20w-fast-charger").
 
 Return structured JSON adhering strictly to the schema.`;
 
@@ -100,6 +201,7 @@ Return structured JSON adhering strictly to the schema.`;
       model: 'gemini-3.8-flash',
       contents: prompt,
       config: {
+        tools: [{ googleSearch: {} }],
         responseMimeType: 'application/json',
         responseSchema: {
           type: Type.OBJECT,
@@ -107,10 +209,13 @@ Return structured JSON adhering strictly to the schema.`;
             name: { type: Type.STRING },
             brand: { type: Type.STRING },
             category: { type: Type.STRING },
+            subcategory: { type: Type.STRING },
             price: { type: Type.NUMBER },
             originalPrice: { type: Type.NUMBER },
             tagline: { type: Type.STRING },
+            shortDescription: { type: Type.STRING },
             description: { type: Type.STRING },
+            warranty: { type: Type.STRING },
             specs: {
               type: Type.ARRAY,
               items: {
@@ -134,30 +239,136 @@ Return structured JSON adhering strictly to the schema.`;
               type: Type.ARRAY,
               items: { type: Type.STRING },
             },
-            colors: {
+            images: {
               type: Type.ARRAY,
-              items: {
-                type: Type.OBJECT,
-                properties: {
-                  name: { type: Type.STRING },
-                  hex: { type: Type.STRING },
-                },
-                required: ['name', 'hex'],
-              },
+              items: { type: Type.STRING },
             },
+            seoTitle: { type: Type.STRING },
+            seoDescription: { type: Type.STRING },
+            seoKeywords: {
+              type: Type.ARRAY,
+              items: { type: Type.STRING },
+            },
+            slug: { type: Type.STRING },
           },
-          required: ['name', 'brand', 'category', 'price', 'specs'],
+          required: [
+            'name',
+            'brand',
+            'category',
+            'price',
+            'specs',
+            'shortDescription',
+          ],
         },
       },
     });
 
     const parsedData = JSON.parse(geminiRes.text || '{}');
+    if (extractedImages.length > 0 && (!parsedData.images || parsedData.images.length === 0)) {
+      parsedData.images = extractedImages;
+    }
+
     return res.json({ success: true, data: parsedData });
   } catch (error: unknown) {
     const errMsg = error instanceof Error ? error.message : String(error);
     console.error('Error scraping product with Gemini:', errMsg);
     return res.status(500).json({
-      error: 'Failed to extract product specs from URL',
+      error: 'Failed to extract product specs from URL or search name',
+      details: errMsg,
+    });
+  }
+});
+
+// -----------------------------------------------------------------------------
+// API ROUTE 2: AI Helper to Monitor Form Specs & Auto-Generate Descriptions
+// -----------------------------------------------------------------------------
+app.post('/api/admin/generate-description', async (req, res) => {
+  try {
+    const {
+      name,
+      category,
+      brand,
+      specs,
+      warranty,
+      phoneBrand,
+      compatibleModels,
+      connectorType,
+      material,
+      wattage,
+      driverSize,
+      batteryPlaytime,
+    } = req.body;
+
+    const formattedSpecs = Array.isArray(specs)
+      ? specs
+          .filter((s: any) => s && s.label && s.value)
+          .map((s: any) => `${s.label}: ${s.value}`)
+          .join('\n')
+      : 'Standard specifications';
+
+    const prompt = `You are the lead marketing copywriter for 'Crazy Mobile', a premier smartphone & accessories destination in India.
+Your task is to monitor the following technical specifications and generate a highly polished, customer-friendly, marketing-ready product description.
+
+PRODUCT NAME: ${name || 'Crazy Mobile Accessory'}
+CATEGORY: ${category || 'Mobile Accessories'}
+BRAND: ${brand || 'Crazy Mobile'}
+PRIMARY PHONE BRAND: ${phoneBrand || 'Universal'}
+COMPATIBLE MODELS: ${compatibleModels || 'Universal'}
+CONNECTOR TYPE: ${connectorType || 'Standard'}
+WARRANTY: ${warranty || '1-Year Crazy Mobile Warranty'}
+ADDITIONAL CONTEXT: ${[material ? `Material: ${material}` : '', wattage ? `Wattage: ${wattage}` : '', driverSize ? `Driver: ${driverSize}` : '', batteryPlaytime ? `Battery: ${batteryPlaytime}` : ''].filter(Boolean).join(', ')}
+
+CURRENT TECHNICAL SPECIFICATIONS:
+${formattedSpecs}
+
+REQUIREMENTS:
+1. 'shortDescription': A highly compelling, concise, punchy, 2-3 sentence customer-facing summary. It MUST translate raw specs (like wattage, materials, driver diameter, drop rating, IP rating, etc.) into relatable, everyday customer benefits (e.g. "Rapidly charge your smartphone to 80% in just 30 minutes while keeping temperatures ultra-low" rather than dry jargon).
+2. 'tagline': A snappy, high-impact single-sentence headline hook (e.g. "Unleash true charging speeds without the heat.").
+3. 'highlights': Array of 4-6 bullet points articulating practical, benefit-focused buyer values.
+4. 'fullDescription': A compelling, professional 2-3 paragraph e-commerce product description detailing structural build quality, everyday usability, and peace-of-mind warranty assurance.
+5. 'seoTitle': High-CTR search title tag.
+6. 'seoDescription': 150-character meta description optimized for Google Search.
+7. 'seoKeywords': Comma-separated list of 5-8 relevant search terms.
+
+Return strictly valid JSON adhering to the schema.`;
+
+    const geminiRes = await ai.models.generateContent({
+      model: 'gemini-3.8-flash',
+      contents: prompt,
+      config: {
+        tools: [{ googleSearch: {} }],
+        responseMimeType: 'application/json',
+        responseSchema: {
+          type: Type.OBJECT,
+          properties: {
+            shortDescription: { type: Type.STRING },
+            tagline: { type: Type.STRING },
+            highlights: {
+              type: Type.ARRAY,
+              items: { type: Type.STRING },
+            },
+            fullDescription: { type: Type.STRING },
+            seoTitle: { type: Type.STRING },
+            seoDescription: { type: Type.STRING },
+            seoKeywords: { type: Type.STRING },
+          },
+          required: [
+            'shortDescription',
+            'tagline',
+            'highlights',
+            'fullDescription',
+          ],
+        },
+      },
+    });
+
+    const parsed = JSON.parse(geminiRes.text || '{}');
+    return res.json({ success: true, data: parsed });
+  } catch (error: unknown) {
+    const errMsg = error instanceof Error ? error.message : String(error);
+    console.error('Error generating description with Gemini:', errMsg);
+    return res.status(500).json({
+      error: 'Failed to generate marketing description',
       details: errMsg,
     });
   }
