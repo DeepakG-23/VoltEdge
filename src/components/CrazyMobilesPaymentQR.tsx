@@ -67,7 +67,7 @@ export const CrazyMobilesPaymentQR: React.FC<CrazyMobilesPaymentQRProps> = ({
       {/* Top Header Badge */}
       <div className="flex items-center justify-between gap-2 mb-3 pb-2.5 border-b border-slate-100">
         <div className="flex items-center gap-1.5 text-left">
-          <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse" />
+          <span className="w-2.5 h-2.5 rounded-full bg-blue-600 animate-pulse" />
           <span className="text-[11px] font-bold tracking-wider uppercase text-blue-900">
             Instant UPI Payment
           </span>
@@ -105,9 +105,9 @@ export const CrazyMobilesPaymentQR: React.FC<CrazyMobilesPaymentQRProps> = ({
             title="Copy UPI ID"
             className="ml-1 text-blue-600 hover:text-blue-800 p-1 text-xs shrink-0 transition-transform active:scale-95"
             aria-label="Copy UPI ID"
-          >
+            >
             {copied ? (
-              <span className="text-emerald-600 font-bold text-[11px]">Copied!</span>
+              <span className="text-blue-600 font-bold text-[11px]">Copied!</span>
             ) : (
               <i className="fa-regular fa-copy" />
             )}

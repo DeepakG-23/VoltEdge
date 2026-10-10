@@ -29,14 +29,14 @@ export const CrazyMobilesEmblem: React.FC<{
       aria-label="Crazy Mobiles Emblem"
     >
       <defs>
-        {/* Neon Lime Green Gradient */}
+        {/* Warm Amber Gold Accent Gradient */}
         <linearGradient id="cmNeonLime" x1="0%" y1="0%" x2="100%" y2="100%">
-          <stop offset="0%" stopColor="#A8FF3E" />
-          <stop offset="50%" stopColor="#84F229" />
-          <stop offset="100%" stopColor="#5BB716" />
+          <stop offset="0%" stopColor="#FBBF24" />
+          <stop offset="50%" stopColor="#F59E0B" />
+          <stop offset="100%" stopColor="#D97706" />
         </linearGradient>
 
-        {/* Dynamic Electric Blue / Cyan Gradient */}
+        {/* Dynamic Electric Blue / Slate Gradient */}
         <linearGradient id="cmElectricBlue" x1="0%" y1="0%" x2="100%" y2="100%">
           <stop offset="0%" stopColor="#2563EB" />
           <stop offset="60%" stopColor="#1D4ED8" />
@@ -51,7 +51,7 @@ export const CrazyMobilesEmblem: React.FC<{
 
         {/* Glow & Soft Drop Shadow */}
         <filter id="cmDropGlow" x="-20%" y="-20%" width="140%" height="140%">
-          <feDropShadow dx="0" dy="3" stdDeviation="4" floodColor="#84F229" floodOpacity="0.35" />
+          <feDropShadow dx="0" dy="3" stdDeviation="4" floodColor="#F59E0B" floodOpacity="0.35" />
         </filter>
         <filter id="cmBadgeShadow" x="-20%" y="-20%" width="140%" height="140%">
           <feDropShadow dx="0" dy="4" stdDeviation="5" floodColor="#0F172A" floodOpacity="0.22" />
@@ -172,7 +172,7 @@ export const CrazyMobilesWordmark: React.FC<{
 
       {showSubtitle && (
         <div className="flex items-center gap-1.5 mt-1">
-          <span className="w-1.5 h-1.5 rounded-full bg-[#84F229] shadow-sm animate-pulse" />
+          <span className="w-1.5 h-1.5 rounded-full bg-amber-400 shadow-sm animate-pulse" />
           <span
             className={`font-semibold tracking-wider uppercase text-[10px] sm:text-[11px] ${subTextColor}`}
           >

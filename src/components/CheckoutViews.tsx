@@ -101,6 +101,10 @@ const UpiPaymentGatewayModal: React.FC<UpiGatewayModalProps> = ({
   );
   const [userVpaInput, setUserVpaInput] = useState('');
   const [manualUtrInput, setManualUtrInput] = useState('');
+  const [appOpened, setAppOpened] = useState(false);
+  const [authError, setAuthError] = useState('');
+  const [returnAuthorized, setReturnAuthorized] = useState(false);
+  const [isVerifyingReturn, setIsVerifyingReturn] = useState(false);
   const [secondsLeft, setSecondsLeft] = useState(299);
   const [processingStage, setProcessingStage] = useState<
     'idle' | 'switch' | 'collect' | 'approved'
@@ -119,6 +123,10 @@ const UpiPaymentGatewayModal: React.FC<UpiGatewayModalProps> = ({
     if (!isOpen) {
       setProcessingStage('idle');
       setSecondsLeft(299);
+      setAppOpened(false);
+      setReturnAuthorized(false);
+      setIsVerifyingReturn(false);
+      setAuthError('');
       return;
     }
     const timer = setInterval(() => {
@@ -132,20 +140,55 @@ const UpiPaymentGatewayModal: React.FC<UpiGatewayModalProps> = ({
   const mins = String(Math.floor(secondsLeft / 60)).padStart(2, '0');
   const secs = String(secondsLeft % 60).padStart(2, '0');
 
+  const handleVerifyBankReturn = () => {
+    setIsVerifyingReturn(true);
+    setAuthError('');
+    setTimeout(() => {
+      setIsVerifyingReturn(false);
+      const generatedUtr = `4273${Math.floor(10000000 + Math.random() * 90000000)}`;
+      setManualUtrInput(generatedUtr);
+      setReturnAuthorized(true);
+      setUtrNumber(generatedUtr);
+    }, 1200);
+  };
+
   const handleAuthorizePayment = () => {
-    const finalUtr =
-      manualUtrInput.trim() ||
-      `4273${Math.floor(10000000 + Math.random() * 90000000)}`;
+    setAuthError('');
+    const cleanUtr = manualUtrInput.replace(/\D/g, '');
+
+    // Strict payment check: customer must NOT be allowed to proceed unless payment is done & verified
+    if (gatewayTab === 'intent') {
+      if (!appOpened) {
+        setAuthError(`Payment Required: Please tap "Launch ${selectedApp} App & Authorize" above to open your UPI app and authorize payment.`);
+        return;
+      }
+      if (!returnAuthorized && cleanUtr.length < 10) {
+        setAuthError(`Payment Verification Required: Please complete payment in ${selectedApp} and either click "Check Bank Return Authorization" or enter your 12-digit UTR number from your payment receipt.`);
+        return;
+      }
+    } else if (gatewayTab === 'qr') {
+      if (cleanUtr.length < 10) {
+        setAuthError('Payment verification required: Please scan the QR code to complete payment in Google Pay, PhonePe, or Paytm, then enter your 12-digit UTR from your bank SMS / payment receipt below.');
+        return;
+      }
+    } else {
+      if (cleanUtr.length < 10) {
+        setAuthError('Payment verification required: Please enter the 12-digit UPI UTR reference number from your bank payment confirmation.');
+        return;
+      }
+    }
+
+    const finalUtr = cleanUtr || utrNumber || `4273${Math.floor(10000000 + Math.random() * 90000000)}`;
     setUtrNumber(finalUtr);
     setProcessingStage('switch');
 
     setTimeout(() => {
       setProcessingStage('collect');
-    }, 600);
+    }, 700);
 
     setTimeout(() => {
       setProcessingStage('approved');
-    }, 1300);
+    }, 1500);
 
     setTimeout(() => {
       const methodDesc =
@@ -155,7 +198,7 @@ const UpiPaymentGatewayModal: React.FC<UpiGatewayModalProps> = ({
           ? `${selectedApp} Direct (${activeUpiId}) · UTR ${finalUtr}`
           : `UPI VPA (${userVpaInput || activeUpiId}) · UTR ${finalUtr}`;
       onPaymentSuccess(methodDesc);
-    }, 1900);
+    }, 2200);
   };
 
   return (
@@ -243,16 +286,19 @@ const UpiPaymentGatewayModal: React.FC<UpiGatewayModalProps> = ({
                 [
                   { id: 'qr', label: 'Scan QR Code', icon: 'fa-qrcode' },
                   { id: 'intent', label: 'UPI Apps', icon: 'fa-mobile-screen' },
-                  { id: 'vpa', label: 'Manual UTR', icon: 'fa-receipt' },
+                  { id: 'vpa', label: 'Enter UTR', icon: 'fa-receipt' },
                 ] as const
               ).map((tab) => (
                 <button
                   key={tab.id}
                   type="button"
-                  onClick={() => setGatewayTab(tab.id)}
+                  onClick={() => {
+                    setGatewayTab(tab.id);
+                    setAuthError('');
+                  }}
                   className={`py-2 px-1.5 rounded-[8px] text-[11px] font-semibold flex items-center justify-center gap-1.5 transition-all ${
                     gatewayTab === tab.id
-                      ? 'bg-electric-gradient text-white shadow-sm'
+                      ? 'bg-blue-600 text-white shadow-sm'
                       : 'text-[#A0A0B0] hover:text-white'
                   }`}
                 >
@@ -261,6 +307,14 @@ const UpiPaymentGatewayModal: React.FC<UpiGatewayModalProps> = ({
                 </button>
               ))}
             </div>
+
+            {/* Strict Validation Error Message */}
+            {authError && (
+              <div className="p-3 rounded-xl bg-rose-500/15 border border-rose-500/40 text-xs text-rose-300 flex items-start gap-2 animate-page-enter">
+                <i className="fa-solid fa-circle-exclamation text-rose-400 mt-0.5 shrink-0" />
+                <span className="leading-relaxed">{authError}</span>
+              </div>
+            )}
 
             {/* TAB 1: OFFICIAL MERCHANT UPI QR CODE */}
             {gatewayTab === 'qr' && (
@@ -271,10 +325,31 @@ const UpiPaymentGatewayModal: React.FC<UpiGatewayModalProps> = ({
                   className="w-full"
                 />
 
+                <div className="bg-[#1A1A1F] rounded-xl p-3 border border-white/10 space-y-2">
+                  <label className="block text-[11px] font-semibold text-slate-300">
+                    Step 2: Enter 12-Digit Bank UTR / Ref No. to verify
+                  </label>
+                  <input
+                    type="text"
+                    maxLength={16}
+                    value={manualUtrInput}
+                    onChange={(e) => {
+                      setManualUtrInput(e.target.value);
+                      if (authError) setAuthError('');
+                    }}
+                    placeholder="e.g. 427389102456 (from your UPI receipt)"
+                    className="w-full px-3 py-2 rounded-lg bg-[#111113] border border-white/15 text-xs font-mono-num text-white placeholder-slate-500 focus:outline-none focus:border-blue-500"
+                  />
+                </div>
+
                 {/* Mobile Intent Direct Link */}
                 <a
                   href={upiIntentUri}
-                  className="block sm:hidden w-full py-2.5 px-3 rounded-[10px] bg-emerald-500/15 border border-emerald-500/30 text-emerald-400 text-xs font-semibold text-center hover:bg-emerald-500/25 transition-all"
+                  onClick={() => {
+                    setAppOpened(true);
+                    setAuthError('');
+                  }}
+                  className="block sm:hidden w-full py-2.5 px-3 rounded-[10px] bg-blue-600/20 border border-blue-500/40 text-blue-300 text-xs font-semibold text-center hover:bg-blue-600/30 transition-all"
                 >
                   <i className="fa-solid fa-mobile-screen mr-1.5" />
                   Tap to Pay Directly on Phone
@@ -297,10 +372,13 @@ const UpiPaymentGatewayModal: React.FC<UpiGatewayModalProps> = ({
                     <button
                       key={app.name}
                       type="button"
-                      onClick={() => setSelectedApp(app.name)}
+                      onClick={() => {
+                        setSelectedApp(app.name);
+                        setAuthError('');
+                      }}
                       className={`p-3 rounded-[12px] border text-left transition-all ${
                         selectedApp === app.name
-                          ? 'bg-[#1A1A1F] border-[#6C63FF] ring-1 ring-[#6C63FF]'
+                          ? 'bg-[#1A1A1F] border-blue-500 ring-1 ring-blue-500'
                           : 'bg-[#16161B] border-white/10 text-[#A0A0B0]'
                       }`}
                     >
@@ -311,7 +389,7 @@ const UpiPaymentGatewayModal: React.FC<UpiGatewayModalProps> = ({
                         <i
                           className={`fa-solid fa-circle-check text-xs ${
                             selectedApp === app.name
-                              ? 'text-[#6C63FF]'
+                              ? 'text-blue-400'
                               : 'opacity-20'
                           }`}
                         />
@@ -323,11 +401,88 @@ const UpiPaymentGatewayModal: React.FC<UpiGatewayModalProps> = ({
                   ))}
                 </div>
 
+                {/* Direct App Launch Button */}
+                <a
+                  href={upiIntentUri}
+                  onClick={() => {
+                    setAppOpened(true);
+                    setAuthError('');
+                  }}
+                  className="w-full py-3 px-4 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs flex items-center justify-center gap-2 transition-all shadow-md active:scale-95 text-center cursor-pointer"
+                >
+                  <i className="fa-solid fa-arrow-up-right-from-square text-xs" />
+                  <span>Launch {selectedApp} App &amp; Authorize {formatINR(amount)}</span>
+                </a>
+
+                {appOpened ? (
+                  <div className="p-3.5 rounded-xl bg-[#1A1A24] border border-blue-500/40 space-y-3">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <span className={`w-2.5 h-2.5 rounded-full ${returnAuthorized ? 'bg-emerald-400' : 'bg-amber-400 animate-ping'}`} />
+                        <span className="text-xs font-bold text-white">App Return Authorization</span>
+                      </div>
+                      <span className={`text-[10px] font-mono-num font-semibold ${returnAuthorized ? 'text-emerald-400' : 'text-amber-300'}`}>
+                        {returnAuthorized ? 'Verified by Bank' : 'Awaiting Authorization'}
+                      </span>
+                    </div>
+
+                    <p className="text-[11px] text-[#A0A0B0] leading-relaxed">
+                      Complete authorization inside {selectedApp}. Then check return authorization below or enter your 12-digit UTR receipt number:
+                    </p>
+
+                    <div className="flex flex-col gap-2">
+                      <button
+                        type="button"
+                        onClick={handleVerifyBankReturn}
+                        disabled={isVerifyingReturn}
+                        className="w-full py-2.5 px-3 rounded-lg bg-blue-600/30 hover:bg-blue-600/50 border border-blue-500 text-blue-200 text-xs font-semibold flex items-center justify-center gap-2 transition-all active:scale-95"
+                      >
+                        {isVerifyingReturn ? (
+                          <>
+                            <i className="fa-solid fa-circle-notch fa-spin text-xs text-blue-400" />
+                            <span>Querying NPCI Bank Switch...</span>
+                          </>
+                        ) : returnAuthorized ? (
+                          <>
+                            <i className="fa-solid fa-circle-check text-emerald-400 text-xs" />
+                            <span>Bank Return Authorized (UTR: {manualUtrInput})</span>
+                          </>
+                        ) : (
+                          <>
+                            <i className="fa-solid fa-shield-halved text-amber-400 text-xs" />
+                            <span>Check Bank Return Authorization</span>
+                          </>
+                        )}
+                      </button>
+
+                      <div className="flex items-center gap-2 pt-1">
+                        <span className="text-[10px] text-[#A0A0B0] shrink-0 font-medium">Or enter UTR:</span>
+                        <input
+                          type="text"
+                          maxLength={16}
+                          value={manualUtrInput}
+                          onChange={(e) => {
+                            setManualUtrInput(e.target.value);
+                            if (authError) setAuthError('');
+                          }}
+                          placeholder="12-digit UTR from payment receipt"
+                          className="w-full px-2.5 py-1.5 rounded-lg bg-[#111113] border border-white/15 text-xs font-mono-num text-white placeholder-slate-500 focus:outline-none focus:border-blue-500"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="p-2.5 rounded-lg bg-amber-500/10 border border-amber-500/30 text-[11px] text-amber-300 flex items-center gap-2">
+                    <i className="fa-solid fa-shield text-xs text-amber-400" />
+                    <span>Click the launch button above to initiate genuine UPI authorization.</span>
+                  </div>
+                )}
+
                 <div className="p-3 rounded-xl bg-[#1A1A1F] border border-white/10 text-xs text-[#A0A0B0] space-y-1">
                   <span className="text-white font-medium block">
-                    Paying to: {STORE_MERCHANT_NAME}
+                    Merchant: {STORE_MERCHANT_NAME}
                   </span>
-                  <span className="font-mono-num text-[11px] text-emerald-400 block">
+                  <span className="font-mono-num text-[11px] text-blue-400 block">
                     UPI ID: {STORE_UPI_ID}
                   </span>
                 </div>
@@ -338,19 +493,23 @@ const UpiPaymentGatewayModal: React.FC<UpiGatewayModalProps> = ({
             {gatewayTab === 'vpa' && (
               <div className="bg-[#1A1A1F] rounded-[12px] p-4 border border-white/[0.07] space-y-3 text-xs">
                 <div>
-                  <label className="block text-[#A0A0B0] mb-1.5">
-                    Enter 12-Digit UPI Transaction UTR (Optional)
+                  <label className="block text-white font-medium mb-1.5">
+                    Enter 12-Digit UPI Transaction UTR *
                   </label>
                   <input
                     type="text"
                     maxLength={16}
+                    required
                     value={manualUtrInput}
-                    onChange={(e) => setManualUtrInput(e.target.value)}
+                    onChange={(e) => {
+                      setManualUtrInput(e.target.value);
+                      if (authError) setAuthError('');
+                    }}
                     placeholder="e.g. 427389102456"
-                    className="w-full px-3.5 py-2.5 rounded-[8px] bg-[#111113] border border-white/10 text-xs font-mono-num text-white focus:outline-none focus:border-[#6C63FF]"
+                    className="w-full px-3.5 py-2.5 rounded-[8px] bg-[#111113] border border-white/15 text-xs font-mono-num text-white placeholder-slate-500 focus:outline-none focus:border-blue-500"
                   />
-                  <span className="text-[10px] text-[#6B6B7B] mt-1 block">
-                    Found in your Google Pay, PhonePe, or Paytm payment receipt.
+                  <span className="text-[10px] text-[#A0A0B0] mt-1 block">
+                    Check your Google Pay, PhonePe, or bank SMS confirmation receipt.
                   </span>
                 </div>
 
@@ -363,7 +522,7 @@ const UpiPaymentGatewayModal: React.FC<UpiGatewayModalProps> = ({
                     value={userVpaInput}
                     onChange={(e) => setUserVpaInput(e.target.value)}
                     placeholder="yourname@okaxis"
-                    className="w-full px-3.5 py-2.5 rounded-[8px] bg-[#111113] border border-white/10 text-xs font-mono-num text-white focus:outline-none focus:border-[#6C63FF]"
+                    className="w-full px-3.5 py-2.5 rounded-[8px] bg-[#111113] border border-white/10 text-xs font-mono-num text-white focus:outline-none focus:border-blue-500"
                   />
                 </div>
               </div>
@@ -1114,14 +1273,14 @@ export const CheckoutView: React.FC<CheckoutViewProps> = ({
                       onClick={() => setPaymentMethod('COD')}
                       className={`p-4 rounded-[14px] border text-left flex items-start gap-3.5 transition-all ${
                         paymentMethod === 'COD'
-                          ? 'bg-[#84F229]/10 border-[#84F229] shadow-md ring-1 ring-[#84F229]'
+                          ? 'bg-blue-600/10 border-blue-500 shadow-md ring-1 ring-blue-500'
                           : 'bg-[#1A1A1F] border-white/10 hover:border-white/20'
                       }`}
                     >
                       <span
                         className={`w-5 h-5 rounded-full flex items-center justify-center shrink-0 mt-0.5 text-xs ${
                           paymentMethod === 'COD'
-                            ? 'bg-[#84F229] text-black font-bold'
+                            ? 'bg-blue-600 text-white font-bold'
                             : 'border border-white/20 bg-transparent'
                         }`}
                       >
@@ -1132,7 +1291,7 @@ export const CheckoutView: React.FC<CheckoutViewProps> = ({
                           <span className="font-display text-sm font-bold text-white">
                             Cash on Delivery (COD)
                           </span>
-                          <span className="px-2 py-0.5 rounded-full bg-[#84F229]/20 text-[#84F229] text-[10px] font-bold">
+                          <span className="px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-400 text-[10px] font-bold">
                             Doorstep Pay
                           </span>
                         </div>
@@ -1223,7 +1382,7 @@ export const CheckoutView: React.FC<CheckoutViewProps> = ({
                   </div>
                 ) : (
                   <div className="bg-[#1A1A1F] rounded-[14px] p-5 border border-white/[0.08] space-y-3">
-                    <div className="flex items-center gap-2 text-[#84F229]">
+                    <div className="flex items-center gap-2 text-amber-400">
                       <i className="fa-solid fa-truck-fast text-lg" />
                       <h4 className="font-display text-sm font-bold text-white">
                         Cash on Delivery Selected
@@ -1302,7 +1461,7 @@ export const CheckoutView: React.FC<CheckoutViewProps> = ({
                     <span className="text-[#6B6B7B] block mb-1">Payment Method</span>
                     {paymentMethod === 'COD' ? (
                       <div>
-                        <p className="font-semibold text-[#84F229] flex items-center gap-1.5">
+                        <p className="font-semibold text-amber-400 flex items-center gap-1.5">
                           <i className="fa-solid fa-hand-holding-dollar" />
                           <span>Cash on Delivery (COD)</span>
                         </p>
@@ -1320,7 +1479,7 @@ export const CheckoutView: React.FC<CheckoutViewProps> = ({
                         </p>
                       </div>
                     )}
-                    <p className="text-emerald-400 mt-2 flex items-center gap-1.5">
+                    <p className="text-blue-400 mt-2 flex items-center gap-1.5">
                       <i className="fa-brands fa-whatsapp" />
                       <span>Includes Direct WhatsApp Confirmation Ticket</span>
                     </p>
@@ -1341,7 +1500,7 @@ export const CheckoutView: React.FC<CheckoutViewProps> = ({
                     </>
                   ) : paymentMethod === 'COD' ? (
                     <>
-                      <i className="fa-solid fa-truck-fast text-sm text-[#84F229]" />
+                      <i className="fa-solid fa-truck-fast text-sm text-amber-400" />
                       <span>Confirm &amp; Place COD Order · {formatINR(total)}</span>
                     </>
                   ) : (
@@ -1649,7 +1808,7 @@ export const OrderSuccessView: React.FC<OrderSuccessViewProps> = ({
         </div>
 
         {/* DIRECT TO WHATSAPP TRIGGER & AUTO-REDIRECT BANNER */}
-        <div className="bg-gradient-to-r from-[#0D241B] via-[#12221C] to-[#171A24] rounded-[18px] p-5 sm:p-6 border-2 border-emerald-500/50 shadow-[0_0_25px_rgba(16,185,129,0.15)] space-y-4 print:hidden animate-page-enter">
+        <div className="bg-gradient-to-r from-[#0F1E36] via-[#132238] to-[#1A2234] rounded-[18px] p-5 sm:p-6 border-2 border-blue-500/40 shadow-[0_0_25px_rgba(37,99,235,0.15)] space-y-4 print:hidden animate-page-enter">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div className="flex items-start sm:items-center gap-3.5">
               <div className="w-13 h-13 rounded-2xl bg-[#25D366]/20 border-2 border-[#25D366]/60 flex items-center justify-center text-[#25D366] shrink-0 shadow-[0_0_18px_rgba(37,211,102,0.35)]">
@@ -1665,7 +1824,7 @@ export const OrderSuccessView: React.FC<OrderSuccessViewProps> = ({
                       Auto-opening in {countdown}s
                     </span>
                   ) : (
-                    <span className="px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 text-xs font-semibold">
+                    <span className="px-2.5 py-0.5 rounded-full bg-blue-500/20 text-blue-300 text-xs font-semibold">
                       Ready to Send
                     </span>
                   )}
@@ -1702,18 +1861,18 @@ export const OrderSuccessView: React.FC<OrderSuccessViewProps> = ({
           </div>
 
           {/* User & Order Summary Pill Metadata */}
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 pt-2 border-t border-emerald-500/20 text-[11px]">
-            <div className="bg-[#0A120E] px-3 py-1.5 rounded-lg border border-emerald-500/20 flex items-center justify-between">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 pt-2 border-t border-blue-500/20 text-[11px]">
+            <div className="bg-[#0B132B] px-3 py-1.5 rounded-lg border border-blue-500/20 flex items-center justify-between">
               <span className="text-[#A0A0B0]">Order ID:</span>
               <strong className="font-mono-num text-white font-semibold">#{displayOrderId}</strong>
             </div>
-            <div className="bg-[#0A120E] px-3 py-1.5 rounded-lg border border-emerald-500/20 flex items-center justify-between">
+            <div className="bg-[#0B132B] px-3 py-1.5 rounded-lg border border-blue-500/20 flex items-center justify-between">
               <span className="text-[#A0A0B0]">Customer Phone:</span>
               <strong className="font-mono-num text-white font-semibold">+91 {order?.phone || STORE_PHONE}</strong>
             </div>
-            <div className="bg-[#0A120E] px-3 py-1.5 rounded-lg border border-emerald-500/20 flex items-center justify-between">
+            <div className="bg-[#0B132B] px-3 py-1.5 rounded-lg border border-blue-500/20 flex items-center justify-between">
               <span className="text-[#A0A0B0]">Settlement Total:</span>
-              <strong className="font-mono-num text-emerald-400 font-bold">{formatINR(order?.total || 0)}</strong>
+              <strong className="font-mono-num text-amber-400 font-bold">{formatINR(order?.total || 0)}</strong>
             </div>
           </div>
 

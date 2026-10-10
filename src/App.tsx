@@ -31,6 +31,7 @@ import {
   SEED_AUDIT_LOGS,
   SEED_ORDERS,
   SEED_PRODUCTS,
+  STORE_ADDRESS,
   STORE_EMAIL,
   STORE_MAPS_URL,
   STORE_NAME,
@@ -59,6 +60,11 @@ import {
   signOut,
   where,
 } from './firebase';
+import {
+  sendOrderConfirmationEmail,
+  sendShippingStatusEmail,
+} from './services/emailService';
+
 
 interface ToastMessage {
   id: number;
@@ -199,26 +205,43 @@ export default function App() {
     return [];
   });
 
+  // Customer Session Auth Tracking
+  const [isCustomerLoggedIn, setIsCustomerLoggedIn] = useState<boolean>(() => {
+    try {
+      return (
+        sessionStorage.getItem('cm_customer_auth') === 'true' ||
+        localStorage.getItem('cm_customer_auth') === 'true'
+      );
+    } catch {
+      return false;
+    }
+  });
+
   // Persisted Customer Profile & Saved Addresses Book
   const [customerProfile, setCustomerProfile] = useState<CustomerProfileData>(() => {
     try {
       const saved = localStorage.getItem(STORAGE_KEYS.PROFILE);
       if (saved) {
         const parsed = JSON.parse(saved);
-        if (parsed && typeof parsed.fullName === 'string') return parsed;
+        if (parsed && typeof parsed.fullName === 'string' && parsed.fullName !== 'Shaikh Shoeb') {
+          return parsed;
+        }
       }
     } catch {
       // ignore
     }
     return {
-      fullName: 'Shaikh Shoeb',
-      email: STORE_EMAIL,
-      phone: STORE_PHONE,
+      fullName: 'Crazy Mobiles Guest',
+      email: '',
+      phone: '',
       smsAlerts: true,
-      isPhoneVerified: true,
-      addresses: INITIAL_SAVED_ADDRESSES,
+      isPhoneVerified: false,
+      addresses: [],
     };
   });
+
+  const isUserAuthenticated = Boolean(currentUser || isCustomerLoggedIn);
+
 
   // Local State Audit Log for Admin Operations & Auditing
   const [auditLogs, setAuditLogs] = useState<AuditLogEntry[]>(() => {
@@ -650,16 +673,94 @@ export default function App() {
   };
 
   const handleCustomerLoginSuccess = (loginId: string, displayName?: string) => {
+    localStorage.setItem('cm_customer_auth', 'true');
+    sessionStorage.setItem('cm_customer_auth', 'true');
+    setIsCustomerLoggedIn(true);
+
     const updated: CustomerProfileData = {
       ...customerProfile,
-      email: loginId.includes('@') ? loginId : customerProfile.email,
-      fullName: displayName || customerProfile.fullName,
+      email: loginId.includes('@') ? loginId : (customerProfile.email || 'customer@crazymobiles.in'),
+      fullName: displayName || (customerProfile.fullName !== 'Crazy Mobiles Guest' ? customerProfile.fullName : 'Valued Customer'),
     };
     setCustomerProfile(updated);
+    try {
+      localStorage.setItem(STORAGE_KEYS.PROFILE, JSON.stringify(updated));
+    } catch {}
+
+    // Link customer orders so they match their login
+    setOrders((prev) => {
+      const updatedOrders = prev.map((ord) => ({
+        ...ord,
+        customerName: updated.fullName,
+        customerEmail: updated.email,
+      }));
+      try {
+        localStorage.setItem(STORAGE_KEYS.ORDERS, JSON.stringify(updatedOrders));
+      } catch {}
+      return updatedOrders;
+    });
+
     void syncProfileToFirestore(updated);
-    showToast(`Signed in as ${updated.fullName}`);
+    showToast(`Welcome back, ${updated.fullName}!`);
     navigate('#/account');
   };
+
+  const handleCustomerRegisterSuccess = (newProfile: CustomerProfileData) => {
+    localStorage.setItem('cm_customer_auth', 'true');
+    sessionStorage.setItem('cm_customer_auth', 'true');
+    setIsCustomerLoggedIn(true);
+
+    setCustomerProfile(newProfile);
+    try {
+      localStorage.setItem(STORAGE_KEYS.PROFILE, JSON.stringify(newProfile));
+    } catch {
+      // ignore
+    }
+
+    // Automatically bind and personalize existing orders to this newly registered customer
+    setOrders((prev) => {
+      const updatedOrders = prev.map((ord) => ({
+        ...ord,
+        customerName: newProfile.fullName,
+        customerEmail: newProfile.email,
+        phone: newProfile.phone,
+        address: newProfile.addresses[0]
+          ? {
+              fullName: newProfile.fullName,
+              phone: newProfile.phone,
+              area: newProfile.addresses[0].area,
+              city: newProfile.addresses[0].city,
+              state: newProfile.addresses[0].state,
+              pincode: newProfile.addresses[0].pincode,
+            }
+          : {
+              ...ord.address,
+              fullName: newProfile.fullName,
+              phone: newProfile.phone,
+            },
+      }));
+      try {
+        localStorage.setItem(STORAGE_KEYS.ORDERS, JSON.stringify(updatedOrders));
+      } catch {
+        // ignore
+      }
+      return updatedOrders;
+    });
+
+    void syncProfileToFirestore(newProfile);
+    showToast(`Welcome to Crazy Mobiles, ${newProfile.fullName}! Your account and orders are ready.`);
+    navigate('#/account');
+  };
+
+  const handleCustomerLogout = () => {
+    localStorage.removeItem('cm_customer_auth');
+    sessionStorage.removeItem('cm_customer_auth');
+    setIsCustomerLoggedIn(false);
+    handleGoogleSignOut();
+    showToast('Signed out of your account');
+    navigate('#/home');
+  };
+
 
   const handleReorderItems = (orderItems: CartItem[]) => {
     setCart((prev) => {
@@ -1019,6 +1120,7 @@ export default function App() {
     setOrders((prev) => [newOrder, ...prev]);
     setLastPlacedOrder(newOrder);
     setCart([]);
+    void sendOrderConfirmationEmail(newOrder, resolvedEmail);
 
     // Persist to Firestore if user is authenticated with verified email
     if (currentUser && currentUser.emailVerified) {
@@ -1120,9 +1222,19 @@ export default function App() {
   };
 
   const handleAdminUpdateOrderStatus = (orderId: string, status: OrderStatus) => {
+    let updatedOrder: Order | undefined;
     setOrders((prev) =>
-      prev.map((o) => (o.id === orderId ? { ...o, status } : o))
+      prev.map((o) => {
+        if (o.id === orderId) {
+          updatedOrder = { ...o, status };
+          return updatedOrder;
+        }
+        return o;
+      })
     );
+    if (updatedOrder && (updatedOrder as Order).customerEmail) {
+      void sendShippingStatusEmail(updatedOrder as Order, (updatedOrder as Order).customerEmail, status);
+    }
     logAdminAction(
       'Order Status Changed',
       `Order #${orderId} status changed to ${status}`,
@@ -1131,7 +1243,8 @@ export default function App() {
     );
   };
 
-  const handleResetDemoData = () => {
+
+  const handleRestoreDefaultCatalog = () => {
     localStorage.setItem(STORAGE_KEYS.PRODUCTS, JSON.stringify(SEED_PRODUCTS));
     localStorage.setItem(STORAGE_KEYS.ORDERS, JSON.stringify(SEED_ORDERS));
     localStorage.setItem(
@@ -1142,12 +1255,12 @@ export default function App() {
     setOrders(SEED_ORDERS);
     setHomeConfig(DEFAULT_HOME_PAGE_CONFIG);
     logAdminAction(
-      'Data Reset',
-      'Reset products, orders, and CMS configuration to factory seed data.',
+      'Catalog Restored',
+      'Restored products, orders, and CMS configuration to default store catalog.',
       undefined,
       'system'
     );
-    showToast('Catalog, orders, and CMS reset to initial seed data');
+    showToast('Store catalog, orders, and configuration restored to default state');
   };
 
   // Determine Active View from Hash
@@ -1191,7 +1304,7 @@ export default function App() {
             onUpdateProduct={handleAdminUpdateProduct}
             onDeleteProduct={handleAdminDeleteProduct}
             onUpdateOrderStatus={handleAdminUpdateOrderStatus}
-            onResetDemoData={handleResetDemoData}
+            onRestoreDefaultCatalog={handleRestoreDefaultCatalog}
             onExitAdmin={() => navigate('#/home')}
             onAdminLogout={handleAdminLogout}
             showToast={showToast}
@@ -1208,6 +1321,7 @@ export default function App() {
           isAdminAuthenticated={isAdminAuthenticated}
           onAdminLoginSuccess={handleAdminLoginSuccess}
           onCustomerLoginSuccess={handleCustomerLoginSuccess}
+          onCustomerRegisterSuccess={handleCustomerRegisterSuccess}
           onPhoneVerifiedSuccess={handlePhoneVerifiedSuccess}
           onGoogleSignIn={handleGoogleSignIn}
           onNavigateAccount={() => navigate('#/account')}
@@ -1231,7 +1345,7 @@ export default function App() {
           onReorderItems={handleReorderItems}
           onNavigateLogin={() => navigate('#/login')}
           onGoogleSignIn={handleGoogleSignIn}
-          onGoogleSignOut={handleGoogleSignOut}
+          onGoogleSignOut={handleCustomerLogout}
           showToast={showToast}
         />
       );
@@ -1373,7 +1487,7 @@ export default function App() {
 
       {/* TOP PROMOTIONAL ANNOUNCEMENT BAR */}
       <div className="bg-slate-900 text-white text-[11px] sm:text-xs py-2 px-4 text-center font-medium flex items-center justify-center gap-2 flex-wrap">
-        <span className="bg-[#84F229] text-slate-950 px-2 py-0.5 rounded font-extrabold text-[10px] tracking-wide">
+        <span className="bg-[#FFB703] text-slate-950 px-2 py-0.5 rounded font-extrabold text-[10px] tracking-wide shadow-sm">
           MEGA SALE
         </span>
         <span>
@@ -1594,21 +1708,40 @@ export default function App() {
               )}
             </button>
 
-            {/* Account / Admin Button */}
-            <button
-              type="button"
-              onClick={() => navigate('#/account')}
-              aria-label="Customer Account Settings"
-              title="Account Settings"
-              className={`h-9 px-3 rounded-lg border text-xs font-medium items-center gap-1.5 transition-colors whitespace-nowrap hidden md:flex ${
-                hashRoute.startsWith('#/account') || hashRoute.startsWith('#/login')
-                  ? 'bg-blue-50 border-blue-200 text-blue-600'
-                  : 'bg-white hover:bg-slate-50 border-slate-200 text-slate-700'
-              }`}
-            >
-              <i className="fa-regular fa-user text-xs" />
-              <span className="hidden lg:inline">Account</span>
-            </button>
+            {/* Account / Login Trigger for Laptop */}
+            {isUserAuthenticated ? (
+              <button
+                type="button"
+                onClick={() => navigate('#/account')}
+                aria-label="Customer Account Settings"
+                title="Account Settings"
+                className={`h-9 px-3 rounded-lg border text-xs font-semibold items-center gap-2 transition-colors whitespace-nowrap hidden md:flex ${
+                  hashRoute.startsWith('#/account')
+                    ? 'bg-blue-50 border-blue-200 text-blue-600'
+                    : 'bg-white hover:bg-slate-50 border-slate-200 text-slate-800'
+                }`}
+              >
+                <div className="w-5 h-5 rounded-full bg-blue-600 text-white text-[10px] font-bold flex items-center justify-center shrink-0">
+                  {(customerProfile.fullName || 'U').charAt(0).toUpperCase()}
+                </div>
+                <span className="hidden lg:inline">{customerProfile.fullName.split(' ')[0] || 'My Account'}</span>
+                <span className="text-slate-400 font-normal hidden xl:inline">· Orders</span>
+              </button>
+            ) : (
+              <button
+                type="button"
+                onClick={() => navigate('#/login')}
+                aria-label="Login or Sign Up for an Account"
+                className={`h-9 px-3.5 rounded-lg text-xs font-bold items-center gap-1.5 transition-all whitespace-nowrap hidden md:flex shadow-sm active:scale-95 ${
+                  hashRoute.startsWith('#/login')
+                    ? 'bg-blue-700 text-white ring-2 ring-blue-400'
+                    : 'bg-blue-600 hover:bg-blue-700 text-white'
+                }`}
+              >
+                <i className="fa-solid fa-arrow-right-to-bracket text-xs text-blue-200" />
+                <span>Login / Sign Up</span>
+              </button>
+            )}
 
             {isAdminAuthenticated && (
               <button
@@ -1704,6 +1837,70 @@ export default function App() {
                 </div>
               </div>
 
+              {/* TOP AUTH / WELCOME CARD FOR MOBILE (ABOVE LINKS) */}
+              {!isUserAuthenticated ? (
+                <div className="p-3.5 rounded-2xl bg-gradient-to-br from-blue-50 via-slate-50 to-amber-50/50 border border-blue-200/70 shadow-sm space-y-2.5">
+                  <div className="flex items-center gap-2.5">
+                    <div className="w-8 h-8 rounded-xl bg-blue-600 text-white flex items-center justify-center text-xs font-bold shadow-sm shrink-0">
+                      <i className="fa-solid fa-user-plus" />
+                    </div>
+                    <div>
+                      <h4 className="text-xs font-bold text-slate-900 leading-tight">Welcome to Crazy Mobiles</h4>
+                      <p className="text-[10px] text-slate-500">Sign in or create account to order</p>
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-2">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        navigate('#/login');
+                        setIsMobileMenuOpen(false);
+                      }}
+                      className="py-2 px-3 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold shadow-sm text-center transition-all active:scale-95 flex items-center justify-center gap-1.5"
+                    >
+                      <i className="fa-solid fa-right-to-bracket text-xs" />
+                      <span>Login</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        navigate('#/login?mode=register');
+                        setIsMobileMenuOpen(false);
+                      }}
+                      className="py-2 px-3 rounded-lg bg-white hover:bg-slate-50 border border-slate-300 text-slate-800 text-xs font-bold shadow-sm text-center transition-all active:scale-95 flex items-center justify-center gap-1.5"
+                    >
+                      <i className="fa-solid fa-user-plus text-xs text-amber-500" />
+                      <span>Sign Up</span>
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <div className="p-3 rounded-2xl bg-slate-900 text-white flex items-center justify-between shadow-sm">
+                  <div className="flex items-center gap-2.5 min-w-0">
+                    <div className="w-8 h-8 rounded-xl bg-blue-600 text-white flex items-center justify-center font-bold text-xs shadow shrink-0">
+                      {(customerProfile.fullName || 'U').charAt(0).toUpperCase()}
+                    </div>
+                    <div className="min-w-0">
+                      <p className="text-xs font-bold truncate">{customerProfile.fullName}</p>
+                      <p className="text-[10px] text-slate-400 font-mono-num truncate">
+                        {customerProfile.phone ? `+91 ${customerProfile.phone}` : (customerProfile.email || 'Verified Customer')}
+                      </p>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      handleCustomerLogout();
+                      setIsMobileMenuOpen(false);
+                    }}
+                    className="text-xs text-rose-400 hover:text-rose-300 px-2 py-1 shrink-0"
+                    title="Sign Out"
+                  >
+                    <i className="fa-solid fa-power-off text-sm" />
+                  </button>
+                </div>
+              )}
+
               {/* Core Navigation Links */}
               <nav className="flex flex-col gap-1.5 text-xs font-semibold">
                 <a
@@ -1786,22 +1983,43 @@ export default function App() {
                   <span>Store Showroom Location</span>
                 </a>
 
-                <a
-                  href="#/account"
-                  onClick={(e) => {
-                    e.preventDefault();
-                    navigate('#/account');
-                    setIsMobileMenuOpen(false);
-                  }}
-                  className={`p-3 rounded-xl flex items-center gap-3 transition-colors ${
-                    hashRoute.startsWith('#/account')
-                      ? 'text-blue-600 bg-blue-50 font-bold'
-                      : 'text-slate-700 hover:bg-slate-50'
-                  }`}
-                >
-                  <i className="fa-solid fa-user w-5 text-center text-sm" />
-                  <span>Account &amp; Orders</span>
-                </a>
+                {/* Conditional Account & Orders vs Login & Sign Up in Navigation */}
+                {isUserAuthenticated ? (
+                  <a
+                    href="#/account"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      navigate('#/account');
+                      setIsMobileMenuOpen(false);
+                    }}
+                    className={`p-3 rounded-xl flex items-center justify-between gap-3 transition-colors ${
+                      hashRoute.startsWith('#/account')
+                        ? 'text-blue-600 bg-blue-50 font-bold'
+                        : 'text-slate-700 hover:bg-slate-50'
+                    }`}
+                  >
+                    <div className="flex items-center gap-3">
+                      <i className="fa-solid fa-user w-5 text-center text-sm" />
+                      <span>Accounts and Orders</span>
+                    </div>
+                    <span className="text-[10px] bg-blue-100 text-blue-700 font-bold px-2 py-0.5 rounded-full font-mono-num">
+                      {orders.length}
+                    </span>
+                  </a>
+                ) : (
+                  <a
+                    href="#/login"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      navigate('#/login');
+                      setIsMobileMenuOpen(false);
+                    }}
+                    className="p-3 rounded-xl flex items-center gap-3 text-blue-600 bg-blue-50/70 hover:bg-blue-100/70 font-bold transition-colors"
+                  >
+                    <i className="fa-solid fa-arrow-right-to-bracket w-5 text-center text-sm text-blue-600" />
+                    <span>Login and Sign Up</span>
+                  </a>
+                )}
 
                 {isAdminAuthenticated && (
                   <a
@@ -1820,31 +2038,31 @@ export default function App() {
               </nav>
             </div>
 
-            {/* User Profile / Login */}
+            {/* User Profile / Quick Google Login */}
             <div className="pt-4 border-t border-slate-200 mt-4 flex flex-col gap-2.5">
-              {currentUser ? (
+              {isUserAuthenticated ? (
                 <button
                   type="button"
                   onClick={() => {
-                    handleGoogleSignOut();
+                    handleCustomerLogout();
                     setIsMobileMenuOpen(false);
                   }}
-                  className="w-full py-3 rounded-xl bg-slate-100 hover:bg-rose-50 text-rose-600 text-xs font-bold transition-all flex items-center justify-center gap-2"
+                  className="w-full py-2.5 rounded-xl bg-slate-100 hover:bg-rose-50 text-rose-600 text-xs font-bold transition-all flex items-center justify-center gap-2"
                 >
                   <i className="fa-solid fa-right-from-bracket" />
-                  <span>Sign Out ({currentUser.displayName || currentUser.email})</span>
+                  <span>Sign Out ({customerProfile.fullName || currentUser?.displayName || 'Account'})</span>
                 </button>
               ) : (
                 <button
                   type="button"
                   onClick={() => {
-                    navigate('#/login');
+                    handleGoogleSignIn();
                     setIsMobileMenuOpen(false);
                   }}
-                  className="w-full py-3 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold shadow-sm transition-all flex items-center justify-center gap-2"
+                  className="w-full py-2.5 rounded-xl bg-white hover:bg-slate-50 border border-slate-300 text-slate-700 text-xs font-bold shadow-sm transition-all flex items-center justify-center gap-2"
                 >
-                  <i className="fa-solid fa-right-to-bracket" />
-                  <span>Login / Register</span>
+                  <i className="fa-brands fa-google text-slate-800" />
+                  <span>Continue with Google</span>
                 </button>
               )}
             </div>
@@ -1940,17 +2158,23 @@ export default function App() {
                   Crazy Mobiles is your premier Indian destination for genuine smartwatches, wireless earbuds, fast GaN chargers, durable cables, and phone accessories.
                 </p>
                 <div className="space-y-1.5 text-xs text-slate-400 pt-1">
-                  <p className="flex items-start gap-2">
-                    <i className="fa-solid fa-location-dot text-[#84F229] mt-0.5" />
-                    <span>Shop No 02, Nizamuddin Road, Shahaganj, Aurangabad, Maharashtra - 431001</span>
+                  <a
+                    href={STORE_MAPS_URL}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-start gap-2 hover:text-blue-400 transition-colors group"
+                    title="Open Crazy Mobiles on Google Maps"
+                  >
+                    <i className="fa-solid fa-location-dot text-amber-400 mt-0.5 group-hover:scale-110 transition-transform" />
+                    <span className="group-hover:underline">{STORE_ADDRESS}</span>
+                  </a>
+                  <p className="flex items-center gap-2">
+                    <i className="fa-solid fa-phone text-blue-400" />
+                    <a href={`tel:+91${STORE_PHONE}`} className="hover:text-white transition-colors">{STORE_PHONE_DISPLAY}</a>
                   </p>
                   <p className="flex items-center gap-2">
-                    <i className="fa-solid fa-phone text-[#84F229]" />
-                    <span>+91 9011221665</span>
-                  </p>
-                  <p className="flex items-center gap-2">
-                    <i className="fa-solid fa-envelope text-[#84F229]" />
-                    <span>Shaikhshoeb2624@gmail.com</span>
+                    <i className="fa-solid fa-envelope text-blue-400" />
+                    <a href={`mailto:${STORE_EMAIL}`} className="hover:text-white transition-colors">{STORE_EMAIL}</a>
                   </p>
                 </div>
               </div>
@@ -2068,7 +2292,7 @@ export default function App() {
                     <span className="px-2 py-1 bg-slate-800 rounded border border-slate-700">GPay</span>
                     <span className="px-2 py-1 bg-slate-800 rounded border border-slate-700">PhonePe</span>
                     <span className="px-2 py-1 bg-slate-800 rounded border border-slate-700">Paytm</span>
-                    <span className="px-2 py-1 bg-slate-800 rounded border border-slate-700 text-[#84F229]">Cash on Delivery</span>
+                    <span className="px-2 py-1 bg-slate-800 rounded border border-slate-700 text-amber-400 font-bold">Cash on Delivery</span>
                   </div>
                 </div>
               </div>
@@ -2076,7 +2300,7 @@ export default function App() {
 
             <div className="pt-6 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-slate-500">
               <span>© 2026 Crazy Mobiles (CRAZY MOBILE SHOP AND MULTISERVICES). All rights reserved.</span>
-              <span>Proprietor: Shaikh Shoeb · Aurangabad, Maharashtra</span>
+              <span>Proprietor: Shaikh Shoeb · Padegaon, Chhatrapati Sambhajinagar, Maharashtra</span>
             </div>
           </div>
         </footer>

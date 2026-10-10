@@ -6,6 +6,7 @@ import {
   HomePageConfig,
   Product,
   ProductReview,
+  STORE_ADDRESS,
   STORE_EMAIL,
   STORE_MAPS_URL,
   STORE_NAME,
@@ -336,8 +337,8 @@ export const HomeView: React.FC<HomeViewProps> = ({
             },
             {
               icon: 'fa-truck-fast',
-              color: 'text-emerald-600',
-              bg: 'bg-emerald-50',
+              color: 'text-blue-600',
+              bg: 'bg-blue-50',
               title: 'Free Express Shipping',
               desc: 'Doorstep dispatch across India above ₹499',
             },
@@ -490,7 +491,7 @@ export const HomeView: React.FC<HomeViewProps> = ({
         <section className="max-w-[1280px] mx-auto px-4 sm:px-6 lg:px-8 py-8">
           <div className="flex items-center justify-between gap-4 mb-5 pb-3 border-b border-slate-200">
             <div className="flex items-center gap-2">
-              <span className="w-2.5 h-6 rounded-sm bg-emerald-600" />
+              <span className="w-2.5 h-6 rounded-sm bg-blue-600" />
               <h2 className="text-lg sm:text-2xl font-bold text-slate-900">
                 ⚡ Fast Chargers &amp; Power Banks
               </h2>
@@ -627,7 +628,7 @@ export const HomeView: React.FC<HomeViewProps> = ({
                     <h4 className="text-xs sm:text-sm font-bold text-slate-900">{t.author}</h4>
                     <p className="text-[11px] text-slate-500">{t.location}</p>
                   </div>
-                  <span className="text-[10px] text-emerald-600 font-bold bg-emerald-50 px-2 py-0.5 rounded-full flex items-center gap-1">
+                  <span className="text-[10px] text-blue-600 font-bold bg-blue-50 px-2 py-0.5 rounded-full flex items-center gap-1">
                     <i className="fa-solid fa-circle-check text-[9px]" />
                     Verified
                   </span>
@@ -651,7 +652,7 @@ export const HomeView: React.FC<HomeViewProps> = ({
                 Crazy Mobiles Showroom
               </h2>
               <p className="text-xs sm:text-sm text-slate-200 max-w-xl leading-relaxed">
-                📍 Shop No 02, Nizamuddin Road, Shahaganj, Aurangabad, Maharashtra - 431001.<br />
+                📍 {STORE_ADDRESS}<br />
                 Visit our physical showroom for live product demonstrations, hands-on audio testing, tempered glass machine installation, and wholesale inquiries.
               </p>
             </div>
@@ -1077,7 +1078,7 @@ export const ProductDetailView: React.FC<ProductDetailViewProps> = ({
                 </span>
               )}
               {discountPercent > 0 && (
-                <span className="text-xs font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded">
+                <span className="text-xs font-bold text-amber-600 bg-amber-50 px-2 py-0.5 rounded">
                   Save {discountPercent}%
                 </span>
               )}
@@ -1181,7 +1182,7 @@ export const ProductDetailView: React.FC<ProductDetailViewProps> = ({
                 <span>100% Original Genuine Guarantee</span>
               </div>
               <div className="flex items-center gap-2">
-                <i className="fa-solid fa-truck-fast text-emerald-600" />
+                <i className="fa-solid fa-truck-fast text-blue-600" />
                 <span>Fast Express All-India Dispatch</span>
               </div>
               <div className="flex items-center gap-2">

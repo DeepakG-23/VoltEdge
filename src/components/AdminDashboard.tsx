@@ -37,6 +37,7 @@ import {
 import { CrazyMobilesEmblem } from './CrazyMobilesLogo';
 import { CrazyMobilesPaymentQR } from './CrazyMobilesPaymentQR';
 import { ResilientImage } from './ResilientImage';
+import { AdminOcrScreenshotReader, ExtractedProductOcrData } from './AdminOcrScreenshotReader';
 
 declare global {
   interface Window {
@@ -57,7 +58,7 @@ interface AdminDashboardProps {
   onUpdateProduct: (product: Product) => void;
   onDeleteProduct: (productId: number) => void;
   onUpdateOrderStatus: (orderId: string, status: OrderStatus) => void;
-  onResetDemoData: () => void;
+  onRestoreDefaultCatalog: () => void;
   onExitAdmin: () => void;
   onAdminLogout?: () => void;
   showToast: (msg: string) => void;
@@ -121,7 +122,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   onUpdateProduct,
   onDeleteProduct,
   onUpdateOrderStatus,
-  onResetDemoData,
+  onRestoreDefaultCatalog,
   onExitAdmin,
   onAdminLogout,
   showToast,
@@ -1552,7 +1553,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                 <span className="text-[10px] text-[#6B6B7B]">Merchant Portal</span>
               </div>
             </div>
-            <span className="w-2 h-2 rounded-full bg-[#84F229] shadow-[0_0_8px_#84F229]" title="Active" />
+            <span className="w-2 h-2 rounded-full bg-blue-500 shadow-[0_0_8px_#3b82f6]" title="Active" />
           </div>
 
           <nav className="flex lg:flex-col gap-1.5 overflow-x-auto no-scrollbar">
@@ -1814,13 +1815,13 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                   >
                     <defs>
                       <linearGradient id="rechartsRevenueGlow" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="5%" stopColor="#6C63FF" stopOpacity={0.45} />
-                        <stop offset="60%" stopColor="#FF6B35" stopOpacity={0.12} />
+                        <stop offset="5%" stopColor="#2563EB" stopOpacity={0.45} />
+                        <stop offset="60%" stopColor="#3B82F6" stopOpacity={0.12} />
                         <stop offset="95%" stopColor="#0A0A0B" stopOpacity={0} />
                       </linearGradient>
                       <linearGradient id="rechartsOrdersGlow" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="5%" stopColor="#84F229" stopOpacity={0.35} />
-                        <stop offset="95%" stopColor="#84F229" stopOpacity={0} />
+                        <stop offset="5%" stopColor="#F59E0B" stopOpacity={0.35} />
+                        <stop offset="95%" stopColor="#F59E0B" stopOpacity={0} />
                       </linearGradient>
                     </defs>
                     <CartesianGrid
@@ -1855,9 +1856,9 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                       <YAxis
                         yAxisId="right"
                         orientation="right"
-                        stroke="#84F229"
+                        stroke="#F59E0B"
                         tick={{
-                          fill: '#84F229',
+                          fill: '#F59E0B',
                           fontSize: 11,
                           fontFamily: 'JetBrains Mono, monospace',
                         }}
@@ -1883,13 +1884,13 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                               </p>
                               <div className="flex items-center justify-between text-xs pt-1">
                                 <span className="text-[#A0A0B0]">Total Revenue:</span>
-                                <span className="font-mono-num font-bold text-[#FF6B35]">
+                                <span className="font-mono-num font-bold text-blue-400">
                                   {formatINR(Number(rev || 0))}
                                 </span>
                               </div>
                               <div className="flex items-center justify-between text-xs">
                                 <span className="text-[#A0A0B0]">Orders Logged:</span>
-                                <span className="font-mono-num font-semibold text-[#84F229]">
+                                <span className="font-mono-num font-semibold text-amber-400">
                                   {ords} orders
                                 </span>
                               </div>
@@ -1912,18 +1913,18 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                         type="monotone"
                         dataKey="totalRevenue"
                         name="Gross Revenue (₹)"
-                        stroke="#6C63FF"
+                        stroke="#2563EB"
                         strokeWidth={3}
                         fill="url(#rechartsRevenueGlow)"
                         dot={{
                           r: 4,
                           fill: '#FFFFFF',
-                          stroke: '#6C63FF',
+                          stroke: '#2563EB',
                           strokeWidth: 2,
                         }}
                         activeDot={{
                           r: 7,
-                          fill: '#FF6B35',
+                          fill: '#3B82F6',
                           stroke: '#FFFFFF',
                           strokeWidth: 2.5,
                         }}
@@ -1936,18 +1937,18 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                         type="monotone"
                         dataKey="ordersCount"
                         name="Orders Placed"
-                        stroke="#84F229"
+                        stroke="#F59E0B"
                         strokeWidth={2.5}
                         dot={{
                           r: 3.5,
-                          fill: '#84F229',
+                          fill: '#F59E0B',
                           stroke: '#0A0A0B',
                           strokeWidth: 1.5,
                         }}
                         activeDot={{
                           r: 6,
                           fill: '#FFFFFF',
-                          stroke: '#84F229',
+                          stroke: '#F59E0B',
                           strokeWidth: 2,
                         }}
                       />
@@ -3454,7 +3455,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                 enableCod: e.target.checked,
                               }))
                             }
-                            className="w-4 h-4 accent-[#84F229]"
+                            className="w-4 h-4 accent-blue-600"
                           />
                         </label>
 
@@ -3617,7 +3618,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                   <button
                     type="button"
                     onClick={() => {
-                      onResetDemoData();
+                      onRestoreDefaultCatalog();
                       showToast(
                         'Official store catalog, orders, and configuration restored to default state'
                       );
@@ -3771,8 +3772,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                 <span className="text-sm font-bold text-white mt-1.5 block truncate">
                   Shaikh Shoeb (Admin)
                 </span>
-                <span className="text-[10px] text-[#84F229] mt-1 flex items-center gap-1.5">
-                  <span className="w-1.5 h-1.5 rounded-full bg-[#84F229]" />
+                <span className="text-[10px] text-blue-400 mt-1 flex items-center gap-1.5">
+                  <span className="w-1.5 h-1.5 rounded-full bg-blue-400" />
                   Verified Session
                 </span>
               </div>
@@ -4217,7 +4218,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                         MRP Price (₹)
                       </label>
                       {Number(formOriginalPrice) > Number(formPrice) && (
-                        <span className="text-[10px] text-[#84F229] font-mono-num font-bold">
+                        <span className="text-[10px] text-amber-400 font-mono-num font-bold">
                           {Math.round(
                             ((Number(formOriginalPrice) - Number(formPrice)) /
                               Number(formOriginalPrice)) *
@@ -4635,10 +4636,37 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                   </button>
                 </div>
 
+                {/* Screenshot to Description OCR Tool */}
+                <AdminOcrScreenshotReader
+                  onApplyData={(data: ExtractedProductOcrData) => {
+                    if (data.tagline) setFormTagline(data.tagline);
+                    if (data.shortDescription) setFormShortDescription(data.shortDescription);
+                    if (data.fullDescription) setFormDescription(data.fullDescription);
+                    else if (data.rawText) setFormDescription(data.rawText);
+                    if (data.detectedTitle && (!formName || formName.trim() === '')) setFormName(data.detectedTitle);
+                    if (data.detectedBrand) setFormPhoneBrand(data.detectedBrand);
+                    if (data.extractedSpecs && data.extractedSpecs.length > 0) {
+                      setFormSpecs((prev) => {
+                        const existingLabels = new Set(prev.map((s) => s.label.toLowerCase()));
+                        const newSpecs = data.extractedSpecs!.filter(
+                          (s) => !existingLabels.has(s.label.toLowerCase())
+                        );
+                        return [...prev, ...newSpecs];
+                      });
+                    }
+                    showToast('Extracted OCR specs & description applied to form!');
+                  }}
+                  onApplyDescriptionOnly={(desc: string) => {
+                    setFormDescription(desc);
+                    showToast('Description updated from screenshot OCR!');
+                  }}
+                />
+
                 <div>
                   <label className="block text-xs font-semibold text-[#A0A0B0] mb-1">
                     Short Catchy Tagline
                   </label>
+
                   <input
                     type="text"
                     value={formTagline}

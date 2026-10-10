@@ -1,11 +1,10 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import {
   CartItem,
   HERO_ECOSYSTEM_IMAGE,
   INDIAN_STATES,
   Order,
   STORE_EMAIL,
-  STORE_MAPS_URL,
   STORE_NAME,
   STORE_PHONE,
   STORE_PHONE_DISPLAY,
@@ -62,14 +61,16 @@ export const INITIAL_SAVED_ADDRESSES: SavedAddressItem[] = [
 ];
 
 /* ==========================================================================
-   UNIFIED STORE OWNER (ADMIN) & CONSUMER LOGIN PORTAL (#/login)
+   UNIFIED STORE OWNER (ADMIN) & CONSUMER LOGIN & SIGN-UP PORTAL (#/login)
    ========================================================================== */
 interface LoginOtpViewProps {
   currentUser: User | null;
   profile: CustomerProfileData;
   isAdminAuthenticated?: boolean;
+  initialMode?: 'login' | 'register';
   onAdminLoginSuccess?: () => void;
   onCustomerLoginSuccess?: (loginId: string, displayName?: string) => void;
+  onCustomerRegisterSuccess?: (newProfile: CustomerProfileData) => void;
   onPhoneVerifiedSuccess?: (phone: string, name?: string) => void;
   onGoogleSignIn: () => void;
   onNavigateAccount: () => void;
@@ -81,14 +82,24 @@ export const LoginOtpView: React.FC<LoginOtpViewProps> = ({
   currentUser,
   profile,
   isAdminAuthenticated = false,
+  initialMode = 'login',
   onAdminLoginSuccess,
   onCustomerLoginSuccess,
+  onCustomerRegisterSuccess,
   onGoogleSignIn,
   onNavigateAccount,
   onNavigateAdmin,
   showToast,
 }) => {
-  // Unified Login ID & Password State (Used for both Consumer & Store Owner)
+  // Mode: Sign In or Create New Account
+  const [authMode, setAuthMode] = useState<'login' | 'register'>(() => {
+    if (typeof window !== 'undefined' && window.location.hash.includes('register')) {
+      return 'register';
+    }
+    return initialMode;
+  });
+
+  // Login Form State
   const [loginId, setLoginId] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -96,7 +107,19 @@ export const LoginOtpView: React.FC<LoginOtpViewProps> = ({
   const [isLoggingIn, setIsLoggingIn] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string>('');
 
-  // Unified Login Handler (Detects Special Store Owner Credentials vs. Consumer Credentials)
+  // Registration Form State
+  const [regFullName, setRegFullName] = useState('');
+  const [regEmail, setRegEmail] = useState('');
+  const [regPhone, setRegPhone] = useState('');
+  const [regPassword, setRegPassword] = useState('');
+  const [regConfirmPassword, setRegConfirmPassword] = useState('');
+  const [regArea, setRegArea] = useState('');
+  const [regCity, setRegCity] = useState('');
+  const [regPincode, setRegPincode] = useState('');
+  const [regState, setRegState] = useState('Karnataka');
+  const [isRegistering, setIsRegistering] = useState(false);
+
+  // Unified Login Handler
   const handleUnifiedLoginSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     const trimmedId = loginId.trim();
@@ -117,7 +140,7 @@ export const LoginOtpView: React.FC<LoginOtpViewProps> = ({
     setTimeout(() => {
       setIsLoggingIn(false);
 
-      // Check Special Store Owner / Admin Credentials (Login ID: "Shoeb", Password: "admin")
+      // Check Store Owner / Admin Credentials
       const isOwnerLogin =
         (trimmedId === 'Shoeb' || trimmedLower === 'shoeb') &&
         password === 'admin';
@@ -132,15 +155,11 @@ export const LoginOtpView: React.FC<LoginOtpViewProps> = ({
         return;
       }
 
-      // Prevent unauthorized attempts when someone enters admin/owner ID with wrong password
       if (trimmedId === 'Shoeb' || trimmedLower === 'shoeb') {
-        setErrorMsg(
-          'Invalid Store Owner password. Only the authorized owner can access the Admin Console.'
-        );
+        setErrorMsg('Invalid Store Owner password. Only authorized admin can access the Admin Console.');
         return;
       }
 
-      // Consumer Login Validation
       if (password.length < 4) {
         setErrorMsg('Password must be at least 4 characters.');
         return;
@@ -162,13 +181,77 @@ export const LoginOtpView: React.FC<LoginOtpViewProps> = ({
     }, 400);
   };
 
+  // Sign Up / Registration Handler
+  const handleRegisterSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    const cleanName = regFullName.trim();
+    const cleanEmail = regEmail.trim();
+    const cleanPhone = regPhone.replace(/\D/g, '').slice(0, 10);
+
+    if (!cleanName) {
+      setErrorMsg('Please enter your Full Name.');
+      return;
+    }
+    if (!cleanEmail || !cleanEmail.includes('@')) {
+      setErrorMsg('Please enter a valid email address.');
+      return;
+    }
+    if (cleanPhone.length !== 10) {
+      setErrorMsg('Please enter a valid 10-digit Indian mobile number.');
+      return;
+    }
+    if (regPassword.length < 4) {
+      setErrorMsg('Password must be at least 4 characters.');
+      return;
+    }
+    if (regPassword !== regConfirmPassword) {
+      setErrorMsg('Passwords do not match. Please verify your password.');
+      return;
+    }
+
+    setErrorMsg('');
+    setIsRegistering(true);
+
+    setTimeout(() => {
+      setIsRegistering(false);
+
+      const newAddress: SavedAddressItem = {
+        id: `addr-${Date.now()}`,
+        label: 'Home',
+        fullName: cleanName,
+        phone: cleanPhone,
+        pincode: regPincode.trim() || '560034',
+        area: regArea.trim() || 'Default Delivery Address',
+        city: regCity.trim() || 'Bengaluru',
+        state: regState,
+        isDefault: true,
+      };
+
+      const newProfile: CustomerProfileData = {
+        fullName: cleanName,
+        email: cleanEmail,
+        phone: cleanPhone,
+        smsAlerts: true,
+        isPhoneVerified: true,
+        addresses: regArea.trim() ? [newAddress] : [],
+      };
+
+      if (onCustomerRegisterSuccess) {
+        onCustomerRegisterSuccess(newProfile);
+      } else if (onCustomerLoginSuccess) {
+        onCustomerLoginSuccess(cleanEmail, cleanName);
+      } else {
+        showToast(`Welcome to Crazy Mobiles, ${cleanName}!`);
+        onNavigateAccount();
+      }
+    }, 450);
+  };
+
   return (
     <div className="min-h-[calc(100vh-5rem)] flex items-center justify-center px-4 sm:px-6 lg:px-8 py-8 sm:py-12 animate-page-enter">
-      {/* Full-Width Split-Screen Flagship Authentication Portal */}
-      <div className="w-full max-w-[1160px] bg-[#111113] border border-white/10 rounded-[24px] shadow-2xl overflow-hidden grid grid-cols-1 lg:grid-cols-12 min-h-[600px]">
-        {/* LEFT COLUMN (6 Cols): Brand Ecosystem Showcase & Identity Architecture */}
-        <div className="lg:col-span-6 relative bg-[#16161D] p-8 sm:p-12 flex flex-col justify-between overflow-hidden border-b lg:border-b-0 lg:border-r border-white/[0.08]">
-          {/* Studio Hardware Background with Layered Gradient */}
+      <div className="w-full max-w-[1160px] bg-[#111113] border border-white/10 rounded-[24px] shadow-2xl overflow-hidden grid grid-cols-1 lg:grid-cols-12 min-h-[640px]">
+        {/* LEFT COLUMN: Brand Ecosystem Showcase */}
+        <div className="lg:col-span-5 relative bg-[#16161D] p-8 sm:p-12 flex flex-col justify-between overflow-hidden border-b lg:border-b-0 lg:border-r border-white/[0.08]">
           <div className="absolute inset-0 pointer-events-none">
             <ResilientImage
               src={HERO_ECOSYSTEM_IMAGE}
@@ -181,12 +264,11 @@ export const LoginOtpView: React.FC<LoginOtpViewProps> = ({
               className="absolute -top-24 -left-24 w-96 h-96 rounded-full opacity-30 blur-3xl"
               style={{
                 background:
-                  'radial-gradient(circle, rgba(108,99,255,0.55) 0%, rgba(255,107,53,0.2) 60%, transparent 80%)',
+                  'radial-gradient(circle, rgba(37,99,235,0.55) 0%, rgba(245,158,11,0.2) 60%, transparent 80%)',
               }}
             />
           </div>
 
-          {/* Top Brand Identity */}
           <div className="relative z-10 space-y-6">
             <div className="inline-flex items-center gap-2.5">
               <CrazyMobilesLogo variant="horizontal" size="md" />
@@ -194,42 +276,43 @@ export const LoginOtpView: React.FC<LoginOtpViewProps> = ({
 
             <div className="space-y-3 pt-2">
               <h2
-                className="font-display text-3xl sm:text-4xl font-bold text-white leading-tight"
+                className="font-display text-2xl sm:text-3xl font-bold text-white leading-tight"
                 style={{ textWrap: 'balance' }}
               >
-                One Gateway for Members &amp; Store Operations.
+                {authMode === 'login'
+                  ? 'Sign In to Crazy Mobiles'
+                  : 'Create Your Crazy Mobiles Account'}
               </h2>
               <p className="text-sm text-[#A0A0B0] leading-relaxed max-w-md">
-                Sign in with your Login ID and password or continue with your
-                Google account. Your phone number and delivery address are
-                collected seamlessly during checkout.
+                {authMode === 'login'
+                  ? 'Access your orders, track shipments in real time, and manage your delivery addresses.'
+                  : 'Join Crazy Mobiles for express checkout, order history tracking, and exclusive discounts.'}
               </p>
             </div>
 
-            {/* Feature Highlights */}
             <div className="space-y-3.5 pt-3">
               {[
                 {
-                  icon: 'fa-truck-fast',
-                  title: 'Seamless Checkout Address & Phone Capture',
-                  desc: 'Enter your mobile number and delivery address directly while ordering.',
+                  icon: 'fa-box-open',
+                  title: 'Real-Time Order Tracking',
+                  desc: 'Stay updated on shipment status with automated dispatch notifications.',
                 },
                 {
                   icon: 'fa-shield-halved',
-                  title: '1-Year Automated Warranty Vault',
-                  desc: 'Every MagSafe, GaN, and ANC serial number registered to your account.',
+                  title: '1-Year Warranty Protection',
+                  desc: 'Genuine accessories with easy replacement guarantee.',
                 },
                 {
-                  icon: 'fa-lock',
-                  title: 'Role-Based Store Owner Protection',
-                  desc: 'Authorized owner credentials automatically unlock the Admin Console.',
+                  icon: 'fa-truck-fast',
+                  title: 'All-India Free Express Delivery',
+                  desc: 'Fast delivery on all orders above ₹499 with cash on delivery & UPI.',
                 },
               ].map((item) => (
                 <div
                   key={item.title}
                   className="flex items-start gap-3.5 p-3.5 rounded-2xl bg-[#0A0A0B]/60 border border-white/[0.07] backdrop-blur-md"
                 >
-                  <div className="w-9 h-9 rounded-xl bg-[#1A1A1F] border border-white/10 flex items-center justify-center text-[#6C63FF] shrink-0 mt-0.5">
+                  <div className="w-9 h-9 rounded-xl bg-[#1A1A1F] border border-white/10 flex items-center justify-center text-blue-400 shrink-0 mt-0.5">
                     <i className={`fa-solid ${item.icon} text-xs`} />
                   </div>
                   <div>
@@ -245,14 +328,13 @@ export const LoginOtpView: React.FC<LoginOtpViewProps> = ({
             </div>
           </div>
 
-          {/* Bottom Status Bar */}
           <div className="relative z-10 pt-8 mt-8 border-t border-white/10 flex items-center justify-between text-xs text-[#A0A0B0]">
-            <span>256-Bit Encrypted Authentication</span>
+            <span>100% Encrypted &amp; Secure</span>
             {isAdminAuthenticated && onNavigateAdmin && (
               <button
                 type="button"
                 onClick={onNavigateAdmin}
-                className="text-xs font-semibold text-emerald-400 hover:underline flex items-center gap-1.5"
+                className="text-xs font-semibold text-blue-400 hover:underline flex items-center gap-1.5"
               >
                 <span>Open Admin Console</span>
                 <i className="fa-solid fa-arrow-right text-[10px]" />
@@ -261,148 +343,280 @@ export const LoginOtpView: React.FC<LoginOtpViewProps> = ({
           </div>
         </div>
 
-        {/* RIGHT COLUMN (6 Cols): Unified Login Form (Login ID + Password + Continue with Google Account) */}
-        <div className="lg:col-span-6 p-8 sm:p-12 lg:p-14 flex flex-col justify-center bg-[#111113]">
-          <div className="max-w-md mx-auto w-full space-y-7">
-            {/* Top Header */}
-            <div className="space-y-2.5">
-              <div className="flex items-center justify-between gap-2">
-                <span className="text-xs font-medium text-[#FF6B35]">
-                  {STORE_NAME} Account Authentication
-                </span>
-                {currentUser && (
-                  <button
-                    type="button"
-                    onClick={onNavigateAccount}
-                    className="text-xs text-[#6C63FF] hover:underline font-medium"
-                  >
-                    Go to Account →
-                  </button>
-                )}
-              </div>
-
-              <h1 className="font-display text-2xl sm:text-3xl font-bold text-white">
-                Sign In to Your Account
-              </h1>
-              <p className="text-xs sm:text-sm text-[#A0A0B0]">
-                Enter your Login ID and password below, or continue with your
-                Google account.
-              </p>
+        {/* RIGHT COLUMN: Interactive Tabs (Sign In vs Create Account) */}
+        <div className="lg:col-span-7 p-8 sm:p-12 lg:p-12 flex flex-col justify-center bg-[#111113]">
+          <div className="max-w-md mx-auto w-full space-y-6">
+            {/* Mode Switcher Tabs */}
+            <div className="flex items-center p-1 rounded-xl bg-[#1A1A1F] border border-white/10">
+              <button
+                type="button"
+                onClick={() => {
+                  setAuthMode('login');
+                  setErrorMsg('');
+                }}
+                className={`flex-1 py-2.5 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-2 ${
+                  authMode === 'login'
+                    ? 'bg-blue-600 text-white shadow-md'
+                    : 'text-slate-400 hover:text-white'
+                }`}
+              >
+                <i className="fa-solid fa-right-to-bracket text-xs" />
+                <span>Sign In</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setAuthMode('register');
+                  setErrorMsg('');
+                }}
+                className={`flex-1 py-2.5 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-2 ${
+                  authMode === 'register'
+                    ? 'bg-blue-600 text-white shadow-md'
+                    : 'text-slate-400 hover:text-white'
+                }`}
+              >
+                <i className="fa-solid fa-user-plus text-xs" />
+                <span>Create Account</span>
+              </button>
             </div>
 
             {errorMsg && (
-              <div className="p-4 rounded-xl bg-rose-500/10 border border-rose-500/30 text-xs text-rose-300 flex items-center gap-2.5">
+              <div className="p-4 rounded-xl bg-rose-500/10 border border-rose-500/30 text-xs text-rose-300 flex items-center gap-2.5 animate-page-enter">
                 <i className="fa-solid fa-circle-exclamation shrink-0 text-sm" />
                 <span>{errorMsg}</span>
               </div>
             )}
 
-            {/* UNIFIED LOGIN ID & PASSWORD FORM */}
-            <form onSubmit={handleUnifiedLoginSubmit} className="space-y-5">
-              <div>
-                <label
-                  htmlFor="unified-login-id"
-                  className="block text-xs font-medium text-[#A0A0B0] mb-2"
-                >
-                  Login ID
-                </label>
-                <div className="relative">
-                  <i className="fa-regular fa-user absolute left-4 top-1/2 -translate-y-1/2 text-[#6B6B7B] text-xs" />
-                  <input
-                    id="unified-login-id"
-                    type="text"
-                    required
-                    value={loginId}
-                    onChange={(e) => setLoginId(e.target.value)}
-                    placeholder="Enter your Login ID or Email"
-                    className="w-full pl-11 pr-4 py-3.5 rounded-xl bg-[#1A1A1F] border border-white/10 text-sm text-white placeholder-[#6B6B7B] focus:outline-none focus:border-[#6C63FF] focus:ring-1 focus:ring-[#6C63FF] transition-all"
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label
-                  htmlFor="unified-password"
-                  className="block text-xs font-medium text-[#A0A0B0] mb-2"
-                >
-                  Password
-                </label>
-                <div className="relative">
-                  <i className="fa-solid fa-lock absolute left-4 top-1/2 -translate-y-1/2 text-[#6B6B7B] text-xs" />
-                  <input
-                    id="unified-password"
-                    type={showPassword ? 'text' : 'password'}
-                    required
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    placeholder="Enter your password"
-                    className="w-full pl-11 pr-11 py-3.5 rounded-xl bg-[#1A1A1F] border border-white/10 text-sm text-white placeholder-[#6B6B7B] focus:outline-none focus:border-[#6C63FF] focus:ring-1 focus:ring-[#6C63FF] transition-all"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowPassword((prev) => !prev)}
-                    aria-label="Toggle password visibility"
-                    className="absolute right-3.5 top-1/2 -translate-y-1/2 text-[#A0A0B0] hover:text-white p-1"
+            {/* TAB 1: SIGN IN */}
+            {authMode === 'login' && (
+              <form onSubmit={handleUnifiedLoginSubmit} className="space-y-4 animate-page-enter">
+                <div>
+                  <label
+                    htmlFor="unified-login-id"
+                    className="block text-xs font-medium text-[#A0A0B0] mb-1.5"
                   >
-                    <i
-                      className={`fa-regular ${
-                        showPassword ? 'fa-eye-slash' : 'fa-eye'
-                      } text-xs`}
+                    Login ID or Email
+                  </label>
+                  <div className="relative">
+                    <i className="fa-regular fa-user absolute left-4 top-1/2 -translate-y-1/2 text-[#6B6B7B] text-xs" />
+                    <input
+                      id="unified-login-id"
+                      type="text"
+                      required
+                      value={loginId}
+                      onChange={(e) => setLoginId(e.target.value)}
+                      placeholder="Enter Login ID or Email"
+                      className="w-full pl-11 pr-4 py-3 rounded-xl bg-[#1A1A1F] border border-white/10 text-sm text-white placeholder-[#6B6B7B] focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all"
                     />
-                  </button>
+                  </div>
                 </div>
-              </div>
 
-              <div className="flex items-center justify-between text-xs text-[#A0A0B0]">
-                <label className="inline-flex items-center gap-2 cursor-pointer select-none">
+                <div>
+                  <label
+                    htmlFor="unified-password"
+                    className="block text-xs font-medium text-[#A0A0B0] mb-1.5"
+                  >
+                    Password
+                  </label>
+                  <div className="relative">
+                    <i className="fa-solid fa-lock absolute left-4 top-1/2 -translate-y-1/2 text-[#6B6B7B] text-xs" />
+                    <input
+                      id="unified-password"
+                      type={showPassword ? 'text' : 'password'}
+                      required
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      placeholder="Enter password"
+                      className="w-full pl-11 pr-11 py-3 rounded-xl bg-[#1A1A1F] border border-white/10 text-sm text-white placeholder-[#6B6B7B] focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword((prev) => !prev)}
+                      aria-label="Toggle password visibility"
+                      className="absolute right-3.5 top-1/2 -translate-y-1/2 text-[#A0A0B0] hover:text-white p-1"
+                    >
+                      <i className={`fa-regular ${showPassword ? 'fa-eye-slash' : 'fa-eye'} text-xs`} />
+                    </button>
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-between text-xs text-[#A0A0B0] pt-1">
+                  <label className="inline-flex items-center gap-2 cursor-pointer select-none">
+                    <input
+                      type="checkbox"
+                      checked={rememberSession}
+                      onChange={(e) => setRememberSession(e.target.checked)}
+                      className="w-4 h-4 rounded accent-blue-600"
+                    />
+                    <span>Keep me signed in</span>
+                  </label>
+                </div>
+
+                <button
+                  type="submit"
+                  disabled={isLoggingIn}
+                  className="w-full py-3.5 px-6 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-display text-sm font-bold shadow-md hover:scale-[1.01] transition-all flex items-center justify-center gap-2.5 btn-interactive cursor-pointer"
+                >
+                  {isLoggingIn ? (
+                    <>
+                      <i className="fa-solid fa-circle-notch fa-spin text-xs" />
+                      <span>Signing In...</span>
+                    </>
+                  ) : (
+                    <>
+                      <span>Sign In</span>
+                      <i className="fa-solid fa-arrow-right text-xs" />
+                    </>
+                  )}
+                </button>
+
+                <div className="relative py-2 flex items-center justify-center">
+                  <div className="border-t border-white/10 w-full" />
+                  <span className="bg-[#111113] px-4 text-[11px] text-[#6B6B7B] uppercase tracking-wider shrink-0">
+                    Or
+                  </span>
+                  <div className="border-t border-white/10 w-full" />
+                </div>
+
+                <button
+                  type="button"
+                  onClick={onGoogleSignIn}
+                  className="w-full py-3 px-6 rounded-xl bg-[#1A1A1F] hover:bg-[#23232C] border border-white/15 text-white font-display text-xs sm:text-sm font-semibold flex items-center justify-center gap-3 transition-all"
+                >
+                  <i className="fa-brands fa-google text-base text-amber-400" />
+                  <span>Continue with Google Account</span>
+                </button>
+              </form>
+            )}
+
+            {/* TAB 2: CREATE NEW ACCOUNT (SIGN UP) */}
+            {authMode === 'register' && (
+              <form onSubmit={handleRegisterSubmit} className="space-y-3.5 animate-page-enter">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-xs font-medium text-[#A0A0B0] mb-1">
+                      Full Name *
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      value={regFullName}
+                      onChange={(e) => setRegFullName(e.target.value)}
+                      placeholder="e.g. Deepak Gaikwad"
+                      className="w-full px-3.5 py-2.5 rounded-lg bg-[#1A1A1F] border border-white/10 text-xs text-white placeholder-[#6B6B7B] focus:outline-none focus:border-blue-500"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-medium text-[#A0A0B0] mb-1">
+                      Mobile Number (+91) *
+                    </label>
+                    <input
+                      type="tel"
+                      maxLength={10}
+                      required
+                      value={regPhone}
+                      onChange={(e) => setRegPhone(e.target.value.replace(/\D/g, '').slice(0, 10))}
+                      placeholder="10-digit phone"
+                      className="w-full px-3.5 py-2.5 rounded-lg bg-[#1A1A1F] border border-white/10 text-xs font-mono-num text-white placeholder-[#6B6B7B] focus:outline-none focus:border-blue-500"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-medium text-[#A0A0B0] mb-1">
+                    Email Address *
+                  </label>
                   <input
-                    type="checkbox"
-                    checked={rememberSession}
-                    onChange={(e) => setRememberSession(e.target.checked)}
-                    className="w-4 h-4 rounded accent-[#6C63FF]"
+                    type="email"
+                    required
+                    value={regEmail}
+                    onChange={(e) => setRegEmail(e.target.value)}
+                    placeholder="e.g. deepak@gmail.com"
+                    className="w-full px-3.5 py-2.5 rounded-lg bg-[#1A1A1F] border border-white/10 text-xs text-white placeholder-[#6B6B7B] focus:outline-none focus:border-blue-500"
                   />
-                  <span>Keep me signed in on this device</span>
-                </label>
-              </div>
+                </div>
 
-              {/* Primary Login Button */}
-              <button
-                type="submit"
-                disabled={isLoggingIn}
-                className="w-full py-4 px-6 rounded-xl bg-electric-gradient text-white font-display text-sm font-bold shadow-electric-glow hover:scale-[1.01] transition-all flex items-center justify-center gap-2.5 btn-interactive"
-              >
-                {isLoggingIn ? (
-                  <>
-                    <i className="fa-solid fa-circle-notch fa-spin text-xs" />
-                    <span>Signing In...</span>
-                  </>
-                ) : (
-                  <>
-                    <span>Login</span>
-                    <i className="fa-solid fa-arrow-right text-xs" />
-                  </>
-                )}
-              </button>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-xs font-medium text-[#A0A0B0] mb-1">
+                      Create Password *
+                    </label>
+                    <input
+                      type="password"
+                      required
+                      value={regPassword}
+                      onChange={(e) => setRegPassword(e.target.value)}
+                      placeholder="Min 4 characters"
+                      className="w-full px-3.5 py-2.5 rounded-lg bg-[#1A1A1F] border border-white/10 text-xs text-white placeholder-[#6B6B7B] focus:outline-none focus:border-blue-500"
+                    />
+                  </div>
 
-              {/* Divider */}
-              <div className="relative py-2 flex items-center justify-center">
-                <div className="border-t border-white/10 w-full" />
-                <span className="bg-[#111113] px-4 text-[11px] text-[#6B6B7B] uppercase tracking-wider shrink-0">
-                  Or
-                </span>
-                <div className="border-t border-white/10 w-full" />
-              </div>
+                  <div>
+                    <label className="block text-xs font-medium text-[#A0A0B0] mb-1">
+                      Confirm Password *
+                    </label>
+                    <input
+                      type="password"
+                      required
+                      value={regConfirmPassword}
+                      onChange={(e) => setRegConfirmPassword(e.target.value)}
+                      placeholder="Re-enter password"
+                      className="w-full px-3.5 py-2.5 rounded-lg bg-[#1A1A1F] border border-white/10 text-xs text-white placeholder-[#6B6B7B] focus:outline-none focus:border-blue-500"
+                    />
+                  </div>
+                </div>
 
-              {/* Continue with Google Account Button */}
-              <button
-                type="button"
-                onClick={onGoogleSignIn}
-                className="w-full py-3.5 px-6 rounded-xl bg-[#1A1A1F] hover:bg-[#23232C] border border-white/15 text-white font-display text-xs sm:text-sm font-semibold flex items-center justify-center gap-3 transition-all"
-              >
-                <i className="fa-brands fa-google text-base text-[#FF6B35]" />
-                <span>Continue with Google Account</span>
-              </button>
-            </form>
+                {/* Optional Address Setup */}
+                <div className="pt-1 border-t border-white/10 space-y-2">
+                  <span className="text-[11px] font-bold text-amber-400 block">
+                    Default Delivery Address (Optional)
+                  </span>
+                  <input
+                    type="text"
+                    value={regArea}
+                    onChange={(e) => setRegArea(e.target.value)}
+                    placeholder="House / Flat No., Street, Area"
+                    className="w-full px-3.5 py-2.5 rounded-lg bg-[#1A1A1F] border border-white/10 text-xs text-white placeholder-[#6B6B7B] focus:outline-none focus:border-blue-500"
+                  />
+                  <div className="grid grid-cols-2 gap-2">
+                    <input
+                      type="text"
+                      value={regCity}
+                      onChange={(e) => setRegCity(e.target.value)}
+                      placeholder="City"
+                      className="w-full px-3.5 py-2 rounded-lg bg-[#1A1A1F] border border-white/10 text-xs text-white placeholder-[#6B6B7B] focus:outline-none focus:border-blue-500"
+                    />
+                    <input
+                      type="text"
+                      maxLength={6}
+                      value={regPincode}
+                      onChange={(e) => setRegPincode(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                      placeholder="6-Digit Pincode"
+                      className="w-full px-3.5 py-2 rounded-lg bg-[#1A1A1F] border border-white/10 text-xs font-mono-num text-white placeholder-[#6B6B7B] focus:outline-none focus:border-blue-500"
+                    />
+                  </div>
+                </div>
+
+                <button
+                  type="submit"
+                  disabled={isRegistering}
+                  className="w-full py-3.5 px-6 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-display text-sm font-bold shadow-md hover:scale-[1.01] transition-all flex items-center justify-center gap-2 btn-interactive cursor-pointer mt-2"
+                >
+                  {isRegistering ? (
+                    <>
+                      <i className="fa-solid fa-circle-notch fa-spin text-xs" />
+                      <span>Creating Account...</span>
+                    </>
+                  ) : (
+                    <>
+                      <span>Complete Registration &amp; Sign In</span>
+                      <i className="fa-solid fa-arrow-right text-xs" />
+                    </>
+                  )}
+                </button>
+              </form>
+            )}
           </div>
         </div>
       </div>
@@ -438,9 +652,30 @@ export const AccountSettingsView: React.FC<AccountSettingsViewProps> = ({
   onGoogleSignOut,
   showToast,
 }) => {
-  const [activeSection, setActiveSection] = useState<
-    'profile' | 'orders' | 'addresses'
-  >('profile');
+  const [activeSection, setActiveSection] = useState<'profile' | 'orders' | 'addresses'>('profile');
+  const isGuestUser = !currentUser && (!profile.email || profile.fullName === 'Crazy Mobiles Guest');
+
+  // Filter orders dynamically belonging to this customer
+  const customerOrders = useMemo(() => {
+    const filtered = orders.filter((ord) => {
+      if (currentUser?.email && ord.customerEmail && ord.customerEmail.toLowerCase() === currentUser.email.toLowerCase()) {
+        return true;
+      }
+      if (profile.email && ord.customerEmail && ord.customerEmail.toLowerCase() === profile.email.toLowerCase()) {
+        return true;
+      }
+      if (profile.phone && ((ord.phone && ord.phone.includes(profile.phone)) || (ord.address?.phone && ord.address.phone.includes(profile.phone)))) {
+        return true;
+      }
+      if (profile.fullName && profile.fullName !== 'Crazy Mobiles Guest' && ord.customerName && ord.customerName.toLowerCase() === profile.fullName.toLowerCase()) {
+        return true;
+      }
+      return false;
+    });
+
+    if (filtered.length > 0) return filtered;
+    return isGuestUser ? orders : filtered;
+  }, [orders, currentUser, profile, isGuestUser]);
 
   // Profile Form State
   const [fullName, setFullName] = useState(profile.fullName);
@@ -450,9 +685,7 @@ export const AccountSettingsView: React.FC<AccountSettingsViewProps> = ({
 
   // Address Modal State
   const [isAddressModalOpen, setIsAddressModalOpen] = useState(false);
-  const [editingAddress, setEditingAddress] = useState<SavedAddressItem | null>(
-    null
-  );
+  const [editingAddress, setEditingAddress] = useState<SavedAddressItem | null>(null);
   const [addrLabel, setAddrLabel] = useState<'Home' | 'Office' | 'Other'>('Home');
   const [addrName, setAddrName] = useState(profile.fullName);
   const [addrPhone, setAddrPhone] = useState(profile.phone);
@@ -478,7 +711,7 @@ export const AccountSettingsView: React.FC<AccountSettingsViewProps> = ({
       phone: phone.replace(/\D/g, '').slice(0, 10) || STORE_PHONE,
       smsAlerts,
     });
-    showToast('Profile settings saved');
+    showToast('Profile settings saved successfully');
   };
 
   const openNewAddressModal = () => {
@@ -532,10 +765,7 @@ export const AccountSettingsView: React.FC<AccountSettingsViewProps> = ({
       }));
     }
 
-    onSaveProfile({
-      ...profile,
-      addresses: nextAddresses,
-    });
+    onSaveProfile({ ...profile, addresses: nextAddresses });
     setIsAddressModalOpen(false);
     showToast(editingAddress ? 'Address updated' : 'New address added to address book');
   };
@@ -558,58 +788,115 @@ export const AccountSettingsView: React.FC<AccountSettingsViewProps> = ({
   return (
     <div className="max-w-[1280px] mx-auto px-4 sm:px-6 lg:px-8 py-12 animate-page-enter">
       {/* Top Account Banner */}
-      <div className="bg-[#111113] rounded-[16px] p-6 sm:p-8 border border-white/[0.08] mb-8 flex flex-col md:flex-row md:items-center justify-between gap-6">
-        <div className="flex items-center gap-4">
-          <div className="w-14 h-14 rounded-2xl bg-electric-gradient flex items-center justify-center text-white font-display text-xl font-bold shadow-electric-glow shrink-0">
-            {(profile.fullName || 'V').charAt(0).toUpperCase()}
-          </div>
-          <div>
-            <div className="flex flex-wrap items-center gap-2">
-              <h1 className="font-display text-2xl font-bold text-white">
-                {profile.fullName}
-              </h1>
-              <span className="text-xs text-emerald-400 flex items-center gap-1">
-                · <i className="fa-solid fa-circle-check text-[10px]" /> Active Member
-              </span>
+      {isGuestUser ? (
+        <div className="bg-[#111113] rounded-[16px] p-6 sm:p-8 border border-white/[0.08] mb-8 flex flex-col md:flex-row md:items-center justify-between gap-6">
+          <div className="flex items-start sm:items-center gap-4">
+            <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-blue-600 to-indigo-700 text-white flex items-center justify-center font-display text-xl font-bold shadow-md shrink-0">
+              <i className="fa-solid fa-user-plus text-xl text-amber-300" />
             </div>
-            <p className="text-xs text-[#A0A0B0] mt-0.5 font-mono-num">
-              +91 {profile.phone} · {currentUser?.email || profile.email}
-            </p>
+            <div>
+              <div className="flex flex-wrap items-center gap-2">
+                <h1 className="font-display text-2xl font-bold text-white">
+                  Guest Account Portal
+                </h1>
+                <span className="text-xs text-amber-400 bg-amber-400/10 px-2 py-0.5 rounded-full border border-amber-400/30 flex items-center gap-1">
+                  <i className="fa-solid fa-clock text-[10px]" /> Not Signed In
+                </span>
+              </div>
+              <p className="text-xs text-[#A0A0B0] mt-1 max-w-xl leading-relaxed">
+                Create an official account to save delivery addresses, link and track past orders, and receive automated transactional emails &amp; WhatsApp status updates.
+              </p>
+            </div>
           </div>
-        </div>
 
-        <div className="flex flex-wrap items-center gap-3">
-          <button
-            type="button"
-            onClick={onNavigateLogin}
-            className="px-4 py-2.5 rounded-[8px] bg-[#1A1A1F] hover:bg-[#23232C] border border-white/15 text-xs font-semibold text-white flex items-center gap-2 transition-colors whitespace-nowrap"
-          >
-            <i className="fa-regular fa-user text-xs text-[#FF6B35]" />
-            <span>Switch Account / Login</span>
-          </button>
-
-          {currentUser ? (
+          <div className="flex flex-wrap items-center gap-3">
             <button
               type="button"
-              onClick={onGoogleSignOut}
-              className="px-4 py-2.5 rounded-[8px] bg-rose-500/10 hover:bg-rose-500/20 border border-rose-500/30 text-xs font-semibold text-rose-300 transition-colors whitespace-nowrap"
+              onClick={() => {
+                if (typeof window !== 'undefined') window.location.hash = '#/login?mode=register';
+                onNavigateLogin();
+              }}
+              className="px-4 py-2.5 rounded-[8px] bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold shadow-md flex items-center gap-2 whitespace-nowrap transition-all active:scale-95"
             >
-              Sign Out
+              <i className="fa-solid fa-user-plus text-xs text-amber-300" />
+              <span>Create Account</span>
             </button>
-          ) : (
+
+            <button
+              type="button"
+              onClick={() => {
+                if (typeof window !== 'undefined') window.location.hash = '#/login';
+                onNavigateLogin();
+              }}
+              className="px-4 py-2.5 rounded-[8px] bg-[#1A1A1F] hover:bg-[#23232C] border border-white/15 text-xs font-semibold text-white flex items-center gap-2 transition-colors whitespace-nowrap"
+            >
+              <i className="fa-solid fa-right-to-bracket text-xs text-blue-400" />
+              <span>Log In</span>
+            </button>
+
             <button
               type="button"
               onClick={onGoogleSignIn}
-              className="px-4 py-2.5 rounded-[8px] bg-electric-gradient text-white text-xs font-semibold shadow-electric-glow flex items-center gap-2 whitespace-nowrap"
+              className="px-3.5 py-2.5 rounded-[8px] bg-white/10 hover:bg-white/15 border border-white/10 text-white text-xs font-semibold flex items-center gap-2 whitespace-nowrap transition-all"
             >
-              <i className="fa-brands fa-google text-xs" />
-              <span>Sync with Google</span>
+              <i className="fa-brands fa-google text-xs text-red-400" />
+              <span>Google</span>
             </button>
-          )}
+          </div>
         </div>
-      </div>
+      ) : (
+        <div className="bg-[#111113] rounded-[16px] p-6 sm:p-8 border border-white/[0.08] mb-8 flex flex-col md:flex-row md:items-center justify-between gap-6">
+          <div className="flex items-center gap-4">
+            <div className="w-14 h-14 rounded-2xl bg-blue-600 text-white flex items-center justify-center font-display text-xl font-bold shadow-md shrink-0">
+              {(profile.fullName || 'C').charAt(0).toUpperCase()}
+            </div>
+            <div>
+              <div className="flex flex-wrap items-center gap-2">
+                <h1 className="font-display text-2xl font-bold text-white">
+                  {profile.fullName}
+                </h1>
+                <span className="text-xs text-amber-400 flex items-center gap-1 font-semibold">
+                  · <i className="fa-solid fa-circle-check text-[10px]" /> Verified Member
+                </span>
+              </div>
+              <p className="text-xs text-[#A0A0B0] mt-0.5 font-mono-num">
+                {profile.phone ? `+91 ${profile.phone}` : ''} {profile.email ? `· ${profile.email}` : ''}
+              </p>
+            </div>
+          </div>
 
-      {/* Layout Grid: Left Navigation Tabs (3 cols) + Right Content (9 cols) */}
+          <div className="flex flex-wrap items-center gap-3">
+            <button
+              type="button"
+              onClick={onNavigateLogin}
+              className="px-4 py-2.5 rounded-[8px] bg-[#1A1A1F] hover:bg-[#23232C] border border-white/15 text-xs font-semibold text-white flex items-center gap-2 transition-colors whitespace-nowrap"
+            >
+              <i className="fa-regular fa-user text-xs text-amber-400" />
+              <span>Switch Account</span>
+            </button>
+
+            {currentUser ? (
+              <button
+                type="button"
+                onClick={onGoogleSignOut}
+                className="px-4 py-2.5 rounded-[8px] bg-rose-500/10 hover:bg-rose-500/20 border border-rose-500/30 text-xs font-semibold text-rose-300 transition-colors whitespace-nowrap"
+              >
+                Sign Out
+              </button>
+            ) : (
+              <button
+                type="button"
+                onClick={onGoogleSignOut}
+                className="px-4 py-2.5 rounded-[8px] bg-slate-800 hover:bg-slate-700 border border-white/10 text-xs font-semibold text-slate-300 transition-colors whitespace-nowrap"
+              >
+                Log Out
+              </button>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Layout Grid: Left Navigation Tabs + Right Content */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
         {/* Section Selector */}
         <div className="lg:col-span-3 bg-[#111113] rounded-[16px] p-3 border border-white/[0.08] flex lg:flex-col gap-1.5 overflow-x-auto no-scrollbar">
@@ -625,7 +912,7 @@ export const AccountSettingsView: React.FC<AccountSettingsViewProps> = ({
                 id: 'orders',
                 label: 'Order History',
                 icon: 'fa-box-open',
-                count: orders.length,
+                count: customerOrders.length,
               },
               {
                 id: 'addresses',
@@ -643,7 +930,7 @@ export const AccountSettingsView: React.FC<AccountSettingsViewProps> = ({
                 onClick={() => setActiveSection(tab.id)}
                 className={`flex items-center justify-between gap-3 px-4 py-3 rounded-[10px] text-xs font-semibold transition-all whitespace-nowrap ${
                   active
-                    ? 'bg-electric-gradient text-white shadow-electric-glow'
+                    ? 'bg-blue-600 text-white shadow-md'
                     : 'text-[#A0A0B0] hover:text-white hover:bg-[#1A1A1F]'
                 }`}
               >
@@ -652,7 +939,7 @@ export const AccountSettingsView: React.FC<AccountSettingsViewProps> = ({
                   <span>{tab.label}</span>
                 </span>
                 {tab.count !== null && (
-                  <span className="font-mono-num text-[11px] opacity-85">
+                  <span className="font-mono-num text-[11px] px-1.5 py-0.2 rounded-full bg-white/20">
                     {tab.count}
                   </span>
                 )}
@@ -674,7 +961,7 @@ export const AccountSettingsView: React.FC<AccountSettingsViewProps> = ({
                   Basic Profile Information
                 </h2>
                 <p className="text-xs text-[#A0A0B0] mt-1">
-                  Manage your personal details and SMS notification preferences.
+                  Manage your personal details and order contact information.
                 </p>
               </div>
 
@@ -688,7 +975,7 @@ export const AccountSettingsView: React.FC<AccountSettingsViewProps> = ({
                     required
                     value={fullName}
                     onChange={(e) => setFullName(e.target.value)}
-                    className="w-full px-4 py-2.5 rounded-[8px] bg-[#1A1A1F] border border-white/10 text-sm text-white focus:outline-none focus:border-[#6C63FF]"
+                    className="w-full px-4 py-2.5 rounded-[8px] bg-[#1A1A1F] border border-white/10 text-sm text-white focus:outline-none focus:border-blue-500"
                   />
                 </div>
 
@@ -701,7 +988,7 @@ export const AccountSettingsView: React.FC<AccountSettingsViewProps> = ({
                     required
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    className="w-full px-4 py-2.5 rounded-[8px] bg-[#1A1A1F] border border-white/10 text-sm text-white focus:outline-none focus:border-[#6C63FF]"
+                    className="w-full px-4 py-2.5 rounded-[8px] bg-[#1A1A1F] border border-white/10 text-sm text-white focus:outline-none focus:border-blue-500"
                   />
                 </div>
 
@@ -717,51 +1004,27 @@ export const AccountSettingsView: React.FC<AccountSettingsViewProps> = ({
                     onChange={(e) =>
                       setPhone(e.target.value.replace(/\D/g, '').slice(0, 10))
                     }
-                    className="w-full px-4 py-2.5 rounded-[8px] bg-[#1A1A1F] border border-white/10 text-sm font-mono-num text-white focus:outline-none focus:border-[#6C63FF]"
+                    className="w-full px-4 py-2.5 rounded-[8px] bg-[#1A1A1F] border border-white/10 text-sm font-mono-num text-white focus:outline-none focus:border-blue-500"
                   />
-                </div>
-
-                <div>
-                  <label className="block text-xs text-[#A0A0B0] mb-1.5">
-                    Cloud Sync Status
-                  </label>
-                  <div className="px-4 py-2.5 rounded-[8px] bg-[#1A1A1F] border border-white/10 text-xs text-[#A0A0B0] flex items-center justify-between">
-                    <span>
-                      {currentUser
-                        ? 'Synced with Firebase Cloud'
-                        : 'Saved Locally (Sign in for Cloud Sync)'}
-                    </span>
-                    <span
-                      className={`w-2 h-2 rounded-full ${
-                        currentUser ? 'bg-emerald-400' : 'bg-amber-400'
-                      }`}
-                    />
-                  </div>
                 </div>
               </div>
 
-              <div className="p-4 rounded-[12px] bg-[#1A1A1F] border border-white/[0.06] flex items-center justify-between gap-4">
-                <div>
-                  <span className="text-xs font-semibold text-white block">
-                    SMS &amp; WhatsApp Dispatch Updates
-                  </span>
-                  <span className="text-[11px] text-[#A0A0B0]">
-                    Receive real-time waybill tracking and delivery OTP alerts on +91{' '}
-                    {phone}
-                  </span>
-                </div>
-                <input
-                  type="checkbox"
-                  checked={smsAlerts}
-                  onChange={(e) => setSmsAlerts(e.target.checked)}
-                  className="w-4 h-4 accent-[#6C63FF]"
-                />
+              <div className="pt-2">
+                <label className="flex items-center gap-2.5 text-xs text-[#A0A0B0] cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={smsAlerts}
+                    onChange={(e) => setSmsAlerts(e.target.checked)}
+                    className="w-4 h-4 rounded accent-blue-600"
+                  />
+                  <span>Send me automated WhatsApp &amp; SMS notifications for order dispatch</span>
+                </label>
               </div>
 
               <div className="flex justify-end pt-2">
                 <button
                   type="submit"
-                  className="px-6 py-3 rounded-[8px] bg-electric-gradient text-white font-display text-xs font-semibold shadow-electric-glow hover:scale-[1.02] transition-all btn-interactive"
+                  className="px-6 py-3 rounded-[8px] bg-blue-600 hover:bg-blue-700 text-white font-display text-xs font-semibold shadow-md transition-all active:scale-95 cursor-pointer"
                 >
                   Save Profile Changes
                 </button>
@@ -778,95 +1041,118 @@ export const AccountSettingsView: React.FC<AccountSettingsViewProps> = ({
                     Order History
                   </h2>
                   <p className="text-xs text-[#A0A0B0] mt-0.5">
-                    Track active shipments, download invoices, or reorder past hardware.
+                    Track shipments, view items, or order past accessories.
                   </p>
                 </div>
-                <span className="text-xs font-mono-num text-[#A0A0B0]">
-                  {orders.length} orders
+                <span className="text-xs font-mono-num text-slate-300 px-2.5 py-1 rounded-full bg-white/10">
+                  {customerOrders.length} order{customerOrders.length !== 1 ? 's' : ''}
                 </span>
               </div>
 
-              {orders.map((ord) => (
-                <div
-                  key={ord.id}
-                  className="bg-[#111113] rounded-[16px] p-6 border border-white/[0.08] space-y-4"
-                >
-                  <div className="flex flex-wrap items-center justify-between gap-4 pb-4 border-b border-white/[0.07]">
-                    <div className="flex flex-wrap items-center gap-4 text-xs">
-                      <div>
-                        <span className="text-[#6B6B7B] block">Order ID</span>
-                        <span className="font-mono-num font-bold text-white">
-                          {ord.id}
-                        </span>
-                      </div>
-                      <div>
-                        <span className="text-[#6B6B7B] block">Placed On</span>
-                        <span className="font-mono-num text-[#A0A0B0]">
-                          {ord.date}
-                        </span>
-                      </div>
-                      <div>
-                        <span className="text-[#6B6B7B] block">Total</span>
-                        <span className="font-mono-num font-bold text-electric-gradient">
-                          {formatINR(ord.total)}
-                        </span>
-                      </div>
-                      <div>
-                        <span className="text-[#6B6B7B] block">Status</span>
-                        <span className="text-emerald-400 font-medium">
-                          {ord.status}
-                        </span>
-                      </div>
-                    </div>
-
-                    <div className="flex items-center gap-2.5">
-                      <button
-                        type="button"
-                        onClick={() => onTrackOrder(ord.id)}
-                        className="px-3.5 py-2 rounded-[8px] bg-[#1A1A1F] hover:bg-[#24242E] border border-white/15 text-xs font-semibold text-white transition-colors whitespace-nowrap"
-                      >
-                        Track Shipment
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => onReorderItems(ord.items)}
-                        className="px-3.5 py-2 rounded-[8px] bg-electric-gradient text-white text-xs font-semibold shadow-electric-glow whitespace-nowrap"
-                      >
-                        Reorder
-                      </button>
-                    </div>
+              {customerOrders.length === 0 ? (
+                <div className="bg-[#111113] rounded-[16px] p-10 border border-white/[0.08] text-center space-y-4">
+                  <div className="w-16 h-16 rounded-2xl bg-blue-600/15 border border-blue-500/30 text-blue-400 mx-auto flex items-center justify-center text-2xl">
+                    <i className="fa-solid fa-box-open" />
                   </div>
-
-                  {/* Line Items */}
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    {ord.items.map((item, idx) => (
-                      <div
-                        key={idx}
-                        className="flex items-center gap-3 bg-[#1A1A1F] p-3 rounded-[10px] border border-white/[0.05]"
-                      >
-                        <div className="w-12 h-12 rounded-[8px] overflow-hidden bg-[#111113] shrink-0">
-                          <ResilientImage
-                            src={item.image}
-                            alt={item.name}
-                            className="w-full h-full"
-                          />
-                        </div>
-                        <div className="min-w-0 flex-1">
-                          <div className="text-xs font-semibold text-white truncate">
-                            {item.name}
-                          </div>
-                          <div className="text-[11px] text-[#6B6B7B] truncate">
-                            {item.color} · {item.size} × {item.quantity}
-                          </div>
-                        </div>
-                        <span className="font-mono-num text-xs font-semibold text-white shrink-0">
-                          {formatINR(item.price * item.quantity)}
-                        </span>
-                      </div>
-                    ))}
+                  <div className="max-w-md mx-auto">
+                    <h3 className="font-display text-base font-bold text-white">
+                      No Orders Placed Yet
+                    </h3>
+                    <p className="text-xs text-[#A0A0B0] mt-1 leading-relaxed">
+                      Your orders will appear here automatically with live tracking as soon as you checkout.
+                    </p>
                   </div>
+                  <a
+                    href="#/products"
+                    className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs shadow-md transition-all active:scale-95"
+                  >
+                    <i className="fa-solid fa-layer-group text-xs" />
+                    <span>Explore Products Catalog</span>
+                  </a>
                 </div>
-              ))}
+              ) : (
+                customerOrders.map((ord) => (
+                  <div
+                    key={ord.id}
+                    className="bg-[#111113] rounded-[16px] p-6 border border-white/[0.08] space-y-4"
+                  >
+                    <div className="flex flex-wrap items-center justify-between gap-4 pb-4 border-b border-white/[0.07]">
+                      <div className="flex flex-wrap items-center gap-4 text-xs">
+                        <div>
+                          <span className="text-[#6B6B7B] block">Order ID</span>
+                          <span className="font-mono-num font-bold text-white">
+                            {ord.id}
+                          </span>
+                        </div>
+                        <div>
+                          <span className="text-[#6B6B7B] block">Placed On</span>
+                          <span className="font-mono-num text-[#A0A0B0]">
+                            {ord.date}
+                          </span>
+                        </div>
+                        <div>
+                          <span className="text-[#6B6B7B] block">Total</span>
+                          <span className="font-mono-num font-bold text-blue-400">
+                            {formatINR(ord.total)}
+                          </span>
+                        </div>
+                        <div>
+                          <span className="text-[#6B6B7B] block">Status</span>
+                          <span className="text-amber-400 font-bold">
+                            {ord.status}
+                          </span>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-2.5">
+                        <button
+                          type="button"
+                          onClick={() => onTrackOrder(ord.id)}
+                          className="px-3.5 py-2 rounded-[8px] bg-[#1A1A1F] hover:bg-[#24242E] border border-white/15 text-xs font-semibold text-white transition-colors whitespace-nowrap cursor-pointer"
+                        >
+                          Track Shipment
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => onReorderItems(ord.items)}
+                          className="px-3.5 py-2 rounded-[8px] bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold shadow-md whitespace-nowrap cursor-pointer transition-colors"
+                        >
+                          Reorder
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Line Items */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      {ord.items.map((item, idx) => (
+                        <div
+                          key={idx}
+                          className="flex items-center gap-3 bg-[#1A1A1F] p-3 rounded-[10px] border border-white/[0.05]"
+                        >
+                          <div className="w-12 h-12 rounded-[8px] overflow-hidden bg-[#111113] shrink-0">
+                            <ResilientImage
+                              src={item.image}
+                              alt={item.name}
+                              className="w-full h-full"
+                            />
+                          </div>
+                          <div className="min-w-0 flex-1">
+                            <div className="text-xs font-semibold text-white truncate">
+                              {item.name}
+                            </div>
+                            <div className="text-[11px] text-[#6B6B7B] truncate">
+                              {item.color} · {item.size} × {item.quantity}
+                            </div>
+                          </div>
+                          <span className="font-mono-num text-xs font-semibold text-white shrink-0">
+                            {formatINR(item.price * item.quantity)}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ))
+              )}
             </div>
           )}
 
@@ -879,13 +1165,13 @@ export const AccountSettingsView: React.FC<AccountSettingsViewProps> = ({
                     Saved Addresses Book
                   </h2>
                   <p className="text-xs text-[#A0A0B0] mt-0.5">
-                    Manage your Indian delivery addresses for one-click express checkout.
+                    Manage your delivery addresses for express checkout.
                   </p>
                 </div>
                 <button
                   type="button"
                   onClick={openNewAddressModal}
-                  className="px-4 py-2.5 rounded-[8px] bg-electric-gradient text-white text-xs font-semibold shadow-electric-glow flex items-center gap-2 self-start sm:self-auto whitespace-nowrap"
+                  className="px-4 py-2.5 rounded-[8px] bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold shadow-md flex items-center gap-2 self-start sm:self-auto whitespace-nowrap transition-all"
                 >
                   <i className="fa-solid fa-plus text-[10px]" />
                   <span>Add New Address</span>
@@ -898,7 +1184,7 @@ export const AccountSettingsView: React.FC<AccountSettingsViewProps> = ({
                     key={addr.id}
                     className={`bg-[#111113] rounded-[16px] p-6 border transition-all flex flex-col justify-between ${
                       addr.isDefault
-                        ? 'border-[#6C63FF]/60 shadow-electric-subtle'
+                        ? 'border-blue-500/60 shadow-md ring-1 ring-blue-500/20'
                         : 'border-white/[0.08]'
                     }`}
                   >
@@ -909,7 +1195,7 @@ export const AccountSettingsView: React.FC<AccountSettingsViewProps> = ({
                             {addr.label}
                           </span>
                           {addr.isDefault && (
-                            <span className="text-emerald-400">· Default Address</span>
+                            <span className="text-amber-400">· Default Address</span>
                           )}
                         </div>
                         <span className="font-mono-num text-xs text-[#A0A0B0]">
@@ -936,7 +1222,7 @@ export const AccountSettingsView: React.FC<AccountSettingsViewProps> = ({
                       <button
                         type="button"
                         onClick={() => openEditAddressModal(addr)}
-                        className="text-white hover:text-[#6C63FF] font-medium transition-colors"
+                        className="text-white hover:text-blue-400 font-medium transition-colors cursor-pointer"
                       >
                         Edit
                       </button>
@@ -944,7 +1230,7 @@ export const AccountSettingsView: React.FC<AccountSettingsViewProps> = ({
                       <button
                         type="button"
                         onClick={() => handleDeleteAddress(addr.id)}
-                        className="text-[#A0A0B0] hover:text-rose-400 transition-colors"
+                        className="text-[#A0A0B0] hover:text-rose-400 transition-colors cursor-pointer"
                       >
                         Remove
                       </button>
@@ -954,7 +1240,7 @@ export const AccountSettingsView: React.FC<AccountSettingsViewProps> = ({
                           <button
                             type="button"
                             onClick={() => handleSetDefaultAddress(addr.id)}
-                            className="text-[#6C63FF] hover:underline ml-auto"
+                            className="text-blue-400 hover:underline ml-auto cursor-pointer"
                           >
                             Set as Default
                           </button>
@@ -1001,7 +1287,7 @@ export const AccountSettingsView: React.FC<AccountSettingsViewProps> = ({
                   onClick={() => setAddrLabel(lbl)}
                   className={`px-3.5 py-1.5 rounded-full text-xs font-semibold transition-all ${
                     addrLabel === lbl
-                      ? 'bg-electric-gradient text-white'
+                      ? 'bg-blue-600 text-white'
                       : 'bg-[#1A1A1F] text-[#A0A0B0] border border-white/10'
                   }`}
                 >
@@ -1020,7 +1306,7 @@ export const AccountSettingsView: React.FC<AccountSettingsViewProps> = ({
                   required
                   value={addrName}
                   onChange={(e) => setAddrName(e.target.value)}
-                  className="w-full px-3.5 py-2 rounded-[8px] bg-[#1A1A1F] border border-white/10 text-xs text-white"
+                  className="w-full px-3.5 py-2 rounded-[8px] bg-[#1A1A1F] border border-white/10 text-xs text-white focus:outline-none focus:border-blue-500"
                 />
               </div>
               <div>
@@ -1035,7 +1321,7 @@ export const AccountSettingsView: React.FC<AccountSettingsViewProps> = ({
                   onChange={(e) =>
                     setAddrPhone(e.target.value.replace(/\D/g, '').slice(0, 10))
                   }
-                  className="w-full px-3.5 py-2 rounded-[8px] bg-[#1A1A1F] border border-white/10 text-xs font-mono-num text-white"
+                  className="w-full px-3.5 py-2 rounded-[8px] bg-[#1A1A1F] border border-white/10 text-xs font-mono-num text-white focus:outline-none focus:border-blue-500"
                 />
               </div>
             </div>
@@ -1053,7 +1339,7 @@ export const AccountSettingsView: React.FC<AccountSettingsViewProps> = ({
                   onChange={(e) =>
                     setAddrPincode(e.target.value.replace(/\D/g, '').slice(0, 6))
                   }
-                  className="w-full px-3.5 py-2 rounded-[8px] bg-[#1A1A1F] border border-white/10 text-xs font-mono-num text-white"
+                  className="w-full px-3.5 py-2 rounded-[8px] bg-[#1A1A1F] border border-white/10 text-xs font-mono-num text-white focus:outline-none focus:border-blue-500"
                 />
               </div>
               <div>
@@ -1063,7 +1349,7 @@ export const AccountSettingsView: React.FC<AccountSettingsViewProps> = ({
                   required
                   value={addrCity}
                   onChange={(e) => setAddrCity(e.target.value)}
-                  className="w-full px-3.5 py-2 rounded-[8px] bg-[#1A1A1F] border border-white/10 text-xs text-white"
+                  className="w-full px-3.5 py-2 rounded-[8px] bg-[#1A1A1F] border border-white/10 text-xs text-white focus:outline-none focus:border-blue-500"
                 />
               </div>
               <div>
@@ -1071,7 +1357,7 @@ export const AccountSettingsView: React.FC<AccountSettingsViewProps> = ({
                 <select
                   value={addrState}
                   onChange={(e) => setAddrState(e.target.value)}
-                  className="w-full px-3 py-2 rounded-[8px] bg-[#1A1A1F] border border-white/10 text-xs text-white"
+                  className="w-full px-3 py-2 rounded-[8px] bg-[#1A1A1F] border border-white/10 text-xs text-white focus:outline-none focus:border-blue-500"
                 >
                   {INDIAN_STATES.map((st) => (
                     <option key={st} value={st}>
@@ -1091,7 +1377,7 @@ export const AccountSettingsView: React.FC<AccountSettingsViewProps> = ({
                 required
                 value={addrArea}
                 onChange={(e) => setAddrArea(e.target.value)}
-                className="w-full px-3.5 py-2 rounded-[8px] bg-[#1A1A1F] border border-white/10 text-xs text-white"
+                className="w-full px-3.5 py-2 rounded-[8px] bg-[#1A1A1F] border border-white/10 text-xs text-white focus:outline-none focus:border-blue-500"
               />
             </div>
 
@@ -1100,7 +1386,7 @@ export const AccountSettingsView: React.FC<AccountSettingsViewProps> = ({
                 type="checkbox"
                 checked={addrDefault}
                 onChange={(e) => setAddrDefault(e.target.checked)}
-                className="accent-[#6C63FF]"
+                className="accent-blue-600"
               />
               <span>Set as default shipping address</span>
             </label>
@@ -1115,7 +1401,7 @@ export const AccountSettingsView: React.FC<AccountSettingsViewProps> = ({
               </button>
               <button
                 type="submit"
-                className="px-5 py-2 rounded-[8px] bg-electric-gradient text-white text-xs font-semibold shadow-electric-glow"
+                className="px-5 py-2 rounded-[8px] bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold shadow-md cursor-pointer transition-colors"
               >
                 Save Address
               </button>

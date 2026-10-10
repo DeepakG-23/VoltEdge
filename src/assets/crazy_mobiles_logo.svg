@@ -1,10 +1,10 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 500 500" width="500" height="500" fill="none">
   <defs>
-    <!-- Neon Lime Green Gradient -->
-    <linearGradient id="cmLime" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stopColor="#A8FF3E" />
-      <stop offset="50%" stopColor="#84F229" />
-      <stop offset="100%" stopColor="#5BB716" />
+    <!-- Warm Amber Gold Gradient -->
+    <linearGradient id="cmAmber" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stopColor="#FBBF24" />
+      <stop offset="50%" stopColor="#F59E0B" />
+      <stop offset="100%" stopColor="#D97706" />
     </linearGradient>
 
     <!-- Metallic Chrome Gradient -->
@@ -13,6 +13,13 @@
       <stop offset="35%" stopColor="#E2E8F0" />
       <stop offset="70%" stopColor="#CBD5E1" />
       <stop offset="100%" stopColor="#94A3B8" />
+    </linearGradient>
+
+    <!-- Royal Electric Blue Gradient -->
+    <linearGradient id="cmRoyalBlue" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stopColor="#3B82F6" />
+      <stop offset="50%" stopColor="#2563EB" />
+      <stop offset="100%" stopColor="#1D4ED8" />
     </linearGradient>
 
     <!-- Phone Frame Metallic Border -->
@@ -25,13 +32,13 @@
 
     <!-- Soft Cyber Screen Fill -->
     <linearGradient id="cmScreen" x1="0%" y1="0%" x2="0%" y2="100%">
-      <stop offset="0%" stopColor="#222B32" />
-      <stop offset="100%" stopColor="#12181C" />
+      <stop offset="0%" stopColor="#1E293B" />
+      <stop offset="100%" stopColor="#0F172A" />
     </linearGradient>
 
-    <!-- Lime Neon Glow Filter -->
-    <filter id="cmLimeGlow" x="-30%" y="-30%" width="160%" height="160%">
-      <feDropShadow dx="0" dy="2" stdDeviation="6" floodColor="#84F229" floodOpacity="0.55" />
+    <!-- Amber Glow Filter -->
+    <filter id="cmAmberGlow" x="-30%" y="-30%" width="160%" height="160%">
+      <feDropShadow dx="0" dy="2" stdDeviation="6" floodColor="#F59E0B" floodOpacity="0.45" />
     </filter>
 
     <!-- Metallic 3D Drop Shadow -->
@@ -41,8 +48,8 @@
   </defs>
 
   <!-- Background Soft Cyber Radial Backdrop -->
-  <rect width="500" height="500" rx="36" fill="#0A0D0F" />
-  <circle cx="250" cy="180" r="140" fill="#84F229" opacity="0.08" filter="blur(40px)" />
+  <rect width="500" height="500" rx="36" fill="#0A0D14" />
+  <circle cx="250" cy="180" r="140" fill="#2563EB" opacity="0.12" filter="blur(40px)" />
 
   <!-- Tilted Smartphone Body -->
   <g transform="translate(250 185) rotate(-11) translate(-250 -185)">
@@ -59,97 +66,90 @@
       filter="url(#cmShadow)"
     />
 
-    <!-- Top Speaker / Camera Notch -->
-    <rect x="215" y="93" width="50" height="7.5" rx="3.75" fill="#334155" />
-
-    <!-- Inner Screen Accent Border -->
+    <!-- Dynamic Island / Speaker Pill at Top -->
     <rect
-      x="178"
-      y="110"
-      width="124"
-      height="170"
-      rx="22"
-      fill="none"
-      stroke="#334155"
-      stroke-width="1.5"
-      stroke-opacity="0.6"
+      x="220"
+      y="94"
+      width="40"
+      height="7"
+      rx="3.5"
+      fill="#475569"
     />
 
-    <!-- Bottom Chin Accent Indicator -->
-    <rect x="220" y="278" width="40" height="5" rx="2.5" fill="#475569" />
-  </g>
+    <!-- Inner Screen Display Area with Amber Border -->
+    <rect
+      x="180"
+      y="110"
+      width="120"
+      height="170"
+      rx="20"
+      fill="#0B0F19"
+      stroke="#F59E0B"
+      stroke-width="1.5"
+    />
 
-  <!-- Aerodynamic Speed Lines extending from top-right of 'C' -->
-  <g filter="url(#cmLimeGlow)">
-    <rect x="278" y="146" width="60" height="10" rx="5" fill="url(#cmLime)" />
-    <rect x="286" y="163" width="50" height="8.5" rx="4.25" fill="url(#cmLime)" />
-    <rect x="294" y="179" width="36" height="7" rx="3.5" fill="url(#cmLime)" />
-  </g>
+    <!-- Speed Aerodynamic Hash Marks -->
+    <rect x="268" y="125" width="22" height="4" rx="2" fill="url(#cmAmber)" filter="url(#cmAmberGlow)" />
+    <rect x="274" y="137" width="16" height="3.5" rx="1.75" fill="url(#cmAmber)" filter="url(#cmAmberGlow)" />
+    <rect x="280" y="149" width="10" height="3" rx="1.5" fill="url(#cmAmber)" filter="url(#cmAmberGlow)" />
 
-  <!-- The Letter "C" - Bold, Sweeping Neon Lime Curve -->
-  <path
-    d="M 276 150 C 262 142 244 140 223 149 C 198 159 184 181 184 213 C 184 246 202 271 231 276 C 249 280 267 274 279 263 L 265 240 C 258 247 246 250 235 249 C 215 245 208 231 208 213 C 208 195 219 175 236 170 C 248 166 259 170 266 175 Z"
-    fill="url(#cmLime)"
-    filter="url(#cmLimeGlow)"
-  />
-
-  <!-- The Letter "M" - Futuristic Beveled Metallic Chrome -->
-  <g filter="url(#cmShadow)">
+    <!-- Big Stylized 'C' monogram -->
     <path
-      d="M 241 176 L 279 228 L 317 176 L 335 266 L 306 266 L 297 216 L 279 243 L 261 216 L 252 266 L 223 266 Z"
+      d="M 265 145 C 248 132 225 132 208 145 C 190 159 184 186 186 210 C 188 232 202 248 225 252 C 240 254 254 248 264 238 L 252 222 C 245 228 236 232 226 230 C 213 228 206 216 206 204 C 206 190 214 176 226 170 C 235 166 245 170 252 176 Z"
+      fill="url(#cmAmber)"
+      filter="url(#cmAmberGlow)"
+    />
+
+    <!-- Stylized 'M' monogram nestled with 'C' -->
+    <path
+      d="M 218 178 L 240 212 L 262 178 L 274 240 L 256 240 L 250 206 L 240 222 L 230 206 L 224 240 L 206 240 Z"
       fill="url(#cmChrome)"
       stroke="#64748B"
-      stroke-width="2"
-    />
-    <!-- Chrome Highlight Polish on M -->
-    <path
-      d="M 246 183 L 279 228 L 263 220 L 256 259 L 230 259 Z"
-      fill="#FFFFFF"
-      fill-opacity="0.45"
+      stroke-width="1"
     />
   </g>
 
-  <!-- Typography: "CRAZY" -->
-  <g filter="url(#cmShadow)">
+  <!-- Title: "CRAZY" -->
+  <g>
     <text
       x="250"
       y="370"
       text-anchor="middle"
-      font-family="'Orbitron', 'Space Grotesk', -apple-system, sans-serif"
+      font-family="'Inter', 'Montserrat', sans-serif"
       font-size="64"
       font-weight="900"
       letter-spacing="4"
-      fill="url(#cmChrome)"
-      stroke="#64748B"
+      fill="url(#cmRoyalBlue)"
+      stroke="#1D4ED8"
       stroke-width="1.5"
     >CRAZY</text>
     
-    <!-- Neon Lime Triangle inside letter 'A' -->
+    <!-- Amber Triangle inside letter 'A' -->
     <polygon
       points="250,332 242,347 258,347"
-      fill="#84F229"
-      filter="url(#cmLimeGlow)"
+      fill="#F59E0B"
+      filter="url(#cmAmberGlow)"
     />
   </g>
 
-  <!-- Subtitle: "— MOBILE —" -->
+  <!-- Subtitle: "— MOBILES —" -->
   <g>
-    <!-- Left Lime Accent Bar -->
-    <rect x="70" y="405" width="55" height="5" rx="2.5" fill="#84F229" filter="url(#cmLimeGlow)" />
+    <!-- Left Amber Accent Bar -->
+    <rect x="70" y="405" width="55" height="5" rx="2.5" fill="#F59E0B" filter="url(#cmAmberGlow)" />
     
-    <!-- Word "MOBILE" -->
+    <!-- Word "MOBILES" -->
     <text
       x="250"
       y="413"
       text-anchor="middle"
-      font-family="'Orbitron', 'Rajdhani', sans-serif"
+      font-family="'Inter', sans-serif"
       font-size="24"
       font-weight="700"
       letter-spacing="12"
       fill="#E2E8F0"
-    >MOBILE</text>
+    >MOBILES</text>
 
-    <!-- Right Lime Accent Bar -->
-    <rect x="375" y="405" width="55" height="5" rx="2.5" fill="#84F229" filter="url(#cmLimeGlow)" />
+    <!-- Right Amber Accent Bar -->
+    <rect x="375" y="405" width="55" height="5" rx="2.5" fill="#F59E0B" filter="url(#cmAmberGlow)" />
   </g>
 </svg>

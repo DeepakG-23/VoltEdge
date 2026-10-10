@@ -517,6 +517,9 @@ export const STORE_PHONE = '9011221665';
 export const STORE_PHONE_DISPLAY = '+91 9011221665';
 export const STORE_EMAIL = 'Shaikhshoeb2624@gmail.com';
 export const STORE_MAPS_URL = 'https://maps.app.goo.gl/NSSmCF7NBKMX34CQ6?g_st=iw';
+export const STORE_ADDRESS = 'Shop No. 2, Crazy Mobile And Multi Service, Dharam Kata Complex, Nashik Highway, Padegaon, Chhatrapati Sambhajinagar, Maharashtra - 431002';
+export const STORE_ADDRESS_SHORT = 'Shop No. 2, Dharam Kata Complex, Nashik Highway, Padegaon, Chhatrapati Sambhajinagar - 431002';
+export const STORE_CITY = 'Chhatrapati Sambhajinagar (Aurangabad), Maharashtra';
 export const STORE_UPI_ID = 'merchantqr.b5bhzh5d@digikhata';
 export const STORE_UPI_ID_ALT = 'merchantqr.b5bhzh5d@digikhata';
 
