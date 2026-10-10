@@ -443,7 +443,7 @@ export const WATCH_STRAP_SVG = createStudioSvgDataUri(`
     <rect x="0" y="85" width="8" height="42" rx="3" fill="#FF6B35" />
     <!-- Minimalist Watch Face -->
     <text x="105" y="98" fill="#FFFFFF" font-family="Space Grotesk, sans-serif" font-size="36" font-weight="700" text-anchor="middle">09:41</text>
-    <text x="105" y="128" fill="#A0A0B0" font-family="JetBrains Mono, monospace" font-size="11" text-anchor="middle">VOLTEDGE ULTRA</text>
+    <text x="105" y="128" fill="#A0A0B0" font-family="JetBrains Mono, monospace" font-size="11" text-anchor="middle">CRAZY MOBILES ULTRA</text>
     <rect x="65" y="142" width="80" height="4" rx="2" fill="url(#electricAccent)" />
   </g>
 </svg>
@@ -519,6 +519,52 @@ export const STORE_EMAIL = 'Shaikhshoeb2624@gmail.com';
 export const STORE_MAPS_URL = 'https://maps.app.goo.gl/NSSmCF7NBKMX34CQ6?g_st=iw';
 export const STORE_UPI_ID = 'merchantqr.b5bhzh5d@digikhata';
 export const STORE_UPI_ID_ALT = 'merchantqr.b5bhzh5d@digikhata';
+
+export interface StorePaymentSettings {
+  merchantName: string;
+  upiId: string;
+  secondaryUpiId: string;
+  paymentPhone: string;
+  enableUpiQr: boolean;
+  enableUpiIntent: boolean;
+  enableCod: boolean;
+  enableCards: boolean;
+  instructions: string;
+}
+
+export const DEFAULT_PAYMENT_SETTINGS: StorePaymentSettings = {
+  merchantName: STORE_MERCHANT_NAME,
+  upiId: STORE_UPI_ID,
+  secondaryUpiId: STORE_UPI_ID_ALT,
+  paymentPhone: STORE_PHONE,
+  enableUpiQr: true,
+  enableUpiIntent: true,
+  enableCod: true,
+  enableCards: true,
+  instructions:
+    'Scan the verified Crazy Mobiles merchant QR using Google Pay, PhonePe, Paytm, CRED or any BHIM UPI app. Your payment will be verified instantly without extra surcharges.',
+};
+
+export function getStorePaymentSettings(): StorePaymentSettings {
+  try {
+    const raw = localStorage.getItem('crazy_mobiles_payment_settings');
+    if (raw) {
+      return { ...DEFAULT_PAYMENT_SETTINGS, ...JSON.parse(raw) };
+    }
+  } catch {
+    // fallback
+  }
+  return DEFAULT_PAYMENT_SETTINGS;
+}
+
+export function saveStorePaymentSettings(settings: StorePaymentSettings): void {
+  try {
+    localStorage.setItem('crazy_mobiles_payment_settings', JSON.stringify(settings));
+    window.dispatchEvent(new Event('crazy_mobiles_payment_settings_updated'));
+  } catch {
+    // fallback
+  }
+}
 
 export const IN_BOX_CONTENTS_SVG = createStudioSvgDataUri(`
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 600" width="600" height="600">

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Product, formatINR } from '../data/seedData';
+import { Product, formatINR, STORE_PHONE } from '../data/seedData';
 import { ResilientImage } from './ResilientImage';
 
 interface ProductCardProps {
@@ -69,6 +69,15 @@ export const ProductCard: React.FC<ProductCardProps> = ({
     }
   };
 
+  const handleWhatsAppOrder = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    const phone = STORE_PHONE || '9011221665';
+    const msg = encodeURIComponent(
+      `Hi Crazy Mobiles, I want to order "${product.name}" (Price: ${formatINR(product.price)}). Please share payment and delivery details.`
+    );
+    window.open(`https://wa.me/91${phone}?text=${msg}`, '_blank');
+  };
+
   const discountPercent =
     product.originalPrice > product.price
       ? Math.round(((product.originalPrice - product.price) / product.originalPrice) * 100)
@@ -78,7 +87,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({
     product.compatibleSummary ||
     (product.compatibleModels && product.compatibleModels.length > 0
       ? `Fits ${product.compatibleModels.slice(0, 2).join(', ')}`
-      : 'Universal Compatible');
+      : product.category);
 
   return (
     <div
@@ -91,44 +100,49 @@ export const ProductCard: React.FC<ProductCardProps> = ({
           onNavigateProduct(product.id);
         }
       }}
-      className={`group bg-[#1A1A1F] rounded-[16px] p-4 sm:p-5 border border-white/[0.07] shadow-card card-electric-border flex flex-col justify-between cursor-pointer text-left transition-all duration-300 hover:-translate-y-1 relative ${
-        justAdded ? 'animate-card-pulse' : ''
+      className={`group bg-white rounded-xl sm:rounded-2xl p-3 sm:p-4 border border-slate-200/90 shadow-sm hover:shadow-lg transition-all duration-300 flex flex-col justify-between cursor-pointer text-left relative ${
+        justAdded ? 'ring-2 ring-blue-500 scale-[1.01]' : 'hover:-translate-y-1'
       } ${className}`}
     >
       <div>
-        {/* Image Container with rounded-12 & subtle gradient overlay on hover */}
-        <div className="relative aspect-square w-full rounded-[12px] overflow-hidden bg-[#121216] mb-3.5">
+        {/* Product Image Area with clean white/gray background */}
+        <div className="relative aspect-square w-full rounded-lg sm:rounded-xl overflow-hidden bg-slate-50 border border-slate-100 mb-3 flex items-center justify-center p-2">
           <ResilientImage
             src={product.image}
             fallbackSrc={product.placeholderUrl}
             alt={product.name}
-            className="w-full h-full"
+            className="w-full h-full object-contain"
             imgClassName="group-hover:scale-105 transition-transform duration-500 ease-out"
           />
 
-          {/* Top Left Badges: Compare & Discount */}
-          <div className="absolute top-2.5 left-2.5 z-20 flex flex-col items-start gap-1">
+          {/* Top Left Badges: Discount Tag */}
+          <div className="absolute top-2 left-2 z-20 flex flex-col items-start gap-1">
             {discountPercent > 0 && (
-              <span className="px-2 py-0.5 rounded-md bg-[#FF6B35] text-white text-[10px] font-mono-num font-bold shadow-md">
+              <span className="px-2 py-0.5 rounded-md bg-[#FFB703] text-slate-900 text-[10px] sm:text-[11px] font-bold shadow-sm">
                 {discountPercent}% OFF
+              </span>
+            )}
+            {product.isTrending && (
+              <span className="px-2 py-0.5 rounded-md bg-rose-500 text-white text-[9px] font-bold shadow-sm uppercase tracking-wide">
+                HOT
               </span>
             )}
             {onToggleCompare && (
               <button
                 type="button"
                 onClick={handleCompareClick}
-                className={`px-2 py-0.5 rounded-md text-[10px] font-semibold backdrop-blur-md border transition-all ${
+                className={`px-1.5 py-0.5 rounded text-[9px] font-medium backdrop-blur-md border transition-all ${
                   isCompared
-                    ? 'bg-[#6C63FF] text-white border-transparent'
-                    : 'bg-black/60 text-[#A0A0B0] border-white/15 hover:text-white'
+                    ? 'bg-blue-600 text-white border-transparent'
+                    : 'bg-white/80 text-slate-600 border-slate-200 hover:text-slate-900'
                 }`}
               >
-                {isCompared ? '✓ Comparing' : '+ Compare'}
+                {isCompared ? '✓ Compare' : '+ Compare'}
               </button>
             )}
           </div>
 
-          {/* Heart Icon Wishlist Button (Top-Right) */}
+          {/* Top Right: Wishlist Heart Icon */}
           {onToggleWishlist && (
             <button
               type="button"
@@ -139,27 +153,27 @@ export const ProductCard: React.FC<ProductCardProps> = ({
                   : `Save ${product.name} to wishlist`
               }
               title={isWishlisted ? 'Remove from Wishlist' : 'Save to Wishlist'}
-              className={`absolute top-2.5 right-2.5 z-20 w-8 h-8 rounded-full flex items-center justify-center backdrop-blur-md border transition-all duration-300 ${
+              className={`absolute top-2 right-2 z-20 w-7 h-7 sm:w-8 sm:h-8 rounded-full flex items-center justify-center bg-white/90 backdrop-blur-sm border border-slate-200 shadow-sm transition-all duration-300 ${
                 isWishlisted
-                  ? 'bg-[#0A0A0B]/85 border-[#FF6B35]/60 text-[#FF6B35] shadow-electric-glow'
-                  : 'bg-[#0A0A0B]/70 border-white/15 text-white/80 hover:text-white hover:border-white/35 hover:bg-[#0A0A0B]/90'
-              } ${heartPulse ? 'scale-125' : 'hover:scale-110'}`}
+                  ? 'text-rose-500 border-rose-200'
+                  : 'text-slate-400 hover:text-rose-500 hover:scale-110'
+              } ${heartPulse ? 'scale-125' : ''}`}
             >
               <i
                 className={`${
-                  isWishlisted ? 'fa-solid text-[#FF6B35]' : 'fa-regular'
-                } fa-heart text-xs`}
+                  isWishlisted ? 'fa-solid text-rose-500' : 'fa-regular'
+                } fa-heart text-xs sm:text-sm`}
               />
             </button>
           )}
 
-          {/* Quick View button overlay on hover */}
+          {/* Quick View Overlay on Desktop Hover */}
           {showQuickViewOverlay && (
-            <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300 bg-black/30 backdrop-blur-[2px]">
+            <div className="absolute inset-0 hidden sm:flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300 bg-slate-900/20 backdrop-blur-[1px]">
               <button
                 type="button"
                 onClick={handleQuickViewClick}
-                className="px-3.5 py-1.5 rounded-[8px] bg-[#0A0A0B]/90 border border-white/20 text-xs font-medium text-white hover:border-[#6C63FF] hover:text-white shadow-lg transform translate-y-2 group-hover:translate-y-0 transition-all duration-300 whitespace-nowrap"
+                className="px-3.5 py-1.5 rounded-lg bg-white text-slate-800 text-xs font-semibold shadow-md hover:bg-blue-600 hover:text-white transition-all transform translate-y-2 group-hover:translate-y-0"
               >
                 Quick View
               </button>
@@ -167,75 +181,87 @@ export const ProductCard: React.FC<ProductCardProps> = ({
           )}
         </div>
 
-        {/* Compatibility Pill & Category */}
-        <div className="flex items-center justify-between gap-2 text-[11px] text-[#A0A0B0] mb-1.5">
-          <span className="truncate max-w-[140px] px-2 py-0.5 rounded bg-white/5 border border-white/10 text-white/90 font-medium">
+        {/* Rating & Category Snippet */}
+        <div className="flex items-center justify-between gap-1 text-[11px] text-slate-500 mb-1.5">
+          <span className="truncate max-w-[120px] font-medium text-slate-600 text-[10px] sm:text-[11px] bg-slate-100 px-1.5 py-0.5 rounded">
             {compatBadge}
           </span>
-          <div className="flex items-center gap-1 shrink-0 tabular-nums">
+          <div className="flex items-center gap-1 shrink-0 font-medium">
             <i className="fa-solid fa-star text-[#F59E0B] text-[10px]" />
-            <span className="text-white font-medium">{product.rating.toFixed(1)}</span>
-            <span className="text-[#6B6B7B]">({product.reviewsCount})</span>
+            <span className="text-slate-800 font-bold">{product.rating.toFixed(1)}</span>
+            <span className="text-slate-400 text-[10px]">({product.reviewsCount})</span>
           </div>
         </div>
 
-        {/* Product Name */}
-        <h3 className="font-display text-sm font-semibold text-white leading-snug line-clamp-2 mb-1.5 min-h-[2.5rem]">
+        {/* Product Title (2-line clamped) */}
+        <h3 className="text-xs sm:text-sm font-semibold text-slate-900 leading-snug line-clamp-2 mb-1.5 group-hover:text-blue-600 transition-colors min-h-[2.4rem]">
           {product.name}
         </h3>
 
-        {/* Delivery ETA Pill */}
-        <div className="flex items-center gap-1.5 text-[10px] text-emerald-400 font-medium mb-3">
+        {/* Delivery / Guarantee Snippet */}
+        <div className="flex items-center gap-1.5 text-[10px] sm:text-[11px] text-emerald-600 font-medium mb-2.5">
           <i className="fa-solid fa-truck-fast text-[11px]" />
-          <span>Express Delivery in 24-48 Hours</span>
+          <span>Express Delivery Across India</span>
         </div>
       </div>
 
-      <div className="pt-2 border-t border-white/[0.06] mt-1">
-        {/* Price row in ₹ */}
-        <div className="flex items-baseline justify-between gap-2 mb-3">
-          <div className="flex items-baseline gap-2 tabular-nums">
-            <span className="text-[17px] font-bold text-electric-gradient font-mono-num">
+      <div className="pt-2 border-t border-slate-100 mt-auto">
+        {/* Price Row (Current Bold INR Price + Struck MRP) */}
+        <div className="flex items-baseline justify-between gap-2 mb-2.5">
+          <div className="flex items-baseline gap-1.5 flex-wrap">
+            <span className="text-base sm:text-lg font-bold text-blue-600 font-mono-num">
               {formatINR(product.price)}
             </span>
             {product.originalPrice > product.price && (
-              <span className="text-xs text-[#6B6B7B] line-through font-mono-num">
+              <span className="text-xs text-slate-400 line-through font-mono-num">
                 {formatINR(product.originalPrice)}
               </span>
             )}
           </div>
-          <span className="text-[10px] text-emerald-400 font-medium">
-            🟢 In Stock
+          <span className="text-[10px] text-emerald-600 font-semibold bg-emerald-50 px-1.5 py-0.5 rounded">
+            In Stock
           </span>
         </div>
 
-        {/* Add to Cart Button */}
-        <button
-          type="button"
-          disabled={product.stock <= 0}
-          onClick={handleAddClick}
-          className={`w-full py-2.5 px-4 rounded-[8px] text-xs font-semibold tracking-wide transition-all duration-300 flex items-center justify-center gap-2 whitespace-nowrap btn-interactive ${
-            product.stock <= 0
-              ? 'bg-white/5 text-[#6B6B7B] border border-white/10 cursor-not-allowed'
-              : justAdded
-              ? 'bg-electric-gradient text-white border border-transparent shadow-electric-glow'
-              : 'bg-transparent text-white border border-white/15 hover:border-transparent hover:bg-electric-gradient hover:shadow-electric-glow'
-          }`}
-        >
-          {product.stock <= 0 ? (
-            <span>Out of Stock</span>
-          ) : justAdded ? (
-            <>
-              <i className="fa-solid fa-check text-xs" />
-              <span>Added to Cart</span>
-            </>
-          ) : (
-            <>
-              <i className="fa-solid fa-bag-shopping text-xs opacity-85" />
-              <span>Add to Cart</span>
-            </>
-          )}
-        </button>
+        {/* Action Button Grid: Primary "ADD TO CART" + Direct "WhatsApp" Button */}
+        <div className="grid grid-cols-5 gap-1.5">
+          <button
+            type="button"
+            disabled={product.stock <= 0}
+            onClick={handleAddClick}
+            className={`col-span-4 py-2.5 px-2 rounded-lg text-xs font-bold tracking-wide transition-all duration-200 flex items-center justify-center gap-1.5 active:scale-95 shadow-sm ${
+              product.stock <= 0
+                ? 'bg-slate-100 text-slate-400 cursor-not-allowed'
+                : justAdded
+                ? 'bg-emerald-600 text-white'
+                : 'bg-blue-600 hover:bg-blue-700 text-white'
+            }`}
+          >
+            {product.stock <= 0 ? (
+              <span>Out of Stock</span>
+            ) : justAdded ? (
+              <>
+                <i className="fa-solid fa-check text-xs" />
+                <span>Added!</span>
+              </>
+            ) : (
+              <>
+                <i className="fa-solid fa-bag-shopping text-xs" />
+                <span>ADD TO CART</span>
+              </>
+            )}
+          </button>
+
+          {/* Quick WhatsApp Inquiry / Buy Button */}
+          <button
+            type="button"
+            onClick={handleWhatsAppOrder}
+            title="Order directly on WhatsApp"
+            className="col-span-1 py-2.5 rounded-lg bg-[#25D366]/10 hover:bg-[#25D366] text-[#25D366] hover:text-white border border-[#25D366]/30 flex items-center justify-center transition-all duration-200 active:scale-90"
+          >
+            <i className="fa-brands fa-whatsapp text-sm" />
+          </button>
+        </div>
       </div>
     </div>
   );

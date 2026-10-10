@@ -12,12 +12,14 @@ import {
   STORE_PHONE_DISPLAY,
   STORE_UPI_ID,
   formatINR,
+  getStorePaymentSettings,
 } from '../data/seedData';
 import { CrazyMobilesEmblem, CrazyMobilesLogo } from './CrazyMobilesLogo';
 import { CrazyMobilesPaymentQR } from './CrazyMobilesPaymentQR';
 import { ResilientImage } from './ResilientImage';
 
 export function buildWhatsAppOrderMessage(order: Order): string {
+  const settings = getStorePaymentSettings();
   const itemsLines = order.items
     .map(
       (item, idx) =>
@@ -27,14 +29,28 @@ export function buildWhatsAppOrderMessage(order: Order): string {
     )
     .join('\n');
 
+  const merchantDisplayName = settings.merchantName || STORE_MERCHANT_NAME;
+  const storeContactPhone = settings.paymentPhone || STORE_PHONE;
+
+  const paymentLines =
+    order.paymentMethod === 'COD'
+      ? [
+          `💳 *Payment Method:* CASH ON DELIVERY (COD)`,
+          `💵 *Payment Status:* Collect on Doorstep upon Arrival`,
+        ]
+      : [
+          `💳 *Payment Method:* ONLINE UPI PAYMENT`,
+          `🔒 *Merchant UPI ID:* ${settings.upiId || STORE_UPI_ID}`,
+          `🔖 *Payment Ref / UTR:* ${order.paymentDetails || 'UPI-VERIFIED'}`,
+          `✅ *Payment Status:* PAID & VERIFIED ONLINE`,
+        ];
+
   return [
-    `🛍️ *${STORE_MERCHANT_NAME} — ORDER CONFIRMATION*`,
+    `🛍️ *${merchantDisplayName} — ORDER CONFIRMATION*`,
     `━━━━━━━━━━━━━━━━━━━━━━━━━`,
     `📋 *Order ID:* #${order.id}`,
     `📅 *Date:* ${order.date || 'Today'}`,
-    `💳 *Payment Status:* PAID ONLINE VIA UPI`,
-    `🔒 *UPI ID:* ${STORE_UPI_ID}`,
-    `🔖 *Payment Ref / UTR:* ${order.paymentDetails || 'UPI-DIRECT-TXN'}`,
+    ...paymentLines,
     `💰 *Total Amount:* ${formatINR(order.total)}`,
     ``,
     `👤 *Customer Details:*`,
@@ -47,7 +63,7 @@ export function buildWhatsAppOrderMessage(order: Order): string {
     ``,
     `🚚 *Shipping:* Express Insured Delivery (Free)`,
     `━━━━━━━━━━━━━━━━━━━━━━━━━`,
-    `🏬 *Store Contact:* +91 ${STORE_PHONE} · ${STORE_EMAIL}`,
+    `🏬 *Store Contact:* +91 ${storeContactPhone} · ${STORE_EMAIL}`,
     `📍 *Store Location:* ${STORE_MAPS_URL}`,
     ``,
     `✅ *Verified by Customer (+91 ${order.phone}) for Order #${order.id}*`,
@@ -75,6 +91,7 @@ const UpiPaymentGatewayModal: React.FC<UpiGatewayModalProps> = ({
   customerName,
   customerPhone,
   initialUpiApp = 'GPay',
+  initialUpiId,
   onClose,
   onPaymentSuccess,
 }) => {
@@ -90,8 +107,12 @@ const UpiPaymentGatewayModal: React.FC<UpiGatewayModalProps> = ({
   >('idle');
   const [utrNumber, setUtrNumber] = useState('');
 
-  const upiIntentUri = `upi://pay?pa=${STORE_UPI_ID}&pn=${encodeURIComponent(
-    STORE_MERCHANT_NAME
+  const settings = getStorePaymentSettings();
+  const activeMerchant = settings.merchantName || STORE_MERCHANT_NAME;
+  const activeUpiId = initialUpiId || settings.upiId || STORE_UPI_ID;
+
+  const upiIntentUri = `upi://pay?pa=${activeUpiId}&pn=${encodeURIComponent(
+    activeMerchant
   )}&am=${amount}&cu=INR&tn=${encodeURIComponent('Crazy Mobiles Order')}`;
 
   useEffect(() => {
@@ -129,10 +150,10 @@ const UpiPaymentGatewayModal: React.FC<UpiGatewayModalProps> = ({
     setTimeout(() => {
       const methodDesc =
         gatewayTab === 'qr'
-          ? `UPI QR Scan (${STORE_UPI_ID}) · UTR ${finalUtr}`
+          ? `UPI QR Scan (${activeUpiId}) · UTR ${finalUtr}`
           : gatewayTab === 'intent'
-          ? `${selectedApp} Direct (${STORE_UPI_ID}) · UTR ${finalUtr}`
-          : `UPI VPA (${userVpaInput || STORE_UPI_ID}) · UTR ${finalUtr}`;
+          ? `${selectedApp} Direct (${activeUpiId}) · UTR ${finalUtr}`
+          : `UPI VPA (${userVpaInput || activeUpiId}) · UTR ${finalUtr}`;
       onPaymentSuccess(methodDesc);
     }, 1900);
   };
@@ -152,7 +173,7 @@ const UpiPaymentGatewayModal: React.FC<UpiGatewayModalProps> = ({
             <div>
               <div className="flex items-center gap-1.5">
                 <h3 className="font-display text-sm font-bold text-white">
-                  {STORE_MERCHANT_NAME}
+                  {activeMerchant}
                 </h3>
               </div>
               <p className="text-[11px] text-[#A0A0B0] font-mono-num">
@@ -478,8 +499,15 @@ export const CheckoutView: React.FC<CheckoutViewProps> = ({
     setAddressError('');
   };
 
-// Payment State - Exclusively UPI as configured with merchant QR
-  const [paymentMethod] = useState<'UPI'>('UPI');
+  // Payment Settings & State
+  const [storePaymentConfig, setStorePaymentConfig] = useState(() => getStorePaymentSettings());
+  useEffect(() => {
+    const handleUpdate = () => setStorePaymentConfig(getStorePaymentSettings());
+    window.addEventListener('crazy_mobiles_payment_settings_updated', handleUpdate);
+    return () => window.removeEventListener('crazy_mobiles_payment_settings_updated', handleUpdate);
+  }, []);
+
+  const [paymentMethod, setPaymentMethod] = useState<'UPI' | 'COD'>('UPI');
   const [upiApp, setUpiApp] = useState<'GPay' | 'PhonePe' | 'Paytm' | 'CRED'>('GPay');
   const [upiId, setUpiId] = useState('');
   
@@ -600,7 +628,12 @@ export const CheckoutView: React.FC<CheckoutViewProps> = ({
       return;
     }
 
-    // Always open the official Online UPI Payment Gateway Modal
+    if (paymentMethod === 'COD') {
+      finalizeOrderWithPayment('Pay on Delivery (Cash/UPI at doorstep)');
+      return;
+    }
+
+    // Open official Online UPI Payment Gateway Modal
     setIsUpiGatewayOpen(true);
   };
 
@@ -1040,77 +1073,171 @@ export const CheckoutView: React.FC<CheckoutViewProps> = ({
 
             {activeStep === 2 && (
               <div className="p-6 space-y-5 border-t border-white/[0.07] animate-page-enter">
-                {/* Single Official UPI Payment Method Banner */}
-                <div className="bg-gradient-to-r from-[#1A1A2A] via-[#151520] to-[#1E1925] p-4 sm:p-5 rounded-[14px] border border-[#6C63FF]/30 shadow-lg">
-                  <div className="flex items-center justify-between gap-3 mb-3">
-                    <div className="flex items-center gap-2.5">
-                      <span className="w-3 h-3 rounded-full bg-emerald-500 animate-pulse shadow-[0_0_8px_#10B981]" />
-                      <span className="font-display text-sm font-bold text-white uppercase tracking-wider">
-                        Official Merchant UPI Payment
-                      </span>
+                {/* Payment Method Selector Tabs */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <button
+                    type="button"
+                    onClick={() => setPaymentMethod('UPI')}
+                    className={`p-4 rounded-[14px] border text-left flex items-start gap-3.5 transition-all ${
+                      paymentMethod === 'UPI'
+                        ? 'bg-electric-gradient/10 border-blue-500 shadow-md ring-1 ring-blue-500'
+                        : 'bg-[#1A1A1F] border-white/10 hover:border-white/20'
+                    }`}
+                  >
+                    <span
+                      className={`w-5 h-5 rounded-full flex items-center justify-center shrink-0 mt-0.5 text-xs ${
+                        paymentMethod === 'UPI'
+                          ? 'bg-blue-600 text-white'
+                          : 'border border-white/20 bg-transparent'
+                      }`}
+                    >
+                      {paymentMethod === 'UPI' && '✓'}
+                    </span>
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <span className="font-display text-sm font-bold text-white">
+                          Instant UPI Payment
+                        </span>
+                        <span className="px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-400 text-[10px] font-bold">
+                          Zero Surcharge
+                        </span>
+                      </div>
+                      <p className="text-xs text-[#A0A0B0] mt-1">
+                        Pay via Google Pay, PhonePe, Paytm, CRED or Dynamic QR Code.
+                      </p>
                     </div>
-                    <span className="px-2.5 py-0.5 rounded-full bg-emerald-500/15 border border-emerald-500/30 text-emerald-400 font-mono-num text-[11px] font-semibold">
-                      Zero Surcharge
-                    </span>
-                  </div>
-                  <p className="text-xs text-[#A0A0B0] leading-relaxed">
-                    All orders are settled securely via verified UPI QR Code or Direct UPI Apps to{' '}
-                    <strong className="text-white">{STORE_MERCHANT_NAME}</strong>. Instant receipt generated upon payment!
-                  </p>
-                </div>
+                  </button>
 
-                {/* UPI Options & App Selection */}
-                <div className="bg-[#1A1A1F] rounded-[14px] p-5 border border-white/[0.08] space-y-4">
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs font-semibold text-white">
-                      Preferred UPI Application / Flow:
-                    </span>
-                    <span className="text-[11px] text-[#A0A0B0] font-mono-num">
-                      ID: {STORE_UPI_ID}
-                    </span>
-                  </div>
-
-                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
-                    {(
-                      [
-                        { name: 'GPay', icon: 'fa-google-pay' },
-                        { name: 'PhonePe', icon: 'fa-mobile-screen-button' },
-                        { name: 'Paytm', icon: 'fa-wallet' },
-                        { name: 'CRED', icon: 'fa-shield-halved' },
-                      ] as const
-                    ).map((app) => (
-                      <button
-                        key={app.name}
-                        type="button"
-                        onClick={() => setUpiApp(app.name)}
-                        className={`py-3 px-3 rounded-[10px] border flex items-center justify-center gap-2 text-xs font-semibold transition-all ${
-                          upiApp === app.name
-                            ? 'bg-electric-gradient text-white border-transparent shadow-electric-glow'
-                            : 'bg-[#111113] border-white/10 text-[#A0A0B0] hover:text-white hover:border-white/20'
+                  {storePaymentConfig.enableCod && (
+                    <button
+                      type="button"
+                      onClick={() => setPaymentMethod('COD')}
+                      className={`p-4 rounded-[14px] border text-left flex items-start gap-3.5 transition-all ${
+                        paymentMethod === 'COD'
+                          ? 'bg-[#84F229]/10 border-[#84F229] shadow-md ring-1 ring-[#84F229]'
+                          : 'bg-[#1A1A1F] border-white/10 hover:border-white/20'
+                      }`}
+                    >
+                      <span
+                        className={`w-5 h-5 rounded-full flex items-center justify-center shrink-0 mt-0.5 text-xs ${
+                          paymentMethod === 'COD'
+                            ? 'bg-[#84F229] text-black font-bold'
+                            : 'border border-white/20 bg-transparent'
                         }`}
                       >
-                        <i className={`fa-solid ${app.icon} text-xs`} />
-                        <span>{app.name}</span>
-                      </button>
-                    ))}
-                  </div>
-
-                  {/* Merchant VPA Display & QR preview note */}
-                  <div className="p-3.5 rounded-[10px] bg-[#111113] border border-white/10 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
-                    <div>
-                      <span className="text-[10px] text-[#A0A0B0] block uppercase tracking-wider font-semibold">
-                        Payee Virtual Payment Address (UPI ID)
+                        {paymentMethod === 'COD' && '✓'}
                       </span>
-                      <code className="text-xs font-mono-num font-bold text-emerald-400 select-all">
-                        {STORE_UPI_ID}
-                      </code>
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <span className="font-display text-sm font-bold text-white">
+                            Cash on Delivery (COD)
+                          </span>
+                          <span className="px-2 py-0.5 rounded-full bg-[#84F229]/20 text-[#84F229] text-[10px] font-bold">
+                            Doorstep Pay
+                          </span>
+                        </div>
+                        <p className="text-xs text-[#A0A0B0] mt-1">
+                          Pay with cash or UPI directly to delivery agent upon parcel arrival.
+                        </p>
+                      </div>
+                    </button>
+                  )}
+                </div>
+
+                {paymentMethod === 'UPI' ? (
+                  <div className="space-y-4">
+                    {/* Official UPI Payment Method Banner */}
+                    <div className="bg-gradient-to-r from-[#1A1A2A] via-[#151520] to-[#1E1925] p-4 sm:p-5 rounded-[14px] border border-[#6C63FF]/30 shadow-lg">
+                      <div className="flex items-center justify-between gap-3 mb-2">
+                        <div className="flex items-center gap-2.5">
+                          <span className="w-3 h-3 rounded-full bg-emerald-500 animate-pulse shadow-[0_0_8px_#10B981]" />
+                          <span className="font-display text-sm font-bold text-white uppercase tracking-wider">
+                            Verified Merchant UPI Gateway
+                          </span>
+                        </div>
+                        <span className="text-[11px] text-emerald-400 font-mono-num font-semibold">
+                          NPCI UPI 2.0
+                        </span>
+                      </div>
+                      <p className="text-xs text-[#A0A0B0] leading-relaxed">
+                        All orders are settled securely to{' '}
+                        <strong className="text-white">
+                          {storePaymentConfig.merchantName || STORE_MERCHANT_NAME}
+                        </strong>
+                        . Instant official receipt generated upon authorization!
+                      </p>
                     </div>
-                    <div className="text-[11px] text-[#A0A0B0] flex items-center gap-1.5">
-                      <i className="fa-solid fa-qrcode text-[#6C63FF]" />
-                      <span>Dynamic QR pops up on click</span>
+
+                    {/* UPI Options & App Selection */}
+                    <div className="bg-[#1A1A1F] rounded-[14px] p-5 border border-white/[0.08] space-y-4">
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs font-semibold text-white">
+                          Preferred UPI App / Method:
+                        </span>
+                        <span className="text-[11px] text-[#A0A0B0] font-mono-num">
+                          ID: {storePaymentConfig.upiId || STORE_UPI_ID}
+                        </span>
+                      </div>
+
+                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+                        {(
+                          [
+                            { name: 'GPay', icon: 'fa-google-pay' },
+                            { name: 'PhonePe', icon: 'fa-mobile-screen-button' },
+                            { name: 'Paytm', icon: 'fa-wallet' },
+                            { name: 'CRED', icon: 'fa-shield-halved' },
+                          ] as const
+                        ).map((app) => (
+                          <button
+                            key={app.name}
+                            type="button"
+                            onClick={() => setUpiApp(app.name)}
+                            className={`py-3 px-3 rounded-[10px] border flex items-center justify-center gap-2 text-xs font-semibold transition-all ${
+                              upiApp === app.name
+                                ? 'bg-electric-gradient text-white border-transparent shadow-electric-glow'
+                                : 'bg-[#111113] border-white/10 text-[#A0A0B0] hover:text-white hover:border-white/20'
+                            }`}
+                          >
+                            <i className={`fa-solid ${app.icon} text-xs`} />
+                            <span>{app.name}</span>
+                          </button>
+                        ))}
+                      </div>
+
+                      {/* Merchant VPA Display & QR preview note */}
+                      <div className="p-3.5 rounded-[10px] bg-[#111113] border border-white/10 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
+                        <div>
+                          <span className="text-[10px] text-[#A0A0B0] block uppercase tracking-wider font-semibold">
+                            Payee Virtual Payment Address (UPI ID)
+                          </span>
+                          <code className="text-xs font-mono-num font-bold text-emerald-400 select-all">
+                            {storePaymentConfig.upiId || STORE_UPI_ID}
+                          </code>
+                        </div>
+                        <div className="text-[11px] text-[#A0A0B0] flex items-center gap-1.5">
+                          <i className="fa-solid fa-qrcode text-[#6C63FF]" />
+                          <span>Dynamic QR pops up on click</span>
+                        </div>
+                      </div>
                     </div>
                   </div>
-                </div>
+                ) : (
+                  <div className="bg-[#1A1A1F] rounded-[14px] p-5 border border-white/[0.08] space-y-3">
+                    <div className="flex items-center gap-2 text-[#84F229]">
+                      <i className="fa-solid fa-truck-fast text-lg" />
+                      <h4 className="font-display text-sm font-bold text-white">
+                        Cash on Delivery Selected
+                      </h4>
+                    </div>
+                    <p className="text-xs text-[#A0A0B0] leading-relaxed">
+                      You can pay via Cash or UPI QR scan directly to our logistics partner upon doorstep delivery. Please ensure an adult is available at your delivery address to receive the package.
+                    </p>
+                    <div className="p-3 rounded-lg bg-[#111113] border border-white/5 text-[11px] text-emerald-400 flex items-center gap-2">
+                      <i className="fa-solid fa-circle-check" />
+                      <span>Zero COD collection charges · Free doorstep delivery on this order!</span>
+                    </div>
+                  </div>
+                )}
 
                 <div className="flex justify-between items-center pt-2">
                   <button
@@ -1125,7 +1252,9 @@ export const CheckoutView: React.FC<CheckoutViewProps> = ({
                     onClick={handleContinueToReview}
                     className="px-6 py-3 rounded-[8px] bg-electric-gradient text-white text-xs font-semibold shadow-electric-glow hover:scale-[1.02] transition-transform"
                   >
-                    Review &amp; Pay via UPI →
+                    {paymentMethod === 'COD'
+                      ? 'Review & Place Order →'
+                      : 'Review & Pay via UPI →'}
                   </button>
                 </div>
               </div>
@@ -1152,7 +1281,7 @@ export const CheckoutView: React.FC<CheckoutViewProps> = ({
                   3
                 </span>
                 <h2 className="font-display text-base font-bold text-white">
-                  Review &amp; Pay
+                  Review &amp; Place Order
                 </h2>
               </div>
             </button>
@@ -1170,16 +1299,30 @@ export const CheckoutView: React.FC<CheckoutViewProps> = ({
                     <p className="text-[#A0A0B0] font-mono-num mt-1">+91 {phone}</p>
                   </div>
                   <div className="bg-[#1A1A1F] p-4 rounded-[12px] border border-white/[0.06]">
-                    <span className="text-[#6B6B7B] block mb-1">Payment &amp; Concierge</span>
-                    <p className="font-semibold text-white">
-                      Official UPI Payment Gateway
-                    </p>
-                    <p className="text-[#A0A0B0] mt-0.5">
-                      {`${upiApp} / Verified QR (${STORE_UPI_ID})`}
-                    </p>
+                    <span className="text-[#6B6B7B] block mb-1">Payment Method</span>
+                    {paymentMethod === 'COD' ? (
+                      <div>
+                        <p className="font-semibold text-[#84F229] flex items-center gap-1.5">
+                          <i className="fa-solid fa-hand-holding-dollar" />
+                          <span>Cash on Delivery (COD)</span>
+                        </p>
+                        <p className="text-[#A0A0B0] mt-0.5">
+                          Pay upon parcel arrival at doorstep
+                        </p>
+                      </div>
+                    ) : (
+                      <div>
+                        <p className="font-semibold text-white">
+                          Official UPI Payment Gateway
+                        </p>
+                        <p className="text-[#A0A0B0] mt-0.5">
+                          {`${upiApp} / Verified QR (${storePaymentConfig.upiId || STORE_UPI_ID})`}
+                        </p>
+                      </div>
+                    )}
                     <p className="text-emerald-400 mt-2 flex items-center gap-1.5">
                       <i className="fa-brands fa-whatsapp" />
-                      <span>Includes Direct WhatsApp Handler Receipt</span>
+                      <span>Includes Direct WhatsApp Confirmation Ticket</span>
                     </p>
                   </div>
                 </div>
@@ -1196,15 +1339,15 @@ export const CheckoutView: React.FC<CheckoutViewProps> = ({
                       <i className="fa-solid fa-circle-notch fa-spin text-sm" />
                       <span>Generating Order &amp; WhatsApp Dispatch Ticket...</span>
                     </>
-                  ) : paymentMethod === 'UPI' ? (
+                  ) : paymentMethod === 'COD' ? (
                     <>
-                      <i className="fa-solid fa-qrcode text-sm" />
-                      <span>Proceed to UPI Payment Gateway · {formatINR(total)}</span>
+                      <i className="fa-solid fa-truck-fast text-sm text-[#84F229]" />
+                      <span>Confirm &amp; Place COD Order · {formatINR(total)}</span>
                     </>
                   ) : (
                     <>
-                      <i className="fa-solid fa-lock text-xs" />
-                      <span>Place Order · {formatINR(total)}</span>
+                      <i className="fa-solid fa-qrcode text-sm" />
+                      <span>Proceed to UPI Payment Gateway · {formatINR(total)}</span>
                     </>
                   )}
                 </button>

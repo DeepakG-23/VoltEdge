@@ -2,37 +2,31 @@
 
 @layer base {
   :root {
-    --bg-primary: #0A0D0F;
-    --bg-surface: #101518;
-    --bg-card: #151C20;
-    --accent-start: #84F229;
-    --accent-end: #5BB716;
-    --accent-chrome: #E2E8F0;
-    --text-primary: #FFFFFF;
-    --text-secondary: #9BA9B4;
-    --text-muted: #64748B;
+    --bg-primary: #F8FAFC;
+    --bg-surface: #FFFFFF;
+    --bg-card: #FFFFFF;
+    --accent-blue: #2563EB;
+    --accent-blue-hover: #1D4ED8;
+    --accent-yellow: #FFB703;
+    --accent-whatsapp: #25D366;
+    --text-primary: #0F172A;
+    --text-secondary: #475569;
+    --text-muted: #94A3B8;
+    --border-light: #E2E8F0;
     --ease-standard: cubic-bezier(0.4, 0, 0.2, 1);
   }
 
   html {
     scroll-behavior: smooth;
-    background-color: #0A0D0F;
-    color: #FFFFFF;
-    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    background-color: #F8FAFC;
+    color: #0F172A;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   }
 
   h1, h2, h3, h4, .font-display {
-    font-family: 'Orbitron', 'Space Grotesk', -apple-system, sans-serif;
-    letter-spacing: -0.01em;
-  }
-
-  .font-techno {
-    font-family: 'Orbitron', sans-serif;
-    letter-spacing: 0.05em;
-  }
-
-  .font-sub {
-    font-family: 'Rajdhani', 'Space Grotesk', sans-serif;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    letter-spacing: -0.02em;
+    font-weight: 700;
   }
 
   .font-mono-num {
@@ -46,24 +40,24 @@
 }
 
 ::selection {
-  background: #84F229;
-  color: #0A0D0F;
+  background: #2563EB;
+  color: #FFFFFF;
 }
 
-/* Custom Scrollbar */
+/* Custom Scrollbar for modern e-commerce */
 ::-webkit-scrollbar {
   width: 6px;
   height: 6px;
 }
 ::-webkit-scrollbar-track {
-  background: #0A0D0F;
+  background: #F1F5F9;
 }
 ::-webkit-scrollbar-thumb {
-  background: #1C262C;
+  background: #CBD5E1;
   border-radius: 9999px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: linear-gradient(135deg, #84F229, #5BB716);
+  background: #94A3B8;
 }
 
 /* Hide scrollbar for snap carousels */
@@ -75,86 +69,42 @@
   scrollbar-width: none;
 }
 
-/* Crazy Mobiles Neon Electric Lime & Cyber Chrome Gradients */
-.bg-electric-gradient, .bg-lime-gradient {
-  background: linear-gradient(135deg, #84F229 0%, #5BB716 100%);
+/* Primary Vibrant Blue & Accent Gradients */
+.bg-electric-gradient, .bg-blue-gradient {
+  background: linear-gradient(135deg, #2563EB 0%, #1D4ED8 100%);
 }
 
-.text-electric-gradient, .text-lime-gradient {
-  background: linear-gradient(135deg, #84F229 0%, #76E026 50%, #4FA312 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-}
-
-.text-chrome-gradient {
-  background: linear-gradient(180deg, #FFFFFF 0%, #E2E8F0 50%, #94A3B8 100%);
+.text-electric-gradient, .text-blue-gradient {
+  background: linear-gradient(135deg, #2563EB 0%, #1D4ED8 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
 }
 
 .shadow-card {
-  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.5);
+  box-shadow: 0 2px 12px rgba(15, 23, 42, 0.08);
 }
 
-.shadow-electric-glow, .shadow-lime-glow {
-  box-shadow: 0 8px 30px -4px rgba(132, 242, 41, 0.45), 0 4px 16px -2px rgba(118, 224, 38, 0.3);
+.shadow-card-hover {
+  box-shadow: 0 10px 25px -5px rgba(15, 23, 42, 0.12), 0 8px 10px -6px rgba(15, 23, 42, 0.08);
 }
 
-.shadow-electric-subtle, .shadow-lime-subtle {
-  box-shadow: 0 0 0 1px rgba(132, 242, 41, 0.4), 0 8px 24px -6px rgba(132, 242, 41, 0.25);
+.shadow-electric-glow {
+  box-shadow: 0 4px 14px 0 rgba(37, 99, 235, 0.39);
 }
 
-/* Card hover gradient border effect */
+.shadow-electric-subtle {
+  box-shadow: 0 0 0 1px rgba(37, 99, 235, 0.3), 0 4px 12px rgba(37, 99, 235, 0.15);
+}
+
+/* Product Card Border & Glow Effect */
 .card-electric-border {
   position: relative;
   transition: transform 300ms cubic-bezier(0.4, 0, 0.2, 1), box-shadow 300ms cubic-bezier(0.4, 0, 0.2, 1), border-color 300ms cubic-bezier(0.4, 0, 0.2, 1);
 }
 .card-electric-border:hover {
-  border-color: rgba(132, 242, 41, 0.6);
-  box-shadow: 0 12px 32px -6px rgba(0, 0, 0, 0.7), 0 0 20px -4px rgba(132, 242, 41, 0.35);
-}
-
-/* 180-Degree Animated Category Card Flip & Photo Rotation */
-.category-perspective {
-  perspective: 1200px;
-}
-
-.category-flip-inner {
-  position: relative;
-  width: 100%;
-  height: 100%;
-  transform-style: preserve-3d;
-  transition: transform 680ms cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-.category-perspective:hover .category-flip-inner,
-.category-perspective:focus-visible .category-flip-inner {
-  transform: rotateY(180deg);
-}
-
-.category-face {
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-  -webkit-backface-visibility: hidden;
-  backface-visibility: hidden;
-  border-radius: 16px;
-  overflow: hidden;
-}
-
-.category-face-back {
-  transform: rotateY(180deg);
-}
-
-.rotate-180-on-hover {
-  transition: transform 680ms cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-.group:hover .rotate-180-on-hover {
-  transform: rotate(180deg);
+  border-color: #93C5FD;
+  box-shadow: 0 10px 25px -5px rgba(37, 99, 235, 0.15);
 }
 
 /* Sliding Sales Marquee Bar Animation */
@@ -170,7 +120,7 @@
 .animate-sales-marquee {
   display: flex;
   width: max-content;
-  animation: salesMarquee 28s linear infinite;
+  animation: salesMarquee 26s linear infinite;
 }
 
 .animate-sales-marquee:hover {
@@ -179,10 +129,10 @@
 
 /* Button micro-interaction */
 .btn-interactive {
-  transition: all 300ms cubic-bezier(0.4, 0, 0.2, 1);
+  transition: all 250ms cubic-bezier(0.4, 0, 0.2, 1);
 }
 .btn-interactive:active {
-  transform: scale(0.98);
+  transform: scale(0.97);
 }
 
 /* Skeleton Shimmer */
@@ -195,18 +145,18 @@
   }
 }
 .skeleton-shimmer {
-  background: linear-gradient(90deg, #16161A 25%, #24242C 50%, #16161A 75%);
+  background: linear-gradient(90deg, #F1F5F9 25%, #E2E8F0 50%, #F1F5F9 75%);
   background-size: 200% 100%;
   animation: shimmer 1.6s infinite linear;
 }
 
-/* Subtle Hero Mesh & Floating Geometric Animation */
+/* Hero Mesh & Floating Geometric Animation */
 @keyframes floatSlow {
   0%, 100% {
     transform: translate3d(0, 0, 0) rotate(0deg);
   }
   50% {
-    transform: translate3d(12px, -18px, 0) rotate(3deg);
+    transform: translate3d(8px, -12px, 0) rotate(2deg);
   }
 }
 @keyframes floatReverse {
@@ -214,14 +164,14 @@
     transform: translate3d(0, 0, 0) rotate(0deg);
   }
   50% {
-    transform: translate3d(-14px, 14px, 0) rotate(-4deg);
+    transform: translate3d(-10px, 10px, 0) rotate(-3deg);
   }
 }
 .animate-float-slow {
-  animation: floatSlow 9s ease-in-out infinite;
+  animation: floatSlow 8s ease-in-out infinite;
 }
 .animate-float-reverse {
-  animation: floatReverse 11s ease-in-out infinite;
+  animation: floatReverse 10s ease-in-out infinite;
 }
 
 /* Cart Badge Bounce */
@@ -230,14 +180,14 @@
     transform: scale(1);
   }
   35% {
-    transform: scale(1.45);
+    transform: scale(1.4);
   }
   65% {
-    transform: scale(0.9);
+    transform: scale(0.92);
   }
 }
 .animate-cart-bounce {
-  animation: cartBounce 420ms cubic-bezier(0.4, 0, 0.2, 1);
+  animation: cartBounce 400ms cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 /* Card Pulse on Add */
@@ -246,22 +196,22 @@
     transform: scale(1);
   }
   40% {
-    transform: scale(1.025);
-    box-shadow: 0 0 0 2px #6C63FF, 0 12px 32px rgba(255, 107, 53, 0.35);
+    transform: scale(1.02);
+    box-shadow: 0 0 0 2px #2563EB, 0 10px 25px rgba(37, 99, 235, 0.2);
   }
   100% {
     transform: scale(1);
   }
 }
 .animate-card-pulse {
-  animation: cardPulse 450ms cubic-bezier(0.4, 0, 0.2, 1);
+  animation: cardPulse 400ms cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 /* Page Transition */
 @keyframes pageEnter {
   from {
     opacity: 0;
-    transform: translateY(10px);
+    transform: translateY(6px);
   }
   to {
     opacity: 1;
@@ -269,7 +219,7 @@
   }
 }
 .animate-page-enter {
-  animation: pageEnter 220ms cubic-bezier(0.4, 0, 0.2, 1) forwards;
+  animation: pageEnter 200ms cubic-bezier(0.4, 0, 0.2, 1) forwards;
 }
 
 /* SVG Checkmark Draw Animation */
@@ -299,23 +249,3 @@
   stroke-dashoffset: 160;
   animation: strokeDraw 550ms 400ms cubic-bezier(0.4, 0, 0.2, 1) forwards;
 }
-
-/* Scroll Reveal */
-.reveal-section {
-  opacity: 0;
-  transform: translateY(18px);
-  transition: opacity 500ms cubic-bezier(0.4, 0, 0.2, 1), transform 500ms cubic-bezier(0.4, 0, 0.2, 1);
-}
-.reveal-section.is-visible {
-  opacity: 1;
-  transform: translateY(0);
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .reveal-section {
-    opacity: 1;
-    transform: none;
-    transition: none;
-  }
-}
-

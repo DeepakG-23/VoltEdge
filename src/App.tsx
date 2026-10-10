@@ -1354,56 +1354,74 @@ export default function App() {
       : [];
 
   return (
-    <div className="min-h-screen flex flex-col bg-[#0A0A0B] text-white selection:bg-[#6C63FF] selection:text-white">
+    <div className="min-h-screen flex flex-col bg-[#F8FAFC] text-slate-900 selection:bg-blue-600 selection:text-white">
       {/* Custom Desktop Cursor */}
       <CustomCursor />
 
-      {/* Toast Notifications (Top-Right, auto-dismiss 3s, dark with accent left border) */}
+      {/* Toast Notifications */}
       <div className="fixed top-20 right-4 z-[80] flex flex-col gap-2.5 max-w-sm w-full pointer-events-none px-2">
         {toasts.map((t) => (
           <div
             key={t.id}
-            className="pointer-events-auto bg-[#1A1A1F]/95 backdrop-blur-md border border-white/10 border-l-4 border-l-[#6C63FF] rounded-[10px] px-4 py-3 shadow-2xl flex items-center gap-3 animate-page-enter"
+            className="pointer-events-auto bg-white/95 backdrop-blur-md border border-slate-200 border-l-4 border-l-blue-600 rounded-xl px-4 py-3 shadow-xl flex items-center gap-3 animate-page-enter"
           >
-            <i className="fa-solid fa-bolt text-[#FF6B35] text-xs shrink-0" />
-            <span className="text-xs font-medium text-white">{t.text}</span>
+            <i className="fa-solid fa-bolt text-blue-600 text-xs shrink-0" />
+            <span className="text-xs font-semibold text-slate-800">{t.text}</span>
           </div>
         ))}
       </div>
 
-      {/* STICKY GLASSMORPHISM HEADER (3-Zone Top Bar Contract) */}
+      {/* TOP PROMOTIONAL ANNOUNCEMENT BAR */}
+      <div className="bg-slate-900 text-white text-[11px] sm:text-xs py-2 px-4 text-center font-medium flex items-center justify-center gap-2 flex-wrap">
+        <span className="bg-[#84F229] text-slate-950 px-2 py-0.5 rounded font-extrabold text-[10px] tracking-wide">
+          MEGA SALE
+        </span>
+        <span>
+          Free Express Delivery on orders above ₹499 Across India | Need Help? WhatsApp:
+        </span>
+        <a
+          href="https://wa.me/919011221665"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="text-[#25D366] hover:underline font-bold inline-flex items-center gap-1"
+        >
+          <i className="fa-brands fa-whatsapp" />
+          <span>+91 9011221665</span>
+        </a>
+      </div>
+
+      {/* CLEAN WHITE STICKY HEADER */}
       <header
-        className={`sticky top-0 z-40 transition-all duration-300 backdrop-blur-[20px] bg-[#0A0A0B]/80 ${
-          isScrolled
-            ? 'py-3 border-b border-white/[0.09] shadow-lg'
-            : 'py-4 border-b border-transparent'
+        className={`sticky top-0 z-40 transition-all duration-300 backdrop-blur-md bg-white/95 border-b border-slate-200/90 ${
+          isScrolled ? 'py-2.5 shadow-md' : 'py-3.5'
         }`}
       >
-        <div className="max-w-[1280px] mx-auto px-4 sm:px-6 lg:px-8 flex items-center justify-between gap-4">
-          {/* ZONE 1: Official Crazy Mobiles Emblem & Futuristic Wordmark */}
+        <div className="max-w-[1280px] mx-auto px-4 sm:px-6 lg:px-8 flex items-center justify-between gap-3 sm:gap-4">
+          {/* ZONE 1: Crazy Mobiles Logo - Returns to Home */}
           <a
             href="#/home"
             onClick={(e) => {
               e.preventDefault();
               navigate('#/home');
+              window.scrollTo({ top: 0, behavior: 'smooth' });
             }}
             className="flex items-center shrink-0 group transition-all duration-200 hover:scale-[1.02] focus:outline-none"
-            aria-label={`${STORE_NAME} Home`}
+            aria-label="Crazy Mobiles Home"
           >
-            <CrazyMobilesLogo variant="horizontal" size="sm" />
+            <CrazyMobilesLogo variant="horizontal" size="sm" theme="light" />
           </a>
 
-          {/* ZONE 2: Storefront Division (Home, Catalog, Your Device, Store) + Search Bar */}
-          <div className="flex-1 max-w-2xl hidden md:flex items-center justify-center gap-6">
-            <nav className="flex items-center gap-5 text-xs font-semibold text-[#A0A0B0] shrink-0">
+          {/* ZONE 2: Search Bar & Store Navigation */}
+          <div className="flex-1 max-w-2xl hidden md:flex items-center justify-center gap-5">
+            <nav className="flex items-center gap-4 text-xs font-semibold text-slate-600 shrink-0">
               <a
                 href="#/home"
                 onClick={(e) => {
                   e.preventDefault();
                   navigate('#/home');
                 }}
-                className={`hover:text-white transition-colors whitespace-nowrap flex items-center gap-1.5 ${
-                  hashRoute === '#/home' || hashRoute === '' ? 'text-white font-bold' : ''
+                className={`hover:text-blue-600 transition-colors whitespace-nowrap flex items-center gap-1.5 ${
+                  hashRoute === '#/home' || hashRoute === '' ? 'text-blue-600 font-bold' : ''
                 }`}
               >
                 <i className="fa-solid fa-house text-[11px]" />
@@ -1417,8 +1435,8 @@ export default function App() {
                   setSelectedCategory('All');
                   navigate('#/products');
                 }}
-                className={`hover:text-white transition-colors whitespace-nowrap flex items-center gap-1.5 ${
-                  hashRoute.startsWith('#/products') ? 'text-white font-bold' : ''
+                className={`hover:text-blue-600 transition-colors whitespace-nowrap flex items-center gap-1.5 ${
+                  hashRoute.startsWith('#/products') ? 'text-blue-600 font-bold' : ''
                 }`}
               >
                 <i className="fa-solid fa-layer-group text-[11px]" />
@@ -1428,12 +1446,12 @@ export default function App() {
               <button
                 type="button"
                 onClick={() => setIsYourDeviceModalOpen(true)}
-                className="hover:text-white transition-colors whitespace-nowrap flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#1A1A1F] border border-white/15 text-white hover:border-[#6C63FF]"
+                className="hover:text-blue-600 transition-colors whitespace-nowrap flex items-center gap-1.5 px-3 py-1 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold"
               >
-                <i className="fa-solid fa-mobile-screen-button text-[#FF6B35] text-[11px]" />
+                <i className="fa-solid fa-mobile-screen-button text-blue-600 text-[11px]" />
                 <span>Your Device</span>
                 {userSelectedDevice && (
-                  <span className="text-[10px] text-emerald-400 font-mono-num font-bold">
+                  <span className="text-[10px] text-emerald-600 font-mono-num font-bold">
                     ({userSelectedDevice.split(' ').pop()})
                   </span>
                 )}
@@ -1445,46 +1463,44 @@ export default function App() {
                   e.preventDefault();
                   handleNavigateToStoreLocation();
                 }}
-                className="hover:text-white transition-colors whitespace-nowrap flex items-center gap-1.5 text-emerald-400 font-semibold"
+                className="hover:text-emerald-700 transition-colors whitespace-nowrap flex items-center gap-1 text-emerald-600 font-semibold"
               >
                 <i className="fa-solid fa-store text-[11px]" />
                 <span>Store</span>
               </a>
             </nav>
 
-            {/* Search Bar with rounded-full border & subtle glow on focus */}
+            {/* Search Bar with live dropdown */}
             <div className="relative flex-1 max-w-xs">
               <div
-                className={`flex items-center rounded-full bg-[#111113] border px-3.5 py-1.5 transition-all duration-300 ${
+                className={`flex items-center rounded-full bg-slate-100 border px-3.5 py-1.5 transition-all duration-300 ${
                   searchFocused
-                    ? 'border-[#6C63FF] shadow-electric-subtle'
-                    : 'border-white/10 hover:border-white/20'
+                    ? 'border-blue-500 bg-white ring-2 ring-blue-100 shadow-sm'
+                    : 'border-slate-200 hover:border-slate-300'
                 }`}
               >
-                <i className="fa-solid fa-magnifying-glass text-[#6B6B7B] text-xs mr-2.5" />
+                <i className="fa-solid fa-magnifying-glass text-slate-400 text-xs mr-2.5" />
                 <input
                   type="text"
                   value={searchQuery}
                   onFocus={() => setSearchFocused(true)}
-                  onBlur={() => setTimeout(() => setSearchFocused(false), 180)}
-                  onChange={(e) => {
-                    setSearchQuery(e.target.value);
-                  }}
+                  onBlur={() => setTimeout(() => setSearchFocused(false), 200)}
+                  onChange={(e) => setSearchQuery(e.target.value)}
                   onKeyDown={(e) => {
                     if (e.key === 'Enter' && searchQuery.trim()) {
                       navigate('#/products');
                       setSearchFocused(false);
                     }
                   }}
-                  placeholder="Search GaN, MagSafe, ANC..."
+                  placeholder="Search smartwatches, earbuds, chargers..."
                   aria-label="Search accessories"
-                  className="w-full bg-transparent text-xs text-white placeholder-[#6B6B7B] focus:outline-none"
+                  className="w-full bg-transparent text-xs text-slate-900 placeholder-slate-400 focus:outline-none"
                 />
                 {searchQuery && (
                   <button
                     type="button"
                     onClick={() => setSearchQuery('')}
-                    className="text-[#6B6B7B] hover:text-white text-xs ml-1"
+                    className="text-slate-400 hover:text-slate-600 text-xs ml-1"
                   >
                     <i className="fa-solid fa-xmark" />
                   </button>
@@ -1493,7 +1509,7 @@ export default function App() {
 
               {/* Instant Search Dropdown */}
               {searchFocused && searchSuggestions.length > 0 && (
-                <div className="absolute left-0 right-0 top-full mt-2 bg-[#111113] border border-white/15 rounded-[12px] shadow-2xl overflow-hidden z-50">
+                <div className="absolute left-0 right-0 top-full mt-2 bg-white border border-slate-200 rounded-xl shadow-xl overflow-hidden z-50">
                   {searchSuggestions.map((item) => (
                     <button
                       key={item.id}
@@ -1502,12 +1518,12 @@ export default function App() {
                         navigate(`#/product/${item.id}`);
                         setSearchFocused(false);
                       }}
-                      className="w-full px-3.5 py-2.5 flex items-center justify-between gap-3 hover:bg-[#1A1A1F] text-left border-b border-white/[0.05] last:border-none"
+                      className="w-full px-3.5 py-2.5 flex items-center justify-between gap-3 hover:bg-slate-50 text-left border-b border-slate-100 last:border-none"
                     >
-                      <span className="text-xs text-white truncate">
+                      <span className="text-xs font-medium text-slate-800 truncate">
                         {item.shortName}
                       </span>
-                      <span className="text-xs font-mono-num text-[#FF6B35] shrink-0">
+                      <span className="text-xs font-mono-num font-bold text-blue-600 shrink-0">
                         {formatINR(item.price)}
                       </span>
                     </button>
@@ -1517,75 +1533,81 @@ export default function App() {
             </div>
           </div>
 
-          {/* ZONE 3: Wishlist Icon, Cart Icon (with animated badge) & Account / Admin Icon */}
-          <div className="flex items-center gap-2 lg:gap-2.5 shrink-0">
+          {/* ZONE 3: WhatsApp Quick Support, Wishlist, Cart & Account */}
+          <div className="flex items-center gap-2 sm:gap-2.5 shrink-0">
+            {/* Direct WhatsApp Support Button */}
             <a
-              href={STORE_MAPS_URL}
+              href="https://wa.me/919011221665"
               target="_blank"
               rel="noopener noreferrer"
-              title="Visit Crazy Mobiles store on Google Maps"
-              className="h-10 px-3 rounded-[8px] bg-[#1A1A1F] hover:bg-[#23232C] border border-white/10 text-xs font-medium text-emerald-400 flex items-center gap-1.5 transition-colors whitespace-nowrap hidden lg:flex"
+              title="Chat with Crazy Mobiles on WhatsApp"
+              className="h-9 px-3 rounded-lg bg-[#25D366]/10 hover:bg-[#25D366] text-[#25D366] hover:text-white border border-[#25D366]/30 text-xs font-bold items-center gap-1.5 transition-all whitespace-nowrap hidden lg:flex"
             >
-              <i className="fa-solid fa-location-dot text-xs text-emerald-400" />
-              <span>Visit Store</span>
+              <i className="fa-brands fa-whatsapp text-sm" />
+              <span>WhatsApp</span>
             </a>
 
+            {/* Wishlist Button */}
             <button
               type="button"
               onClick={() => navigate('#/wishlist')}
               aria-label="Open Wishlist"
-              title="Wishlist (#/wishlist)"
-              className={`relative h-10 px-3.5 rounded-[8px] border flex items-center gap-2 transition-colors hidden md:flex ${
+              title="Wishlist"
+              className={`relative h-9 px-3 rounded-lg border flex items-center gap-1.5 transition-colors hidden md:flex ${
                 hashRoute.startsWith('#/wishlist')
-                  ? 'bg-[#1A1A1F] border-[#FF6B35]/60 text-white'
-                  : 'bg-[#1A1A1F] hover:bg-[#23232C] border-white/10 text-white'
+                  ? 'bg-rose-50 border-rose-200 text-rose-600'
+                  : 'bg-white hover:bg-slate-50 border-slate-200 text-slate-700'
               }`}
             >
               <i
                 className={`${
-                  wishlistIds.length > 0
-                    ? 'fa-solid text-[#FF6B35]'
-                    : 'fa-regular text-[#A0A0B0]'
+                  wishlistIds.length > 0 ? 'fa-solid text-rose-500' : 'fa-regular text-slate-400'
                 } fa-heart text-xs`}
               />
-              <span
-                className={`px-1.5 py-0.5 rounded-full text-[11px] font-mono-num font-bold bg-white/10 text-white leading-none ${
-                  wishlistBounce ? 'animate-cart-bounce' : ''
-                }`}
-              >
-                {wishlistIds.length}
-              </span>
+              <span className="text-xs font-semibold hidden lg:inline">Wishlist</span>
+              {wishlistIds.length > 0 && (
+                <span className="px-1.5 py-0.2 rounded-full text-[10px] font-bold bg-rose-500 text-white font-mono-num">
+                  {wishlistIds.length}
+                </span>
+              )}
             </button>
 
+            {/* Shopping Cart Button */}
             <button
               type="button"
               onClick={() => setIsCartOpen(true)}
               aria-label="Open shopping cart"
-              className="relative h-10 px-3.5 rounded-[8px] bg-[#1A1A1F] hover:bg-[#23232C] border border-white/10 flex items-center gap-2 text-white transition-colors"
+              className="relative h-9 px-3.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white flex items-center gap-2 transition-all shadow-sm active:scale-95"
             >
               <i className="fa-solid fa-bag-shopping text-xs" />
-              <span
-                className={`px-1.5 py-0.5 rounded-full text-[11px] font-mono-num font-bold bg-electric-gradient text-white leading-none ${
-                  cartBounce ? 'animate-cart-bounce' : ''
-                }`}
-              >
-                {totalCartItems}
+              <span className="text-xs font-bold font-mono-num hidden sm:inline">
+                {totalCartItems > 0 ? `${totalCartItems} item${totalCartItems > 1 ? 's' : ''}` : 'Cart'}
               </span>
+              {totalCartItems > 0 && (
+                <span
+                  className={`px-1.5 py-0.2 rounded-full text-[10px] font-extrabold bg-[#FFB703] text-slate-900 leading-none ${
+                    cartBounce ? 'animate-cart-bounce' : ''
+                  }`}
+                >
+                  {totalCartItems}
+                </span>
+              )}
             </button>
 
+            {/* Account / Admin Button */}
             <button
               type="button"
               onClick={() => navigate('#/account')}
               aria-label="Customer Account Settings"
-              title="Account Settings (#/account)"
-              className={`h-10 px-3.5 rounded-[8px] border text-xs font-medium flex items-center gap-2 transition-colors whitespace-nowrap hidden md:flex ${
+              title="Account Settings"
+              className={`h-9 px-3 rounded-lg border text-xs font-medium items-center gap-1.5 transition-colors whitespace-nowrap hidden md:flex ${
                 hashRoute.startsWith('#/account') || hashRoute.startsWith('#/login')
-                  ? 'bg-electric-gradient text-white border-transparent shadow-electric-glow'
-                  : 'bg-[#1A1A1F] hover:bg-[#23232C] border-white/10 text-white'
+                  ? 'bg-blue-50 border-blue-200 text-blue-600'
+                  : 'bg-white hover:bg-slate-50 border-slate-200 text-slate-700'
               }`}
             >
               <i className="fa-regular fa-user text-xs" />
-              <span className="hidden sm:inline">Account</span>
+              <span className="hidden lg:inline">Account</span>
             </button>
 
             {isAdminAuthenticated && (
@@ -1593,48 +1615,24 @@ export default function App() {
                 type="button"
                 onClick={() => navigate('#/admin')}
                 aria-label="Store Owner Admin Console"
-                title="Store Owner Admin Console (#/admin)"
-                className={`h-10 px-3 rounded-[8px] border text-xs font-medium flex items-center gap-1.5 transition-colors whitespace-nowrap hidden md:flex ${
+                title="Store Owner Admin Console"
+                className={`h-9 px-3 rounded-lg border text-xs font-bold items-center gap-1.5 transition-colors whitespace-nowrap hidden md:flex ${
                   isAdminRoute
-                    ? 'bg-electric-gradient text-white border-transparent'
-                    : 'bg-[#1A1A1F] hover:bg-[#23232C] border-[#6C63FF]/50 text-white'
+                    ? 'bg-slate-900 text-white border-transparent'
+                    : 'bg-white hover:bg-slate-50 border-slate-200 text-purple-700'
                 }`}
               >
-                <i className="fa-solid fa-sliders text-xs text-[#FF6B35]" />
-                <span className="hidden xl:inline">Owner Admin</span>
+                <i className="fa-solid fa-sliders text-xs text-purple-600" />
+                <span className="hidden xl:inline">Admin</span>
               </button>
             )}
 
-            {currentUser ? (
-              <button
-                type="button"
-                onClick={handleGoogleSignOut}
-                title={`Signed in as ${currentUser.email} (Click to Sign Out)`}
-                className="h-10 px-2.5 rounded-[8px] bg-[#1A1A1F] hover:bg-[#23232C] border border-[#6C63FF]/50 text-xs font-medium text-white flex items-center gap-1.5 transition-colors whitespace-nowrap hidden md:flex"
-              >
-                <span className="w-5 h-5 rounded-full bg-electric-gradient text-[10px] font-bold flex items-center justify-center text-white shrink-0">
-                  {(currentUser.displayName || currentUser.email || 'U')
-                    .charAt(0)
-                    .toUpperCase()}
-                </span>
-              </button>
-            ) : (
-              <button
-                type="button"
-                onClick={() => navigate('#/login')}
-                className="h-10 px-3.5 rounded-[8px] bg-electric-gradient text-white text-xs font-semibold shadow-electric-glow hover:scale-[1.02] transition-all flex items-center gap-2 whitespace-nowrap hidden md:flex"
-              >
-                <i className="fa-solid fa-right-to-bracket text-xs" />
-                <span className="hidden sm:inline">Login</span>
-              </button>
-            )}
-
-            {/* HAMBURGER BUTTON (Three lines mobile/tablet toggle button) */}
+            {/* Hamburger Button for Mobile Drawer */}
             <button
               type="button"
               onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
               aria-label="Toggle Navigation Menu"
-              className="h-10 w-10 rounded-[8px] bg-[#1A1A1F] hover:bg-[#23232C] border border-white/10 text-[#A0A0B0] hover:text-white flex items-center justify-center md:hidden transition-colors"
+              className="h-9 w-9 rounded-lg bg-slate-100 hover:bg-slate-200 border border-slate-200 text-slate-700 flex items-center justify-center md:hidden transition-colors"
             >
               <i className={`fa-solid ${isMobileMenuOpen ? 'fa-xmark' : 'fa-bars'} text-sm`} />
             </button>
@@ -1642,35 +1640,45 @@ export default function App() {
         </div>
       </header>
 
-      {/* MOBILE RESPONSIVE DRAWER OVERLAY & DROPDOWN MENU */}
+      {/* MOBILE RESPONSIVE DRAWER OVERLAY */}
       {isMobileMenuOpen && (
         <>
-          {/* Semi-transparent Backdrop with Blur */}
           <div
             onClick={() => setIsMobileMenuOpen(false)}
-            className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm md:hidden"
+            className="fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-sm md:hidden"
           />
 
-          {/* Slide-out Sidebar Drawer */}
-          <div className="fixed inset-y-0 right-0 z-50 w-[300px] max-w-full bg-[#0E0E12] border-l border-white/[0.08] shadow-2xl p-5 flex flex-col justify-between md:hidden animate-page-enter overflow-y-auto">
-            <div className="space-y-6">
-              {/* Drawer Header with Close button */}
-              <div className="flex items-center justify-between pb-4 border-b border-white/[0.08]">
-                <CrazyMobilesLogo variant="horizontal" size="sm" />
+          <div className="fixed inset-y-0 right-0 z-50 w-[300px] max-w-full bg-white border-l border-slate-200 shadow-2xl p-5 flex flex-col justify-between md:hidden animate-page-enter overflow-y-auto">
+            <div className="space-y-5">
+              {/* Drawer Header */}
+              <div className="flex items-center justify-between pb-3 border-b border-slate-200">
+                <a
+                  href="#/home"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    navigate('#/home');
+                    setIsMobileMenuOpen(false);
+                    window.scrollTo({ top: 0, behavior: 'smooth' });
+                  }}
+                  className="flex items-center shrink-0 group transition-transform active:scale-95"
+                  aria-label="Crazy Mobiles Home"
+                >
+                  <CrazyMobilesLogo variant="compact" size="sm" theme="light" />
+                </a>
                 <button
                   type="button"
                   onClick={() => setIsMobileMenuOpen(false)}
                   aria-label="Close Navigation Menu"
-                  className="w-9 h-9 rounded-lg bg-[#1A1A1F] hover:bg-white/[0.06] text-[#A0A0B0] hover:text-white flex items-center justify-center transition-colors border border-white/5"
+                  className="w-8 h-8 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-600 flex items-center justify-center transition-colors"
                 >
                   <i className="fa-solid fa-xmark text-sm" />
                 </button>
               </div>
 
-              {/* Mobile Search Input with high touch comfort */}
+              {/* Mobile Search Input */}
               <div className="relative">
-                <div className="flex items-center rounded-full bg-[#141419] border border-white/10 px-4 py-2.5">
-                  <i className="fa-solid fa-magnifying-glass text-[#6B6B7B] text-xs mr-3" />
+                <div className="flex items-center rounded-full bg-slate-100 border border-slate-200 px-3.5 py-2">
+                  <i className="fa-solid fa-magnifying-glass text-slate-400 text-xs mr-2.5" />
                   <input
                     type="text"
                     value={searchQuery}
@@ -1681,14 +1689,14 @@ export default function App() {
                         setIsMobileMenuOpen(false);
                       }
                     }}
-                    placeholder="Search accessories..."
-                    className="w-full bg-transparent text-xs text-white placeholder-[#6B6B7B] focus:outline-none"
+                    placeholder="Search smartwatches, accessories..."
+                    className="w-full bg-transparent text-xs text-slate-900 placeholder-slate-400 focus:outline-none"
                   />
                   {searchQuery && (
                     <button
                       type="button"
                       onClick={() => setSearchQuery('')}
-                      className="text-[#6B6B7B] hover:text-white text-xs ml-1"
+                      className="text-slate-400 hover:text-slate-600 text-xs ml-1"
                     >
                       <i className="fa-solid fa-xmark" />
                     </button>
@@ -1696,8 +1704,8 @@ export default function App() {
                 </div>
               </div>
 
-              {/* Touch-Friendly Core Navigation Links */}
-              <nav className="flex flex-col gap-2">
+              {/* Core Navigation Links */}
+              <nav className="flex flex-col gap-1.5 text-xs font-semibold">
                 <a
                   href="#/home"
                   onClick={(e) => {
@@ -1705,8 +1713,10 @@ export default function App() {
                     navigate('#/home');
                     setIsMobileMenuOpen(false);
                   }}
-                  className={`p-3.5 rounded-[12px] hover:bg-white/[0.04] text-xs font-semibold flex items-center gap-3 transition-colors ${
-                    hashRoute === '#/home' || hashRoute === '' ? 'text-[#84F229] bg-[#84F229]/5 border border-[#84F229]/20' : 'text-[#A0A0B0] border border-transparent'
+                  className={`p-3 rounded-xl flex items-center gap-3 transition-colors ${
+                    hashRoute === '#/home' || hashRoute === ''
+                      ? 'text-blue-600 bg-blue-50 font-bold'
+                      : 'text-slate-700 hover:bg-slate-50'
                   }`}
                 >
                   <i className="fa-solid fa-house w-5 text-center text-sm" />
@@ -1721,45 +1731,14 @@ export default function App() {
                     navigate('#/products');
                     setIsMobileMenuOpen(false);
                   }}
-                  className={`p-3.5 rounded-[12px] hover:bg-white/[0.04] text-xs font-semibold flex items-center gap-3 transition-colors ${
-                    hashRoute.startsWith('#/products') ? 'text-[#6C63FF] bg-[#6C63FF]/5 border border-[#6C63FF]/20' : 'text-[#A0A0B0] border border-transparent'
+                  className={`p-3 rounded-xl flex items-center gap-3 transition-colors ${
+                    hashRoute.startsWith('#/products')
+                      ? 'text-blue-600 bg-blue-50 font-bold'
+                      : 'text-slate-700 hover:bg-slate-50'
                   }`}
                 >
                   <i className="fa-solid fa-layer-group w-5 text-center text-sm" />
-                  <span>Product Catalog</span>
-                </a>
-
-                <button
-                  type="button"
-                  onClick={() => {
-                    setIsYourDeviceModalOpen(true);
-                    setIsMobileMenuOpen(false);
-                  }}
-                  className="p-3.5 rounded-[12px] hover:bg-white/[0.04] text-xs font-semibold flex items-center gap-3 transition-colors text-left text-white border border-transparent w-full"
-                >
-                  <i className="fa-solid fa-mobile-screen-button w-5 text-center text-[#FF6B35] text-sm" />
-                  <div className="flex-1 min-w-0">
-                    <span className="block">Your Device</span>
-                    {userSelectedDevice && (
-                      <span className="block text-[10px] text-emerald-400 font-mono-num font-bold">
-                        {userSelectedDevice.split(' ').pop()}
-                      </span>
-                    )}
-                  </div>
-                  <i className="fa-solid fa-chevron-right text-[10px] text-[#6B6B7B]" />
-                </button>
-
-                <a
-                  href="#store-location"
-                  onClick={(e) => {
-                    e.preventDefault();
-                    setIsMobileMenuOpen(false);
-                    handleNavigateToStoreLocation();
-                  }}
-                  className="p-3.5 rounded-[12px] hover:bg-white/[0.04] text-xs font-semibold flex items-center gap-3 text-[#84F229] border border-transparent transition-colors"
-                >
-                  <i className="fa-solid fa-store w-5 text-center text-sm" />
-                  <span>Store Location</span>
+                  <span>All Products Catalog</span>
                 </a>
 
                 <a
@@ -1769,17 +1748,42 @@ export default function App() {
                     navigate('#/wishlist');
                     setIsMobileMenuOpen(false);
                   }}
-                  className={`p-3.5 rounded-[12px] hover:bg-white/[0.04] text-xs font-semibold flex items-center justify-between gap-3 transition-colors ${
-                    hashRoute.startsWith('#/wishlist') ? 'text-[#FF6B35] bg-[#FF6B35]/5 border border-[#FF6B35]/20' : 'text-[#A0A0B0] border border-transparent'
+                  className={`p-3 rounded-xl flex items-center justify-between gap-3 transition-colors ${
+                    hashRoute.startsWith('#/wishlist')
+                      ? 'text-rose-600 bg-rose-50 font-bold'
+                      : 'text-slate-700 hover:bg-slate-50'
                   }`}
                 >
                   <div className="flex items-center gap-3">
-                    <i className="fa-solid fa-heart w-5 text-center text-[#FF6B35] text-sm" />
+                    <i className="fa-solid fa-heart w-5 text-center text-rose-500 text-sm" />
                     <span>Wishlist</span>
                   </div>
-                  <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-[#FF6B35]/15 text-[#FF6B35] border border-[#FF6B35]/30 font-mono-num">
+                  <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-rose-100 text-rose-600 font-mono-num">
                     {wishlistIds.length}
                   </span>
+                </a>
+
+                <a
+                  href="https://wa.me/919011221665"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="p-3 rounded-xl flex items-center gap-3 text-emerald-700 bg-emerald-50 hover:bg-emerald-100 transition-colors"
+                >
+                  <i className="fa-brands fa-whatsapp w-5 text-center text-emerald-600 text-base" />
+                  <span>Direct WhatsApp Support</span>
+                </a>
+
+                <a
+                  href="#store-location"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    setIsMobileMenuOpen(false);
+                    handleNavigateToStoreLocation();
+                  }}
+                  className="p-3 rounded-xl flex items-center gap-3 text-slate-700 hover:bg-slate-50 transition-colors"
+                >
+                  <i className="fa-solid fa-store w-5 text-center text-sm text-blue-600" />
+                  <span>Store Showroom Location</span>
                 </a>
 
                 <a
@@ -1789,12 +1793,14 @@ export default function App() {
                     navigate('#/account');
                     setIsMobileMenuOpen(false);
                   }}
-                  className={`p-3.5 rounded-[12px] hover:bg-white/[0.04] text-xs font-semibold flex items-center gap-3 transition-colors ${
-                    hashRoute.startsWith('#/account') ? 'text-[#6C63FF] bg-[#6C63FF]/5 border border-[#6C63FF]/20' : 'text-[#A0A0B0] border border-transparent'
+                  className={`p-3 rounded-xl flex items-center gap-3 transition-colors ${
+                    hashRoute.startsWith('#/account')
+                      ? 'text-blue-600 bg-blue-50 font-bold'
+                      : 'text-slate-700 hover:bg-slate-50'
                   }`}
                 >
                   <i className="fa-solid fa-user w-5 text-center text-sm" />
-                  <span>Account Settings</span>
+                  <span>Account &amp; Orders</span>
                 </a>
 
                 {isAdminAuthenticated && (
@@ -1805,40 +1811,17 @@ export default function App() {
                       navigate('#/admin');
                       setIsMobileMenuOpen(false);
                     }}
-                    className={`p-3.5 rounded-[12px] hover:bg-[#6C63FF]/10 text-xs font-semibold flex items-center gap-3 transition-colors ${
-                      isAdminRoute ? 'text-white bg-[#6C63FF]/20 border border-[#6C63FF]/30' : 'text-[#9D95FF] border border-transparent'
-                    }`}
+                    className="p-3 rounded-xl flex items-center gap-3 text-purple-700 bg-purple-50 font-bold transition-colors"
                   >
-                    <i className="fa-solid fa-sliders w-5 text-center text-[#FF6B35] text-sm" />
-                    <span>Owner Admin Console</span>
+                    <i className="fa-solid fa-sliders w-5 text-center text-purple-600 text-sm" />
+                    <span>Store Owner Admin</span>
                   </a>
                 )}
               </nav>
             </div>
 
-            {/* User Profile / Authentication Section with generous touch area */}
-            <div className="pt-4 border-t border-white/[0.08] mt-6 flex flex-col gap-3">
-              {currentUser ? (
-                <div className="flex items-center gap-3 p-3 rounded-[12px] bg-[#141419] border border-white/5">
-                  <div className="w-10 h-10 rounded-full bg-electric-gradient text-sm font-bold flex items-center justify-center text-white shrink-0 shadow-lg">
-                    {(currentUser.displayName || currentUser.email || 'U').charAt(0).toUpperCase()}
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <p className="text-xs font-bold text-white truncate">
-                      {currentUser.displayName || 'VoltEdge User'}
-                    </p>
-                    <p className="text-[10px] text-[#A0A0B0] truncate">
-                      {currentUser.email}
-                    </p>
-                  </div>
-                </div>
-              ) : (
-                <div className="p-3 text-center rounded-[12px] bg-[#141419] border border-white/5">
-                  <p className="text-xs font-semibold text-white">Guest Account</p>
-                  <p className="text-[10px] text-[#A0A0B0] mt-0.5">Log in to track orders & view history</p>
-                </div>
-              )}
-
+            {/* User Profile / Login */}
+            <div className="pt-4 border-t border-slate-200 mt-4 flex flex-col gap-2.5">
               {currentUser ? (
                 <button
                   type="button"
@@ -1846,10 +1829,10 @@ export default function App() {
                     handleGoogleSignOut();
                     setIsMobileMenuOpen(false);
                   }}
-                  className="w-full py-3.5 rounded-[12px] bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/20 text-xs font-bold text-center transition-all flex items-center justify-center gap-2"
+                  className="w-full py-3 rounded-xl bg-slate-100 hover:bg-rose-50 text-rose-600 text-xs font-bold transition-all flex items-center justify-center gap-2"
                 >
-                  <i className="fa-solid fa-right-from-bracket text-xs" />
-                  <span>Sign Out Store Session</span>
+                  <i className="fa-solid fa-right-from-bracket" />
+                  <span>Sign Out ({currentUser.displayName || currentUser.email})</span>
                 </button>
               ) : (
                 <button
@@ -1858,10 +1841,10 @@ export default function App() {
                     navigate('#/login');
                     setIsMobileMenuOpen(false);
                   }}
-                  className="w-full py-3.5 rounded-[12px] bg-electric-gradient text-white text-xs font-bold shadow-electric-glow hover:scale-[1.01] transition-all text-center flex items-center justify-center gap-2"
+                  className="w-full py-3 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold shadow-sm transition-all flex items-center justify-center gap-2"
                 >
-                  <i className="fa-solid fa-right-to-bracket text-xs" />
-                  <span>Login / Register Account</span>
+                  <i className="fa-solid fa-right-to-bracket" />
+                  <span>Login / Register</span>
                 </button>
               )}
             </div>
@@ -1869,115 +1852,123 @@ export default function App() {
         </>
       )}
 
-      {/* MAIN VIEWPORT */}
-      <main className="flex-1">{renderMainView()}</main>
+      {/* MAIN VIEWPORT (With bottom padding on mobile to accommodate sticky bottom bar) */}
+      <main className="flex-1 pb-16 md:pb-0">{renderMainView()}</main>
 
-      {/* CLEAN FOOTER (Storefront Views Only - Store Owner & Location Section) */}
+      {/* STICKY BOTTOM NAVIGATION BAR FOR MOBILE */}
+      <div className="md:hidden fixed bottom-0 inset-x-0 z-40 bg-white/95 backdrop-blur-md border-t border-slate-200 py-2 px-3 flex items-center justify-around shadow-lg">
+        {/* Home */}
+        <button
+          type="button"
+          onClick={() => navigate('#/home')}
+          className={`flex flex-col items-center gap-0.5 text-[10px] font-bold ${
+            hashRoute === '#/home' || hashRoute === '' ? 'text-blue-600' : 'text-slate-600'
+          }`}
+        >
+          <i className="fa-solid fa-house text-base" />
+          <span>Home</span>
+        </button>
+
+        {/* Categories / Catalog */}
+        <button
+          type="button"
+          onClick={() => {
+            setSelectedCategory('All');
+            navigate('#/products');
+          }}
+          className={`flex flex-col items-center gap-0.5 text-[10px] font-bold ${
+            hashRoute.startsWith('#/products') ? 'text-blue-600' : 'text-slate-600'
+          }`}
+        >
+          <i className="fa-solid fa-layer-group text-base" />
+          <span>Catalog</span>
+        </button>
+
+        {/* Wishlist */}
+        <button
+          type="button"
+          onClick={() => navigate('#/wishlist')}
+          className={`relative flex flex-col items-center gap-0.5 text-[10px] font-bold ${
+            hashRoute.startsWith('#/wishlist') ? 'text-rose-600' : 'text-slate-600'
+          }`}
+        >
+          <i className="fa-solid fa-heart text-base text-rose-500" />
+          <span>Wishlist</span>
+          {wishlistIds.length > 0 && (
+            <span className="absolute -top-1 right-2 px-1.5 py-0.2 rounded-full text-[9px] font-bold bg-rose-500 text-white font-mono-num leading-tight">
+              {wishlistIds.length}
+            </span>
+          )}
+        </button>
+
+        {/* WhatsApp Direct */}
+        <a
+          href="https://wa.me/919011221665"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="flex flex-col items-center gap-0.5 text-[10px] font-bold text-[#25D366]"
+        >
+          <i className="fa-brands fa-whatsapp text-xl" />
+          <span>WhatsApp</span>
+        </a>
+
+        {/* Cart */}
+        <button
+          type="button"
+          onClick={() => setIsCartOpen(true)}
+          className="relative flex flex-col items-center gap-0.5 text-[10px] font-bold text-slate-800"
+        >
+          <i className="fa-solid fa-bag-shopping text-base text-blue-600" />
+          <span>Cart</span>
+          {totalCartItems > 0 && (
+            <span className="absolute -top-1 right-1 px-1.5 py-0.2 rounded-full text-[9px] font-bold bg-[#FFB703] text-slate-900 font-mono-num leading-tight">
+              {totalCartItems}
+            </span>
+          )}
+        </button>
+      </div>
+
+      {/* CLEAN FOOTER */}
       {!isAdminRoute && (
-        <footer id="store-location" className="bg-[#111113] border-t border-white/[0.07] mt-20 scroll-mt-20">
-          <div className="max-w-[1280px] mx-auto px-4 sm:px-6 lg:px-8 py-14">
-            {/* Prominent Store Owner & Location Callout Banner */}
-            <div className="mb-10 p-6 rounded-[16px] bg-[#16161C] border border-[#84F229]/30 relative overflow-hidden shadow-2xl flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
-              <div className="space-y-1.5 max-w-xl">
-                <div className="inline-flex items-center gap-2 px-2.5 py-1 rounded-full bg-[#84F229]/10 text-[#84F229] text-[11px] font-bold uppercase tracking-wider">
-                  <i className="fa-solid fa-store" />
-                  <span>Verified Retailer &amp; Store Owner</span>
-                </div>
-                <h3 className="font-display text-lg font-bold text-white flex items-center gap-2">
-                  <span>Crazy Mobiles</span>
-                  <span className="text-xs text-[#A0A0B0] font-normal">· Owned &amp; Managed by Shaikh Shoeb</span>
-                </h3>
-                <p className="text-xs text-[#A0A0B0] leading-relaxed">
-                  📍 Main Market Road, Near City Center, Mobiles &amp; Accessories Hub, Maharashtra 400001.<br />
-                  Visit us in person for genuine mobile covers, tempered glass installation, original fast chargers, and wholesale inquiries.
+        <footer id="store-location" className="bg-slate-900 text-slate-300 border-t border-slate-800 mt-16">
+          <div className="max-w-[1280px] mx-auto px-4 sm:px-6 lg:px-8 py-12">
+            <div className="grid grid-cols-1 md:grid-cols-12 gap-8 pb-10 border-b border-slate-800">
+              {/* Brand & Store Info */}
+              <div className="md:col-span-5 space-y-3.5">
+                <CrazyMobilesLogo variant="horizontal" size="md" theme="dark" />
+                <p className="text-xs text-slate-400 max-w-sm leading-relaxed">
+                  Crazy Mobiles is your premier Indian destination for genuine smartwatches, wireless earbuds, fast GaN chargers, durable cables, and phone accessories.
                 </p>
-              </div>
-
-              <div className="flex flex-wrap items-center gap-3 shrink-0">
-                <a
-                  href={`https://wa.me/91${STORE_PHONE}?text=${encodeURIComponent('Hi Shaikh Shoeb, I am inquiring about Crazy Mobiles store products.')}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="px-4 py-2.5 rounded-[10px] bg-[#25D366] hover:bg-[#20bd5a] text-black font-bold text-xs flex items-center gap-2 shadow-lg transition-all"
-                >
-                  <i className="fa-brands fa-whatsapp text-sm" />
-                  <span>WhatsApp Owner (+91 {STORE_PHONE_DISPLAY})</span>
-                </a>
-                <a
-                  href={STORE_MAPS_URL}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="px-4 py-2.5 rounded-[10px] bg-[#1A1A1F] hover:bg-[#23232C] border border-white/15 text-white text-xs font-semibold flex items-center gap-2 transition-all hover:border-emerald-400"
-                >
-                  <i className="fa-solid fa-map-location-dot text-emerald-400 text-xs" />
-                  <span>View Google Maps Location</span>
-                </a>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-12 gap-8 pb-10 border-b border-white/[0.07]">
-              {/* Col 1: Brand & Contact */}
-              <div className="md:col-span-4 space-y-3.5">
-                <div className="pt-1">
-                  <CrazyMobilesLogo variant="horizontal" size="md" />
-                </div>
-                <p className="text-xs text-[#9BA9B4] max-w-sm leading-relaxed">
-                  Your trusted hub for premium smartphones, genuine accessories, GaN fast chargers, MagSafe gear, and audio powerhouses. Owned &amp; managed by Shaikh Shoeb.
-                </p>
-                <div className="pt-1 space-y-2 text-xs text-[#9BA9B4]">
-                  <a
-                    href={`tel:+91${STORE_PHONE}`}
-                    className="flex items-center gap-2 hover:text-[#84F229] transition-colors"
-                  >
-                    <i className="fa-solid fa-phone text-[#84F229] text-[11px]" />
-                    <span className="font-mono-num">{STORE_PHONE_DISPLAY}</span>
-                  </a>
-                  <a
-                    href={`mailto:${STORE_EMAIL}`}
-                    className="flex items-center gap-2 hover:text-[#84F229] transition-colors"
-                  >
-                    <i className="fa-solid fa-envelope text-[#84F229] text-[11px]" />
-                    <span>{STORE_EMAIL}</span>
-                  </a>
-                  <a
-                    href={STORE_MAPS_URL}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="flex items-center gap-2 text-[#84F229] hover:underline transition-colors pt-0.5"
-                  >
-                    <i className="fa-solid fa-map-location-dot text-[11px]" />
-                    <span>Find Us on Google Maps</span>
-                    <i className="fa-solid fa-arrow-up-right-from-square text-[9px]" />
-                  </a>
+                <div className="space-y-1.5 text-xs text-slate-400 pt-1">
+                  <p className="flex items-start gap-2">
+                    <i className="fa-solid fa-location-dot text-[#84F229] mt-0.5" />
+                    <span>Shop No 02, Nizamuddin Road, Shahaganj, Aurangabad, Maharashtra - 431001</span>
+                  </p>
+                  <p className="flex items-center gap-2">
+                    <i className="fa-solid fa-phone text-[#84F229]" />
+                    <span>+91 9011221665</span>
+                  </p>
+                  <p className="flex items-center gap-2">
+                    <i className="fa-solid fa-envelope text-[#84F229]" />
+                    <span>Shaikhshoeb2624@gmail.com</span>
+                  </p>
                 </div>
               </div>
 
-              {/* Col 2: Collections */}
-              <div className="md:col-span-2 space-y-2.5 text-xs">
-                <h3 className="font-display font-semibold text-white">Collections</h3>
-                <ul className="space-y-2 text-[#A0A0B0]">
+              {/* Quick Category Links */}
+              <div className="md:col-span-3 space-y-2.5 text-xs">
+                <h3 className="font-bold text-white uppercase tracking-wider">Top Categories</h3>
+                <ul className="space-y-1.5 text-slate-400">
                   <li>
                     <button
                       type="button"
                       onClick={() => {
-                        setSelectedCategory('Power Banks');
+                        setSelectedCategory('Smart Watches');
                         navigate('#/products');
                       }}
                       className="hover:text-white transition-colors"
                     >
-                      Power Banks
-                    </button>
-                  </li>
-                  <li>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setSelectedCategory('Chargers & Cables');
-                        navigate('#/products');
-                      }}
-                      className="hover:text-white transition-colors"
-                    >
-                      Fast Chargers
+                      Smart Watches
                     </button>
                   </li>
                   <li>
@@ -1989,60 +1980,59 @@ export default function App() {
                       }}
                       className="hover:text-white transition-colors"
                     >
-                      ANC Earbuds
+                      Wireless Earbuds
                     </button>
                   </li>
                   <li>
                     <button
                       type="button"
                       onClick={() => {
-                        setSelectedCategory('Phone Cases');
+                        setSelectedCategory('Neckbands');
                         navigate('#/products');
                       }}
                       className="hover:text-white transition-colors"
                     >
-                      Phone Cases &amp; Mounts
+                      Bluetooth Neckbands
+                    </button>
+                  </li>
+                  <li>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setSelectedCategory('Chargers & Cables');
+                        navigate('#/products');
+                      }}
+                      className="hover:text-white transition-colors"
+                    >
+                      Fast Chargers &amp; Cables
+                    </button>
+                  </li>
+                  <li>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setSelectedCategory('Mobile Covers');
+                        navigate('#/products');
+                      }}
+                      className="hover:text-white transition-colors"
+                    >
+                      Cases &amp; Tempered Glass
                     </button>
                   </li>
                 </ul>
               </div>
 
-              {/* Col 3: Visit Store Location */}
-              <div className="md:col-span-3 space-y-2.5 text-xs">
-                <h3 className="font-display font-semibold text-white">Store Location</h3>
-                <p className="text-xs text-[#A0A0B0] leading-relaxed">
-                  Visit {STORE_NAME} in person for instant pick-up, device testing, and wholesale inquiries.
-                </p>
-                <div className="pt-1">
-                  <a
-                    href={STORE_MAPS_URL}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-flex items-center gap-2 px-3 py-1.5 rounded-[6px] bg-[#1A1A1F] hover:bg-[#23232C] border border-white/10 text-white font-medium hover:border-emerald-500/40 transition-all"
-                  >
-                    <i className="fa-solid fa-location-crosshairs text-emerald-400" />
-                    <span>Open in Google Maps</span>
-                  </a>
-                </div>
-                <div className="pt-2 text-[11px] text-[#6B6B7B]">
-                  <span>UPI ID: </span>
-                  <span className="font-mono-num text-white font-medium">{STORE_UPI_ID}</span>
-                </div>
-              </div>
-
-              {/* Col 4: Customer Care & Portal */}
-              <div className="md:col-span-3 space-y-2.5 text-xs">
-                <h3 className="font-display font-semibold text-white">
-                  Customer Care &amp; Portal
-                </h3>
-                <ul className="space-y-2 text-[#A0A0B0]">
+              {/* Customer Care & Policies */}
+              <div className="md:col-span-4 space-y-2.5 text-xs">
+                <h3 className="font-bold text-white uppercase tracking-wider">Customer Care</h3>
+                <ul className="space-y-1.5 text-slate-400">
                   <li>
                     <button
                       type="button"
                       onClick={() => setIsTrackModalOpen(true)}
                       className="hover:text-white transition-colors"
                     >
-                      Track Your Order
+                      Track Your Order Status
                     </button>
                   </li>
                   <li>
@@ -2051,38 +2041,42 @@ export default function App() {
                       onClick={() => navigate('#/checkout')}
                       className="hover:text-white transition-colors"
                     >
-                      Express Checkout
-                    </button>
-                  </li>
-                  <li>
-                    <button
-                      type="button"
-                      onClick={() => navigate('#/login')}
-                      className="hover:text-white transition-colors"
-                    >
-                      Unified Member &amp; Owner Login
+                      Express Checkout (COD / UPI)
                     </button>
                   </li>
                   <li>
                     <a
-                      href={`https://wa.me/91${STORE_PHONE}?text=${encodeURIComponent(
-                        `Hi ${STORE_NAME}, I need assistance with an order.`
-                      )}`}
+                      href="https://wa.me/919011221665"
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="text-[#25D366] hover:underline flex items-center gap-1.5 pt-1"
+                      className="text-[#25D366] hover:underline flex items-center gap-1.5"
                     >
-                      <i className="fa-brands fa-whatsapp" />
-                      <span>WhatsApp Support (+91 {STORE_PHONE})</span>
+                      <i className="fa-brands fa-whatsapp text-sm" />
+                      <span>Direct WhatsApp Support (+91 9011221665)</span>
                     </a>
                   </li>
+                  <li>
+                    <span className="text-slate-400">7 Days Easy Replacement &amp; Doorstep Delivery</span>
+                  </li>
                 </ul>
+
+                {/* Payment Methods Badges */}
+                <div className="pt-3">
+                  <span className="block text-[11px] text-slate-400 mb-1.5">100% Secure Payments</span>
+                  <div className="flex items-center gap-2 flex-wrap text-xs text-white font-bold">
+                    <span className="px-2 py-1 bg-slate-800 rounded border border-slate-700">UPI</span>
+                    <span className="px-2 py-1 bg-slate-800 rounded border border-slate-700">GPay</span>
+                    <span className="px-2 py-1 bg-slate-800 rounded border border-slate-700">PhonePe</span>
+                    <span className="px-2 py-1 bg-slate-800 rounded border border-slate-700">Paytm</span>
+                    <span className="px-2 py-1 bg-slate-800 rounded border border-slate-700 text-[#84F229]">Cash on Delivery</span>
+                  </div>
+                </div>
               </div>
             </div>
 
-            <div className="pt-6 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-[#6B6B7B]">
-              <span>© 2026 {STORE_NAME}. All rights reserved.</span>
-              <span>Proprietor: Shaikh Shoeb · UPI Verified Merchant · Free Delivery</span>
+            <div className="pt-6 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-slate-500">
+              <span>© 2026 Crazy Mobiles (CRAZY MOBILE SHOP AND MULTISERVICES). All rights reserved.</span>
+              <span>Proprietor: Shaikh Shoeb · Aurangabad, Maharashtra</span>
             </div>
           </div>
         </footer>

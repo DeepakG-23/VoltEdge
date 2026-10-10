@@ -56,8 +56,8 @@ export const CustomCursor: React.FC = () => {
       <div
         className={`-translate-x-1/2 -translate-y-1/2 rounded-full border transition-all duration-200 ${
           isHovering
-            ? 'w-9 h-9 border-[#FF6B35]/80 bg-[#6C63FF]/15 scale-110'
-            : 'w-4 h-4 border-[#6C63FF]/75 bg-[#6C63FF]/25 scale-100'
+            ? 'w-8 h-8 border-blue-600 bg-blue-500/15 scale-110'
+            : 'w-3.5 h-3.5 border-blue-600/70 bg-blue-500/20 scale-100'
         }`}
       />
     </div>
