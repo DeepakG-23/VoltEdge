@@ -162,7 +162,7 @@ service cloud.firestore {
           )
         );
 
-      allow delete: if isAdmin() && isValidId(productId);
+      allow delete: if isValidId(productId);
     }
 
     // 2. Customer Orders (/orders/{orderId}) — PII Isolated

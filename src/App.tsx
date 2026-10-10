@@ -1219,8 +1219,7 @@ export default function App() {
 
   // Admin Product & Order Handlers
   const handleAdminAddProduct = (newProd: Omit<Product, 'id'>) => {
-    const nextId =
-      products.reduce((maxId, p) => Math.max(maxId, p.id), 0) + 1;
+    const nextId = Date.now();
     const fullProduct: Product = { ...newProd, id: nextId };
     setProducts((prev) => [fullProduct, ...prev]);
 
