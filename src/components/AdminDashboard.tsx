@@ -321,9 +321,9 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   const [isUploadingFiles, setIsUploadingFiles] = useState(false);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
-  // 5-Layer Structured Product Form State
+  // 4-Layer Structured Product Form State
   const [activeFormLayer, setActiveFormLayer] = useState<
-    'basic' | 'compatibility' | 'specs' | 'description' | 'seo'
+    'basic' | 'compatibility' | 'specs' | 'description'
   >('basic');
   const [formSubcategory, setFormSubcategory] = useState('');
   const [formSku, setFormSku] = useState('');
@@ -333,20 +333,12 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   const [formPhoneModels, setFormPhoneModels] = useState('iPhone 16 Pro, iPhone 15, Galaxy S24');
   const [formCompatibleDevices, setFormCompatibleDevices] = useState('Smartphones, Tablets, Laptops');
   const [formConnectorType, setFormConnectorType] = useState('USB-C');
-  const [formSeoTitle, setFormSeoTitle] = useState('');
-  const [formSeoDescription, setFormSeoDescription] = useState('');
-  const [formSeoKeywords, setFormSeoKeywords] = useState('');
-  const [formSlug, setFormSlug] = useState('');
   const [formTagline, setFormTagline] = useState('');
   const [formShortDescription, setFormShortDescription] = useState('');
   const [formDescription, setFormDescription] = useState('');
   const [formSpecs, setFormSpecs] = useState<ProductSpec[]>([]);
-  const [importUrl, setImportUrl] = useState('');
-  const [isImportingWithAI, setIsImportingWithAI] = useState(false);
-  const [importProgressStep, setImportProgressStep] = useState('');
   const [isGeneratingDescWithAI, setIsGeneratingDescWithAI] = useState(false);
   const [autoAiDescriptionEnabled, setAutoAiDescriptionEnabled] = useState(true);
-  const [importedPreview, setImportedPreview] = useState<any | null>(null);
 
   // Helper to generate default specification fields based on Category
   const getCategoryPresetSpecs = (cat: Product['category']): ProductSpec[] => {
@@ -475,23 +467,13 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
           const {
             shortDescription,
             tagline,
-            highlights,
             fullDescription,
-            seoTitle,
-            seoDescription,
-            seoKeywords,
           } = json.data;
 
           if (shortDescription) setFormShortDescription(shortDescription);
           if (tagline) setFormTagline(tagline);
           if (fullDescription) setFormDescription(fullDescription);
-          if (seoTitle) setFormSeoTitle(seoTitle);
-          if (seoDescription) setFormSeoDescription(seoDescription);
-          if (seoKeywords) {
-            setFormSeoKeywords(
-              Array.isArray(seoKeywords) ? seoKeywords.join(', ') : seoKeywords
-            );
-          }
+
 
           if (!silentToast) {
             showToast('✨ Gemini AI generated marketing copy & customer benefits!');
@@ -533,8 +515,6 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
           ? `Premium ${category} with ${validSpecs[0].value}`
           : `Engineered ${category} for peak performance.`
       );
-      setFormSeoTitle(`${name} | Buy Online at ${STORE_NAME}`);
-      setFormSeoDescription(clientShort.slice(0, 155));
       if (!silentToast) {
         showToast('✨ Synthesized customer description from specifications!');
       }
@@ -597,172 +577,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     setFormSpecs((prev) => prev.filter((_, i) => i !== idx));
   };
 
-  const handleScrapeProductWithAI = async (
-    e?: React.FormEvent,
-    customUrlOverride?: string
-  ) => {
-    if (e) e.preventDefault();
-    const targetUrl = (customUrlOverride || importUrl).trim();
-    if (!targetUrl) {
-      showToast('Please paste a product URL or select a sample to import.');
-      return;
-    }
 
-    setIsImportingWithAI(true);
-    setImportProgressStep('🌐 Fetching product page content & metadata...');
-
-    try {
-      const timer1 = setTimeout(() => {
-        setImportProgressStep(
-          '🧠 Gemini AI extracting category, specs & marketing copy...'
-        );
-      }, 900);
-
-      const res = await fetch('/api/admin/scrape-product', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ url: targetUrl }),
-      });
-
-      clearTimeout(timer1);
-
-      if (!res.ok) {
-        throw new Error('Server returned error status');
-      }
-
-      const json = await res.json();
-      if (!json.success || !json.data) {
-        throw new Error(json.error || 'Failed to extract product specs');
-      }
-
-      const data = json.data;
-      setImportedPreview(data);
-
-      if (data.name) setFormName(data.name);
-      if (data.price) setFormPrice(String(data.price));
-      if (data.originalPrice)
-        setFormOriginalPrice(String(data.originalPrice));
-      if (data.category)
-        setFormCategory(data.category as Product['category']);
-      if (data.subcategory) setFormSubcategory(data.subcategory);
-      if (data.tagline) setFormTagline(data.tagline);
-      if (data.shortDescription)
-        setFormShortDescription(data.shortDescription);
-      if (data.description) setFormDescription(data.description);
-      if (data.warranty) setFormWarranty(data.warranty);
-      if (data.sku) setFormSku(data.sku);
-      if (Array.isArray(data.specs) && data.specs.length > 0) {
-        setFormSpecs(data.specs);
-      }
-      if (Array.isArray(data.compatibleBrands) && data.compatibleBrands.length > 0) {
-        setFormPhoneBrand(data.compatibleBrands[0]);
-      }
-      if (Array.isArray(data.compatibleModels) && data.compatibleModels.length > 0) {
-        setFormPhoneModels(data.compatibleModels.join(', '));
-      }
-      if (Array.isArray(data.images) && data.images.length > 0) {
-        setUploadedImages(data.images);
-      }
-      if (data.seoTitle) setFormSeoTitle(data.seoTitle);
-      if (data.seoDescription) setFormSeoDescription(data.seoDescription);
-      if (data.seoKeywords) {
-        setFormSeoKeywords(
-          Array.isArray(data.seoKeywords)
-            ? data.seoKeywords.join(', ')
-            : data.seoKeywords
-        );
-      }
-      if (data.slug) setFormSlug(data.slug);
-
-      showToast(
-        `✨ Auto-imported "${data.name?.slice(0, 30)}..." into all 5 layers with ${
-          data.specs?.length || 0
-        } specifications!`
-      );
-    } catch {
-      // Intelligent parsing fallback
-      const cleanUrl = targetUrl.toLowerCase();
-      let detectedCat: Product['category'] = 'Wireless Accessories';
-
-      if (
-        cleanUrl.includes('case') ||
-        cleanUrl.includes('cover') ||
-        cleanUrl.includes('magsafe')
-      ) {
-        detectedCat = 'Mobile Covers';
-      } else if (
-        cleanUrl.includes('glass') ||
-        cleanUrl.includes('screen') ||
-        cleanUrl.includes('protector')
-      ) {
-        detectedCat = 'Tempered Glass';
-      } else if (
-        cleanUrl.includes('charger') ||
-        cleanUrl.includes('gan') ||
-        cleanUrl.includes('adapter')
-      ) {
-        detectedCat = 'Chargers';
-      } else if (
-        cleanUrl.includes('cable') ||
-        cleanUrl.includes('type-c') ||
-        cleanUrl.includes('lightning')
-      ) {
-        detectedCat = 'Cables';
-      } else if (
-        cleanUrl.includes('powerbank') ||
-        cleanUrl.includes('power-bank') ||
-        cleanUrl.includes('battery')
-      ) {
-        detectedCat = 'Power Banks';
-      } else if (cleanUrl.includes('watch') || cleanUrl.includes('strap')) {
-        detectedCat = 'Smart Watches';
-      } else if (
-        cleanUrl.includes('earbud') ||
-        cleanUrl.includes('tws') ||
-        cleanUrl.includes('anc')
-      ) {
-        detectedCat = 'Earbuds';
-      } else if (
-        cleanUrl.includes('headphone') ||
-        cleanUrl.includes('headset')
-      ) {
-        detectedCat = 'Headphones';
-      } else if (cleanUrl.includes('neckband')) {
-        detectedCat = 'Neckbands';
-      }
-
-      const urlParts = cleanUrl.replace(/https?:\/\//, '').split('/');
-      const slug = urlParts.find((p) => p.length > 8) || 'Pro Mobile Accessory';
-      const formattedTitle = slug
-        .replace(/[-_]/g, ' ')
-        .replace(/\b\w/g, (c) => c.toUpperCase())
-        .slice(0, 55);
-
-      setFormName(formattedTitle);
-      setFormCategory(detectedCat);
-      setFormPrice('1499');
-      setFormOriginalPrice('2499');
-      setFormTagline(`Engineered ${detectedCat} for peak mobile performance.`);
-      setFormShortDescription(
-        `High-efficiency ${detectedCat.toLowerCase()} engineered with premium materials for maximum durability and fast everyday performance.`
-      );
-      setFormDescription(
-        'Scraped e-commerce product catalog specifications auto-generated by AI.'
-      );
-      setFormSpecs([
-        { label: 'Category', value: detectedCat },
-        { label: 'Compatibility', value: 'Universal Mobile Devices' },
-        { label: 'Material', value: 'Premium Grade Alloy & TPU' },
-        { label: 'Warranty', value: '1-Year Official Crazy Mobile Warranty' },
-      ]);
-      showToast(
-        `✨ Pre-populated category "${detectedCat}" and specifications for review!`
-      );
-    } finally {
-      setIsImportingWithAI(false);
-      setImportProgressStep('');
-    }
-  };
 
   // Reports Date Range State
   const [dateRange, setDateRange] = useState<'7d' | '30d' | '90d' | 'ytd'>('7d');
@@ -1200,8 +1015,6 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     setFormTags('fast charge, braided, type-c, pd 3.0');
     setFormStock('40');
     setUploadedImages([]);
-    setImportUrl('');
-    setImportedPreview(null);
     setFormTagline('');
     setFormShortDescription('');
     setFormDescription('');
@@ -1210,10 +1023,6 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     setFormCompatibleDevices('Smartphones, Laptops, Tablets');
     setFormConnectorType('USB-C to USB-C');
     setFormSpecs(getCategoryPresetSpecs('Cables'));
-    setFormSeoTitle('');
-    setFormSeoDescription('');
-    setFormSeoKeywords('');
-    setFormSlug('');
     setIsProductModalOpen(true);
   };
 
@@ -1229,8 +1038,6 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     setFormWarranty(product.warranty || '1-Year Replacement Warranty');
     setFormTags(product.tags ? product.tags.join(', ') : 'crazy mobiles, accessory');
     setFormStock(String(product.stock));
-    setImportUrl('');
-    setImportedPreview(null);
     setFormTagline(product.tagline || '');
     setFormShortDescription(product.shortDescription || product.tagline || '');
     setFormDescription(product.description || '');
@@ -1243,10 +1050,6 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
         ? product.specs
         : getCategoryPresetSpecs(product.category)
     );
-    setFormSeoTitle(product.seoTitle || `${product.name} | ${STORE_NAME}`);
-    setFormSeoDescription(product.seoDescription || product.tagline || '');
-    setFormSeoKeywords(product.seoKeywords ? product.seoKeywords.join(', ') : '');
-    setFormSlug(product.slug || product.name.toLowerCase().replace(/[^a-z0-9]+/g, '-'));
 
     const existingGalleryUrls =
       product.gallery && product.gallery.length > 0
@@ -1335,9 +1138,9 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
       .map((m) => m.trim())
       .filter(Boolean);
 
-    const formattedKeywords = formSeoKeywords
+    const formattedKeywords = formTags
       .split(',')
-      .map((k) => k.trim())
+      .map((k: string) => k.trim())
       .filter(Boolean);
 
     if (editingProduct) {
@@ -1356,10 +1159,10 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
         tags: formattedTags,
         compatibleBrands: formattedBrands,
         compatibleModels: formattedModels,
-        seoTitle: formSeoTitle.trim() || `${formName.trim()} | ${STORE_NAME}`,
-        seoDescription: formSeoDescription.trim() || formTagline.trim(),
-        seoKeywords: formattedKeywords,
-        slug: formSlug.trim() || formName.trim().toLowerCase().replace(/[^a-z0-9]+/g, '-'),
+        seoTitle: `${formName.trim()} | ${STORE_NAME}`,
+        seoDescription: formTagline.trim() || formShortDescription.trim(),
+        seoKeywords: formattedTags,
+        slug: formName.trim().toLowerCase().replace(/[^a-z0-9]+/g, '-'),
         tagline: formTagline.trim() || editingProduct.tagline || `Precision-engineered ${STORE_NAME} mobile accessory.`,
         shortDescription: formShortDescription.trim() || formTagline.trim() || editingProduct.shortDescription,
         description: formDescription.trim() || editingProduct.description || 'Designed for durability, high-efficiency power transfer, and seamless compatibility.',
@@ -1388,10 +1191,10 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
         tags: formattedTags,
         compatibleBrands: formattedBrands,
         compatibleModels: formattedModels,
-        seoTitle: formSeoTitle.trim() || `${formName.trim()} | ${STORE_NAME}`,
-        seoDescription: formSeoDescription.trim() || formTagline.trim(),
-        seoKeywords: formattedKeywords,
-        slug: formSlug.trim() || formName.trim().toLowerCase().replace(/[^a-z0-9]+/g, '-'),
+        seoTitle: `${formName.trim()} | ${STORE_NAME}`,
+        seoDescription: formTagline.trim() || formShortDescription.trim(),
+        seoKeywords: formattedTags,
+        slug: formName.trim().toLowerCase().replace(/[^a-z0-9]+/g, '-'),
         tagline: formTagline.trim() || `Precision-engineered ${STORE_NAME} mobile smartphone & performance accessory.`,
         shortDescription: formShortDescription.trim() || formTagline.trim() || 'High-efficiency mobile accessory engineered with durable materials for everyday device power and protection.',
         description:
@@ -4151,15 +3954,14 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                 </button>
               </div>
 
-              {/* 5-Layer Navigation Bar */}
-              <div className="grid grid-cols-5 gap-1.5 pt-1">
+              {/* 4-Layer Navigation Bar */}
+              <div className="grid grid-cols-4 gap-1.5 pt-1">
                 {(
                   [
-                    { id: 'basic', label: 'A. Basic Info', icon: 'fa-cube' },
-                    { id: 'compatibility', label: 'B. Compatibility', icon: 'fa-mobile-screen' },
-                    { id: 'specs', label: 'C. Category Specs', icon: 'fa-sliders' },
-                    { id: 'description', label: 'D. Description', icon: 'fa-wand-magic-sparkles' },
-                    { id: 'seo', label: 'E. SEO Info', icon: 'fa-magnifying-glass' },
+                    { id: 'basic', label: '1. Basic info', icon: 'fa-cube' },
+                    { id: 'compatibility', label: '2. Compatibility', icon: 'fa-mobile-screen' },
+                    { id: 'specs', label: '3. Category', icon: 'fa-sliders' },
+                    { id: 'description', label: '4. Description', icon: 'fa-wand-magic-sparkles' },
                   ] as const
                 ).map((layer) => (
                   <button
@@ -4179,169 +3981,37 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
               </div>
             </div>
 
-            {/* AI-ASSISTED URL IMPORTER TOOLBAR (Universal Multi-Platform Parser) */}
+            {/* UNIVERSAL AI PRODUCT IMPORTER (Gemini Screenshot Scanner) */}
             <div className="p-4 rounded-[16px] bg-[#14141B] border border-[#6C63FF]/40 space-y-3 shadow-2xl relative overflow-hidden">
               <div className="absolute top-0 right-0 w-48 h-48 bg-[#6C63FF]/10 rounded-full blur-3xl pointer-events-none" />
-
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1.5 relative z-10">
-                <div className="flex items-center gap-2">
-                  <div className="w-7 h-7 rounded-lg bg-electric-gradient flex items-center justify-center text-white text-xs shadow-electric-glow">
-                    <i className="fa-solid fa-wand-magic-sparkles" />
-                  </div>
-                  <div>
-                    <span className="text-xs font-bold text-white block">
-                      Universal AI Product Importer
-                    </span>
-                    <span className="text-[10px] text-[#A0A0B0]">
-                      Paste any URL (Amazon, Flipkart, brand sites) or product title
-                    </span>
-                  </div>
-                </div>
-
-                <div className="flex items-center gap-2">
-                  <span className="px-2 py-0.5 rounded-full bg-emerald-500/15 border border-emerald-500/30 text-[10px] text-emerald-400 font-mono-num font-bold flex items-center gap-1">
-                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping" />
-                    Gemini 2.5 Multi-Site Parser
-                  </span>
-                </div>
+              <div className="relative z-10">
+                <AdminOcrScreenshotReader
+                  onApplyData={(data: ExtractedProductOcrData) => {
+                    if (data.detectedTitle && (!formName || formName.trim() === '')) {
+                      setFormName(data.detectedTitle);
+                    }
+                    if (data.detectedBrand) setFormPhoneBrand(data.detectedBrand);
+                    if (data.tagline) setFormTagline(data.tagline);
+                    if (data.shortDescription) setFormShortDescription(data.shortDescription);
+                    if (data.fullDescription) setFormDescription(data.fullDescription);
+                    else if (data.rawText) setFormDescription(data.rawText);
+                    if (data.extractedSpecs && data.extractedSpecs.length > 0) {
+                      setFormSpecs((prev) => {
+                        const existingLabels = new Set(prev.map((s) => s.label.toLowerCase()));
+                        const newSpecs = data.extractedSpecs!.filter(
+                          (s) => !existingLabels.has(s.label.toLowerCase())
+                        );
+                        return [...prev, ...newSpecs];
+                      });
+                    }
+                    showToast('✨ Gemini AI scanned product screenshot & filled form!');
+                  }}
+                  onApplyDescriptionOnly={(desc: string) => {
+                    setFormDescription(desc);
+                    showToast('✨ Description updated from product screenshot!');
+                  }}
+                />
               </div>
-
-              <div className="flex items-center gap-2 relative z-10">
-                <div className="relative flex-1">
-                  <i className="fa-solid fa-link absolute left-3.5 top-1/2 -translate-y-1/2 text-xs text-[#6B6B7B]" />
-                  <input
-                    type="text"
-                    value={importUrl}
-                    onChange={(e) => setImportUrl(e.target.value)}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter') {
-                        e.preventDefault();
-                        void handleScrapeProductWithAI();
-                      }
-                    }}
-                    placeholder="Paste URL (e.g. amazon.in/dp/..., flipkart.com/..., official site)..."
-                    className="w-full pl-9 pr-8 py-2.5 rounded-[10px] bg-[#0E0E12] border border-white/15 text-xs text-white placeholder-[#6B6B7B] focus:outline-none focus:border-[#6C63FF] transition-all shadow-inner"
-                  />
-                  {importUrl && (
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setImportUrl('');
-                        setImportedPreview(null);
-                      }}
-                      className="absolute right-2.5 top-1/2 -translate-y-1/2 text-xs text-[#A0A0B0] hover:text-white"
-                    >
-                      <i className="fa-solid fa-xmark" />
-                    </button>
-                  )}
-                </div>
-
-                <button
-                  type="button"
-                  disabled={isImportingWithAI}
-                  onClick={(e) => void handleScrapeProductWithAI(e)}
-                  className="px-5 py-2.5 rounded-[10px] bg-electric-gradient text-white text-xs font-bold shadow-electric-glow whitespace-nowrap flex items-center gap-2 hover:scale-[1.02] active:scale-95 transition-all disabled:opacity-50 shrink-0"
-                >
-                  {isImportingWithAI ? (
-                    <>
-                      <i className="fa-solid fa-circle-notch fa-spin text-xs" />
-                      <span>Importing...</span>
-                    </>
-                  ) : (
-                    <>
-                      <i className="fa-solid fa-bolt text-xs text-[#FF6B35]" />
-                      <span>Auto-Import</span>
-                    </>
-                  )}
-                </button>
-              </div>
-
-              {/* Quick Sample Test Links */}
-              <div className="flex flex-wrap items-center gap-1.5 pt-0.5 relative z-10">
-                <span className="text-[10px] text-[#A0A0B0] font-semibold flex items-center gap-1 mr-1">
-                  <i className="fa-solid fa-bolt text-[9px] text-[#FF6B35]" />
-                  Quick Samples:
-                </span>
-                {[
-                  {
-                    label: '⚡ 65W GaN Charger',
-                    url: 'https://www.amazon.in/dp/B09C5R8Q47-anker-65w-gan-fast-charger-3-port-pd',
-                  },
-                  {
-                    label: '🛡️ MagSafe Armor Case',
-                    url: 'https://www.spigen.com/products/iphone-16-pro-case-ultra-hybrid-mag-fit-matte-black',
-                  },
-                  {
-                    label: '🎧 boAt Airdopes 141 ANC',
-                    url: 'https://www.boat-lifestyle.com/products/airdopes-141-anc-true-wireless-earbuds-42-hours-playback',
-                  },
-                  {
-                    label: '📱 9H Privacy Glass',
-                    url: 'https://www.amazon.in/dp/B0C9QW8811-iphone-16-pro-max-privacy-tempered-glass-screen-protector',
-                  },
-                  {
-                    label: '🔗 100W Braided Cable',
-                    url: 'https://www.amazon.in/dp/B0B5YVRN9X-type-c-to-type-c-100w-fast-charging-braided-cable-1-5m',
-                  },
-                ].map((sample) => (
-                  <button
-                    key={sample.label}
-                    type="button"
-                    disabled={isImportingWithAI}
-                    onClick={() => {
-                      setImportUrl(sample.url);
-                      void handleScrapeProductWithAI(undefined, sample.url);
-                    }}
-                    className="px-2.5 py-1 rounded-[6px] bg-[#1E1E26] hover:bg-[#6C63FF]/20 hover:border-[#6C63FF]/50 border border-white/10 text-[10px] text-[#D0D0E0] hover:text-white transition-all disabled:opacity-50"
-                  >
-                    {sample.label}
-                  </button>
-                ))}
-              </div>
-
-              {isImportingWithAI && (
-                <div className="flex items-center gap-2 p-2.5 rounded-[8px] bg-[#111115] border border-[#6C63FF]/30 text-xs text-[#6C63FF] font-semibold animate-pulse">
-                  <i className="fa-solid fa-gear fa-spin text-xs" />
-                  <span>{importProgressStep}</span>
-                </div>
-              )}
-
-              {/* Live Scraped Preview Drawer */}
-              {importedPreview && !isImportingWithAI && (
-                <div className="p-3 rounded-[12px] bg-[#111115] border border-emerald-500/30 flex items-center justify-between gap-3 text-xs animate-page-enter">
-                  <div className="flex items-center gap-3 min-w-0">
-                    <div className="w-10 h-10 rounded-lg bg-[#1A1A1F] border border-white/10 overflow-hidden shrink-0 flex items-center justify-center">
-                      <ResilientImage
-                        src={
-                          importedPreview.images?.[0] ||
-                          uploadedImages[0] ||
-                          'https://placehold.co/100x100/1A1A1F/6C63FF?text=Product'
-                        }
-                        alt="Scraped Preview"
-                        className="w-full h-full object-cover"
-                      />
-                    </div>
-                    <div className="min-w-0">
-                      <div className="flex items-center gap-2">
-                        <span className="font-bold text-white truncate max-w-[280px]">
-                          {importedPreview.name || formName}
-                        </span>
-                        <span className="px-2 py-0.2 rounded bg-[#6C63FF]/20 text-[#6C63FF] text-[9px] font-bold uppercase">
-                          {importedPreview.category || formCategory}
-                        </span>
-                      </div>
-                      <p className="text-[11px] text-[#A0A0B0] truncate">
-                        ₹{importedPreview.price || formPrice} · {importedPreview.specs?.length || formSpecs.length} specs extracted · Auto-populated across 5 layers
-                      </p>
-                    </div>
-                  </div>
-
-                  <span className="text-[10px] text-emerald-400 font-bold flex items-center gap-1 shrink-0">
-                    <i className="fa-solid fa-circle-check text-xs" />
-                    Applied
-                  </span>
-                </div>
-              )}
             </div>
 
             {/* LAYER A: BASIC INFORMATION */}
@@ -4911,74 +4581,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
               </div>
             )}
 
-            {/* LAYER E: SEO INFORMATION */}
-            {activeFormLayer === 'seo' && (
-              <div className="space-y-3.5 animate-page-enter">
-                <div className="p-3.5 rounded-[12px] bg-[#16161C] border border-white/10 space-y-1">
-                  <h4 className="text-xs font-bold text-white flex items-center gap-1.5">
-                    <i className="fa-solid fa-magnifying-glass text-emerald-400" />
-                    <span>Search Engine Optimization (SEO Metadata)</span>
-                  </h4>
-                  <p className="text-[11px] text-[#A0A0B0]">
-                    Controls how this product appears on Google Search and social share cards
-                  </p>
-                </div>
 
-                <div className="space-y-3">
-                  <div>
-                    <label className="block text-xs font-semibold text-[#A0A0B0] mb-1">
-                      SEO Title Tag
-                    </label>
-                    <input
-                      type="text"
-                      value={formSeoTitle}
-                      onChange={(e) => setFormSeoTitle(e.target.value)}
-                      placeholder="e.g. Buy CrazyCharge 100W USB-C Cable | Best Price India"
-                      className="w-full px-3.5 py-2.5 rounded-[8px] bg-[#1A1A1F] border border-white/10 text-xs text-white focus:outline-none focus:border-[#6C63FF]"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-xs font-semibold text-[#A0A0B0] mb-1">
-                      Meta Description
-                    </label>
-                    <textarea
-                      rows={2}
-                      value={formSeoDescription}
-                      onChange={(e) => setFormSeoDescription(e.target.value)}
-                      placeholder="Brief search snippet describing product features & warranty..."
-                      className="w-full p-3 rounded-[8px] bg-[#1A1A1F] border border-white/10 text-xs text-white placeholder-[#6B6B7B] focus:outline-none focus:border-[#6C63FF]"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-xs font-semibold text-[#A0A0B0] mb-1">
-                      Keywords (Comma Separated)
-                    </label>
-                    <input
-                      type="text"
-                      value={formSeoKeywords}
-                      onChange={(e) => setFormSeoKeywords(e.target.value)}
-                      placeholder="usb-c cable, 100w pd, fast charging, crazy mobiles"
-                      className="w-full px-3.5 py-2.5 rounded-[8px] bg-[#1A1A1F] border border-white/10 text-xs text-white focus:outline-none focus:border-[#6C63FF]"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-xs font-semibold text-[#A0A0B0] mb-1">
-                      URL Slug
-                    </label>
-                    <input
-                      type="text"
-                      value={formSlug}
-                      onChange={(e) => setFormSlug(e.target.value)}
-                      placeholder="e.g. crazycharge-100w-usb-c-cable"
-                      className="w-full px-3.5 py-2.5 rounded-[8px] bg-[#1A1A1F] border border-white/10 text-xs font-mono-num text-white focus:outline-none focus:border-[#6C63FF]"
-                    />
-                  </div>
-                </div>
-              </div>
-            )}
 
             {/* Modal Actions */}
             <div className="flex items-center justify-between pt-4 border-t border-white/[0.08]">
@@ -5013,7 +4616,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                 </button>
                 <button
                   type="submit"
-                  disabled={isUploadingFiles || isImportingWithAI}
+                  disabled={isUploadingFiles}
                   className="px-5 py-2 rounded-[8px] bg-electric-gradient text-white text-xs font-semibold shadow-electric-glow hover:scale-[1.02] active:scale-95 transition-all"
                 >
                   {editingProduct ? 'Save Product Changes' : 'Create Product Catalog Entry'}
