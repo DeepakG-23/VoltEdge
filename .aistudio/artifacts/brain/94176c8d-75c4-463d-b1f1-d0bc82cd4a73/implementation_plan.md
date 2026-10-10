@@ -1,24 +1,25 @@
-# Implementation Plan - MongoDB & Flask Deployment on Railway
+# Implementation Plan - Firebase Firestore Real-Time Migration (Dismiss MongoDB & Flask)
 
-This plan outlines how to configure the `MONGO_PRIVATE_URL` / `MONGO_URL` environment variable on Railway and deploy the Python Flask backend service.
+This plan outlines the complete removal of the MongoDB/Flask backend and the full integration of Firebase Firestore for real-time data persistence, live inventory sync, and product/order management in Crazy Mobiles.
 
 ## User Requirements Addressed
-1. Where to add the `MONGO_PRIVATE_URL` variable in Railway.
-2. Instructions on deploying the Python Flask backend service to Railway.
+1. Dismiss MongoDB private URL and remove Python Flask backend.
+2. Enable storing real products (deleting demo ones) and real-time data changes across clients and admin dashboard using Firebase Firestore.
 
 ## Proposed Changes
 
-### 1. Railway Environment Variable Configuration
-- **Step 1**: In the Railway dashboard, click on your **Flask/Backend service** (or create a service connected to your GitHub repository).
-- **Step 2**: Go to the **Variables** tab of that service.
-- **Step 3**: Click **New Variable** (or "Add Variable Reference").
-- **Step 4**: Enter the variable name (e.g., `MONGO_PRIVATE_URL` or `MONGO_URL`) and paste `${{ MongoDB.MONGO_PRIVATE_URL }}` (or link it via Railway's Variable Reference dropdown selecting MongoDB).
+### 1. Cleanup MongoDB & Flask Backend
+- Delete the `backend/` directory (`app.py`, `requirements.txt`, etc.).
+- Update `package.json` scripts if any referenced Python or MongoDB runners.
+- Update `.env.example` to remove MongoDB connection strings.
 
-### 2. Flask Backend Deployment Configuration on Railway
-- **Procfile** (if needed): Ensure `backend/` has a `Procfile` or `gunicorn` start command.
-- **`backend/requirements.txt`**: Already configured with `flask`, `flask-cors`, `pymongo`, `gunicorn`, `python-dotenv`.
-- **`backend/app.py`**: Already configured to load `MONGO_PRIVATE_URL` or `MONGO_URL` automatically.
+### 2. Firebase Firestore Integration & Real-Time Sync
+- **Products Collection (`products`)**: Update `src/App.tsx` and admin components to fetch and listen to real-time product updates using `onSnapshot` from Firestore.
+- **Orders Collection (`orders`)**: Save new orders directly to Firestore and listen for order status updates in real time.
+- **Customer Profiles & Wishlists**: Ensure customer profiles, wishlists, and cart sync seamlessly with Firestore in real time.
+- **Seed Data Management**: Allow admins to easily clear demo products and add real products directly stored in Firestore.
 
-## Verification Plan
-- Verify environment variables are visible in Railway.
-- Check backend logs after deploy to confirm: `Connected to MongoDB successfully!`.
+### 3. Verification Plan
+- Verify that products added in the Admin Dashboard instantly reflect on the storefront in real time via Firestore `onSnapshot`.
+- Verify orders placed at checkout save to Firestore and appear in the admin orders list.
+- Verify no errors occur due to missing MongoDB or Flask connections.

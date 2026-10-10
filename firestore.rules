@@ -141,8 +141,8 @@ service cloud.firestore {
 
     // 1. Products Catalog (/products/{productId})
     match /products/{productId} {
-      allow get: if isValidId(productId) && resource.data.price >= 0;
-      allow list: if resource.data.price >= 0;
+      allow get: if isValidId(productId);
+      allow list: if true;
 
       allow create: if isAdmin() &&
         isValidId(productId) &&

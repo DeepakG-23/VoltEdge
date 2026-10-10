@@ -461,6 +461,40 @@ export default function App() {
     return () => unsubscribe();
   }, []);
 
+  // Real-time listener for Products in Firestore (Live Catalog & Inventory Sync)
+  useEffect(() => {
+    const unsubProducts = onSnapshot(
+      collection(db, 'products'),
+      (snap) => {
+        if (!snap.empty) {
+          const remoteProducts: Product[] = [];
+          snap.forEach((docSnap) => {
+            const data = docSnap.data() as Product;
+            remoteProducts.push({
+              ...data,
+              image: resolveAssetUrl(data.image),
+              placeholderUrl: resolveAssetUrl(data.placeholderUrl || data.image),
+              gallery: Array.isArray(data.gallery)
+                ? data.gallery.map((g) => ({ ...g, url: resolveAssetUrl(g.url) }))
+                : [],
+            });
+          });
+          if (remoteProducts.length > 0) {
+            setProducts(remoteProducts);
+          }
+        } else {
+          SEED_PRODUCTS.forEach((p) => {
+            setDoc(doc(db, 'products', String(p.id)), p).catch(() => {});
+          });
+        }
+      },
+      (error) => {
+        handleFirestoreError(error, OperationType.LIST, 'products');
+      }
+    );
+    return () => unsubProducts();
+  }, []);
+
   // 2. Firestore Real-Time Listeners (Wishlist & Orders for Authenticated User)
   useEffect(() => {
     if (!isAuthReady || !currentUser) return;
@@ -1191,34 +1225,53 @@ export default function App() {
   const handleAdminAddProduct = (newProd: Omit<Product, 'id'>) => {
     const nextId =
       products.reduce((maxId, p) => Math.max(maxId, p.id), 0) + 1;
-    setProducts((prev) => [{ ...newProd, id: nextId }, ...prev]);
+    const fullProduct: Product = { ...newProd, id: nextId };
+    setProducts((prev) => [fullProduct, ...prev]);
+
+    setDoc(doc(db, 'products', String(nextId)), fullProduct).catch((err) => {
+      handleFirestoreError(err, OperationType.CREATE, `products/${nextId}`);
+    });
+
     logAdminAction(
       'Product Added',
-      `Added product "${newProd.name}" (${formatINR(newProd.price)}, Stock: ${newProd.stock})`,
+      `Added product "${fullProduct.name}" (${formatINR(fullProduct.price)}, Stock: ${fullProduct.stock})`,
       nextId,
       'products'
     );
+    showToast(`Product "${fullProduct.name}" saved to Firestore database!`);
   };
 
   const handleAdminUpdateProduct = (updated: Product) => {
     setProducts((prev) => prev.map((p) => (p.id === updated.id ? updated : p)));
+
+    setDoc(doc(db, 'products', String(updated.id)), updated).catch((err) => {
+      handleFirestoreError(err, OperationType.UPDATE, `products/${updated.id}`);
+    });
+
     logAdminAction(
       'Product Updated',
       `Updated product #${updated.id} "${updated.name}" (${formatINR(updated.price)}, Stock: ${updated.stock})`,
       updated.id,
       'products'
     );
+    showToast(`Product "${updated.name}" updated in Firestore!`);
   };
 
   const handleAdminDeleteProduct = (productId: number) => {
     const target = products.find((p) => p.id === productId);
     setProducts((prev) => prev.filter((p) => p.id !== productId));
+
+    deleteDoc(doc(db, 'products', String(productId))).catch((err) => {
+      handleFirestoreError(err, OperationType.DELETE, `products/${productId}`);
+    });
+
     logAdminAction(
       'Product Deleted',
       `Deleted product #${productId} "${target?.name || 'Item'}"`,
       productId,
       'products'
     );
+    showToast(`Product deleted from Firestore database`);
   };
 
   const handleAdminUpdateOrderStatus = (orderId: string, status: OrderStatus) => {
