@@ -482,10 +482,6 @@ export default function App() {
           if (remoteProducts.length > 0) {
             setProducts(remoteProducts);
           }
-        } else {
-          SEED_PRODUCTS.forEach((p) => {
-            setDoc(doc(db, 'products', String(p.id)), p).catch(() => {});
-          });
         }
       },
       (error) => {
