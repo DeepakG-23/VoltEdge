@@ -440,6 +440,15 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
       (s) => s && s.label && s.label.trim() && s.value && s.value.trim()
     );
 
+    const applyFallbackDescription = (specs: {label: string, value: string}[]) => {
+      const listStr = specs.map((s) => `${s.label}: ${s.value}`).join(', ');
+      const desc = `Engineered for premium performance featuring: ${listStr}. High-efficiency mobile accessory built with durable materials.`;
+      setFormShortDescription(desc.substring(0, 50) + '...');
+      setFormTagline('Premium Performance');
+      setFormDescription(desc);
+      showToast('⚠️ AI service busy, using default description.');
+    };
+
     if (validSpecs.length === 0 && !formName.trim()) {
       return;
     }
@@ -463,7 +472,10 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
 
       if (res.ok) {
         const json = await res.json();
-        if (json.success && json.data) {
+        if (json.quotaExceeded) {
+          console.warn('Gemini API quota exceeded, using fallback.');
+          applyFallbackDescription(validSpecs);
+        } else if (json.success && json.data) {
           const {
             shortDescription,
             tagline,
@@ -474,12 +486,16 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
           if (tagline) setFormTagline(tagline);
           if (fullDescription) setFormDescription(fullDescription);
 
-
           if (!silentToast) {
             showToast('✨ Gemini AI generated marketing copy & customer benefits!');
           }
           return;
         }
+      } else if (res.status === 429) {
+        console.warn('Gemini API quota exceeded, using fallback.');
+        applyFallbackDescription(validSpecs);
+      } else {
+        console.error('Gemini API error:', await res.text());
       }
       throw new Error('API fallback');
     } catch {
@@ -621,18 +637,33 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const barChartInstanceRef = useRef<any>(null);
 
-  const handleLogin = (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     const idTrimmed = username.trim().toLowerCase();
     const passTrimmed = password.trim();
+
+    // Owner Auth Check
     if (
       (idTrimmed === 'shoeb' || idTrimmed === 'admin') &&
       (passTrimmed === 'admin' || passTrimmed === 'admin123' || passTrimmed === 'crazymobiles')
     ) {
-      setIsAuthenticated(true);
-      sessionStorage.setItem('voltedge_admin_auth', 'true');
-      setLoginError('');
-      showToast(`Signed in to ${STORE_NAME} Admin Console`);
+      try {
+        const { signInWithPopup, auth, googleProvider, signOut } = await import('../firebase');
+        const result = await signInWithPopup(auth, googleProvider);
+        
+        if (result.user.email === 'deepakpanditgaikwad2004@gmail.com') {
+          setIsAuthenticated(true);
+          sessionStorage.setItem('voltedge_admin_auth', 'true');
+          setLoginError('');
+          showToast(`Signed in as Store Owner: ${result.user.email}`);
+        } else {
+          await signOut(auth);
+          setLoginError('Authentication failed: Not authorized as store owner.');
+        }
+      } catch (err) {
+        console.error('Firebase Auth Error:', err);
+        setLoginError('Failed to authenticate with Firebase.');
+      }
     } else {
       setLoginError('Invalid owner credentials.');
     }

@@ -364,9 +364,19 @@ Return strictly valid JSON adhering to the schema.`;
 
     const parsed = JSON.parse(geminiRes.text || '{}');
     return res.json({ success: true, data: parsed });
-  } catch (error: unknown) {
+  } catch (error: any) {
     const errMsg = error instanceof Error ? error.message : String(error);
     console.error('Error generating description with Gemini:', errMsg);
+    
+    // Check if error is due to rate limits
+    if (errMsg.includes('429') || errMsg.includes('RESOURCE_EXHAUSTED')) {
+      return res.status(200).json({
+        success: false,
+        quotaExceeded: true,
+        error: 'Gemini quota exceeded',
+      });
+    }
+
     return res.status(500).json({
       error: 'Failed to generate marketing description',
       details: errMsg,

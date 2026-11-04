@@ -143,8 +143,7 @@ export default function App() {
     } catch {
       // ignore storage errors
     }
-    localStorage.setItem(STORAGE_KEYS.PRODUCTS, JSON.stringify(SEED_PRODUCTS));
-    return SEED_PRODUCTS;
+    return [];
   });
 
   // Persisted Orders
@@ -168,8 +167,7 @@ export default function App() {
     } catch {
       // ignore storage errors
     }
-    localStorage.setItem(STORAGE_KEYS.ORDERS, JSON.stringify(SEED_ORDERS));
-    return SEED_ORDERS;
+    return [];
   });
 
   // Persisted Cart
@@ -258,6 +256,11 @@ export default function App() {
     }
     return SEED_AUDIT_LOGS;
   });
+
+  useEffect(() => {
+    localStorage.removeItem(STORAGE_KEYS.PRODUCTS);
+    localStorage.removeItem(STORAGE_KEYS.ORDERS);
+  }, []);
 
   useEffect(() => {
     try {
@@ -1223,7 +1226,7 @@ export default function App() {
     const fullProduct: Product = { ...newProd, id: nextId };
     setProducts((prev) => [fullProduct, ...prev]);
 
-    setDoc(doc(db, 'products', String(nextId)), fullProduct).catch((err) => {
+    setDoc(doc(db, 'products', String(nextId)), { ...fullProduct, createdAt: serverTimestamp(), updatedAt: serverTimestamp() }).catch((err) => {
       handleFirestoreError(err, OperationType.CREATE, `products/${nextId}`);
     });
 
@@ -1239,7 +1242,7 @@ export default function App() {
   const handleAdminUpdateProduct = (updated: Product) => {
     setProducts((prev) => prev.map((p) => (p.id === updated.id ? updated : p)));
 
-    setDoc(doc(db, 'products', String(updated.id)), updated).catch((err) => {
+    setDoc(doc(db, 'products', String(updated.id)), { ...updated, updatedAt: serverTimestamp() }).catch((err) => {
       handleFirestoreError(err, OperationType.UPDATE, `products/${updated.id}`);
     });
 
@@ -1292,24 +1295,7 @@ export default function App() {
   };
 
 
-  const handleRestoreDefaultCatalog = () => {
-    localStorage.setItem(STORAGE_KEYS.PRODUCTS, JSON.stringify(SEED_PRODUCTS));
-    localStorage.setItem(STORAGE_KEYS.ORDERS, JSON.stringify(SEED_ORDERS));
-    localStorage.setItem(
-      STORAGE_KEYS.HOME_CONFIG,
-      JSON.stringify(DEFAULT_HOME_PAGE_CONFIG)
-    );
-    setProducts(SEED_PRODUCTS);
-    setOrders(SEED_ORDERS);
-    setHomeConfig(DEFAULT_HOME_PAGE_CONFIG);
-    logAdminAction(
-      'Catalog Restored',
-      'Restored products, orders, and CMS configuration to default store catalog.',
-      undefined,
-      'system'
-    );
-    showToast('Store catalog, orders, and configuration restored to default state');
-  };
+
 
   // Determine Active View from Hash
   const totalCartItems = cart.reduce((acc, item) => acc + item.quantity, 0);
@@ -1352,7 +1338,6 @@ export default function App() {
             onUpdateProduct={handleAdminUpdateProduct}
             onDeleteProduct={handleAdminDeleteProduct}
             onUpdateOrderStatus={handleAdminUpdateOrderStatus}
-            onRestoreDefaultCatalog={handleRestoreDefaultCatalog}
             onExitAdmin={() => navigate('#/home')}
             onAdminLogout={handleAdminLogout}
             showToast={showToast}

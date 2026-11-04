@@ -41,7 +41,7 @@ service cloud.firestore {
     // =========================================================================
     // Entity Validation Blueprints (Anti-Update-Gap)
     // =========================================================================
-    function isValidProduct(data) {
+    function isValidProductForCreate(data) {
       return data.keys().hasAll([
         'name', 'shortName', 'category', 'price', 'originalPrice',
         'stock', 'rating', 'reviewsCount', 'image', 'tagline',
@@ -53,6 +53,26 @@ service cloud.firestore {
         'description', 'createdAt', 'updatedAt'
       ]) &&
       data.name is string && data.name.size() >= 2 && data.name.size() <= 140 &&
+      data.shortName is string && data.shortName.size() >= 2 && data.shortName.size() <= 80 &&
+      data.category is string && data.category.size() >= 3 && data.category.size() <= 40 &&
+      data.category in [
+        'Phone Cases', 'Chargers & Cables', 'Screen Protectors',
+        'Earbuds', 'Power Banks', 'Smart Watches'
+      ] &&
+      data.price is number && data.price >= 0 && data.price <= 1000000 &&
+      data.originalPrice is number && data.originalPrice >= data.price && data.originalPrice <= 1000000 &&
+      data.stock is number && data.stock >= 0 && data.stock <= 100000 &&
+      data.rating is number && data.rating >= 0 && data.rating <= 5 &&
+      data.reviewsCount is number && data.reviewsCount >= 0 && data.reviewsCount <= 10000000 &&
+      data.image is string && data.image.size() >= 1 && data.image.size() <= 15000 &&
+      data.tagline is string && data.tagline.size() >= 2 && data.tagline.size() <= 240 &&
+      data.description is string && data.description.size() >= 2 && data.description.size() <= 1200 &&
+      data.createdAt is timestamp &&
+      data.updatedAt is timestamp;
+    }
+
+    function isValidProductForUpdate(data) {
+      return data.name is string && data.name.size() >= 2 && data.name.size() <= 140 &&
       data.shortName is string && data.shortName.size() >= 2 && data.shortName.size() <= 80 &&
       data.category is string && data.category.size() >= 3 && data.category.size() <= 40 &&
       data.category in [
@@ -144,15 +164,11 @@ service cloud.firestore {
       allow get: if isValidId(productId);
       allow list: if true;
 
-      allow create: if isAdmin() &&
-        isValidId(productId) &&
-        isValidProduct(incoming()) &&
-        incoming().createdAt == request.time &&
-        incoming().updatedAt == request.time;
+      allow create: if isAdmin() && isValidId(productId) && isValidProductForCreate(incoming());
 
       allow update: if isSignedIn() &&
         isValidId(productId) &&
-        isValidProduct(incoming()) &&
+        isValidProductForUpdate(incoming()) &&
         incoming().createdAt == existing().createdAt &&
         incoming().updatedAt == request.time && (
           isAdmin() ||
@@ -162,7 +178,7 @@ service cloud.firestore {
           )
         );
 
-      allow delete: if isValidId(productId);
+      allow delete: if isAdmin() && isValidId(productId);
     }
 
     // 2. Customer Orders (/orders/{orderId}) — PII Isolated
